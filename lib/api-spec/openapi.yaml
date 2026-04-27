@@ -1,0 +1,1115 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: TraclyTag Admin Panel API
+
+servers:
+  - url: /api
+    description: Base API path
+
+tags:
+  - name: health
+  - name: auth
+  - name: companies
+  - name: users
+  - name: products
+  - name: locations
+  - name: batches
+  - name: codes
+  - name: reports
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ---------- AUTH ----------
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in with username + password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out current session
+      responses:
+        "204":
+          description: Logged out
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ---------- COMPANIES (master only) ----------
+  /companies:
+    get:
+      operationId: listCompanies
+      tags: [companies]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Company"
+    post:
+      operationId: createCompany
+      tags: [companies]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompanyBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+  /companies/{id}:
+    delete:
+      operationId: deleteCompany
+      tags: [companies]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ---------- USERS ----------
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{id}:
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ---------- PRODUCTS ----------
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+  /products/{id}:
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ---------- LOCATIONS ----------
+  /locations:
+    get:
+      operationId: listLocations
+      tags: [locations]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Location"
+    post:
+      operationId: createLocation
+      tags: [locations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLocationBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+  /locations/{id}:
+    delete:
+      operationId: deleteLocation
+      tags: [locations]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ---------- BATCHES ----------
+  /batches:
+    get:
+      operationId: listBatches
+      tags: [batches]
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Batch"
+    post:
+      operationId: createBatch
+      tags: [batches]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBatchBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Batch"
+  /batches/{id}:
+    delete:
+      operationId: deleteBatch
+      tags: [batches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ---------- CODES ----------
+  /codes:
+    get:
+      operationId: listCodes
+      tags: [codes]
+      parameters:
+        - name: level
+          in: query
+          schema:
+            $ref: "#/components/schemas/CodeLevel"
+        - name: batchId
+          in: query
+          schema:
+            type: integer
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Code"
+    post:
+      operationId: generateCodes
+      tags: [codes]
+      summary: Generate a quantity of GS1 codes for a batch at a given level
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCodesBody"
+      responses:
+        "201":
+          description: Generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateCodesResponse"
+  /codes/{id}/map:
+    post:
+      operationId: mapCode
+      tags: [codes]
+      summary: Mark a code as mapped to a location
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MapCodeBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Code"
+
+  # ---------- REPORTS ----------
+  /reports/dashboard:
+    get:
+      operationId: getDashboardSummary
+      tags: [reports]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /reports/stock:
+    get:
+      operationId: getStockReport
+      tags: [reports]
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockRow"
+  /reports/product:
+    get:
+      operationId: getProductReport
+      tags: [reports]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductReportRow"
+  /reports/shipper-summary:
+    get:
+      operationId: getShipperSummary
+      tags: [reports]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShipperSummaryRow"
+  /reports/pallet-summary:
+    get:
+      operationId: getPalletSummary
+      tags: [reports]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PalletSummaryRow"
+  /reports/marked-by:
+    get:
+      operationId: getMarkedByLog
+      tags: [reports]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarkedByEntry"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    Role:
+      type: string
+      enum: [master, client_admin, operator]
+
+    LoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [username, password]
+
+    AuthSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        companyId:
+          type: ["integer", "null"]
+        companyName:
+          type: ["string", "null"]
+      required: [id, username, email, role, companyId, companyName]
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        gstin:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, email, address, gstin, createdAt]
+
+    CreateCompanyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        gstin:
+          type: ["string", "null"]
+      required: [name, email, address]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          $ref: "#/components/schemas/Role"
+        companyId:
+          type: ["integer", "null"]
+        companyName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, username, email, phone, role, companyId, companyName, createdAt]
+
+    CreateUserBody:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        password:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        companyId:
+          type: ["integer", "null"]
+      required: [username, email, password, role]
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        skuId:
+          type: string
+        name:
+          type: string
+        skuSize:
+          type: string
+        marketedBy:
+          type: string
+        sapDescription:
+          type: ["string", "null"]
+        gtin:
+          type: string
+        mrp:
+          type: number
+        registrationNo:
+          type: ["string", "null"]
+        l1Size:
+          type: integer
+          description: Units per 1st level inner pack
+        l2Size:
+          type: integer
+          description: 1st level packs per 2nd level inner pack
+        shipperSize:
+          type: integer
+          description: 2nd level packs per shipper
+        cautionLogoUrl:
+          type: ["string", "null"]
+        productLogoUrl:
+          type: ["string", "null"]
+        labelPdfUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - skuId
+        - name
+        - skuSize
+        - marketedBy
+        - sapDescription
+        - gtin
+        - mrp
+        - registrationNo
+        - l1Size
+        - l2Size
+        - shipperSize
+        - cautionLogoUrl
+        - productLogoUrl
+        - labelPdfUrl
+        - createdAt
+
+    CreateProductBody:
+      type: object
+      properties:
+        skuId:
+          type: string
+        name:
+          type: string
+        skuSize:
+          type: string
+        marketedBy:
+          type: string
+        sapDescription:
+          type: ["string", "null"]
+        gtin:
+          type: string
+          description: 14 digit GTIN
+        mrp:
+          type: number
+        registrationNo:
+          type: ["string", "null"]
+        l1Size:
+          type: integer
+        l2Size:
+          type: integer
+        shipperSize:
+          type: integer
+        cautionLogoUrl:
+          type: ["string", "null"]
+        productLogoUrl:
+          type: ["string", "null"]
+        labelPdfUrl:
+          type: ["string", "null"]
+      required:
+        - skuId
+        - name
+        - skuSize
+        - marketedBy
+        - gtin
+        - mrp
+        - l1Size
+        - l2Size
+        - shipperSize
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        locationType:
+          type: string
+        uniqueName:
+          type: string
+        locationName:
+          type: string
+        contactNo:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - locationType
+        - uniqueName
+        - locationName
+        - contactNo
+        - state
+        - city
+        - address
+        - createdAt
+
+    CreateLocationBody:
+      type: object
+      properties:
+        locationType:
+          type: string
+        uniqueName:
+          type: string
+        locationName:
+          type: string
+        contactNo:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+      required:
+        - locationType
+        - uniqueName
+        - locationName
+        - contactNo
+        - state
+        - city
+        - address
+
+    Batch:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - productId
+        - productName
+        - batchNumber
+        - expiryDate
+        - createdAt
+
+    CreateBatchBody:
+      type: object
+      properties:
+        productId:
+          type: integer
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+      required: [productId, batchNumber, expiryDate]
+
+    CodeLevel:
+      type: string
+      enum: [unit, l1, l2, shipper, pallet]
+
+    Code:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        batchId:
+          type: ["integer", "null"]
+        batchNumber:
+          type: ["string", "null"]
+        level:
+          $ref: "#/components/schemas/CodeLevel"
+        rawString:
+          type: string
+          description: Raw GS1 string with FNC1 (ASCII 232) where applicable, no brackets
+        serialNumber:
+          type: ["string", "null"]
+        ssccCode:
+          type: ["string", "null"]
+        mapped:
+          type: boolean
+        mappedAt:
+          type: ["string", "null"]
+          format: date-time
+        mappedByUserId:
+          type: ["integer", "null"]
+        mappedByUsername:
+          type: ["string", "null"]
+        locationId:
+          type: ["integer", "null"]
+        locationName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - productId
+        - productName
+        - batchId
+        - batchNumber
+        - level
+        - rawString
+        - serialNumber
+        - ssccCode
+        - mapped
+        - mappedAt
+        - mappedByUserId
+        - mappedByUsername
+        - locationId
+        - locationName
+        - createdAt
+
+    GenerateCodesBody:
+      type: object
+      properties:
+        batchId:
+          type: integer
+        level:
+          $ref: "#/components/schemas/CodeLevel"
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 5000
+      required: [batchId, level, quantity]
+
+    GenerateCodesResponse:
+      type: object
+      properties:
+        generated:
+          type: integer
+        codes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Code"
+      required: [generated, codes]
+
+    MapCodeBody:
+      type: object
+      properties:
+        locationId:
+          type: integer
+      required: [locationId]
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalProducts:
+          type: integer
+        totalBatches:
+          type: integer
+        totalCodes:
+          type: integer
+        totalMapped:
+          type: integer
+        totalUnmapped:
+          type: integer
+        totalLocations:
+          type: integer
+        totalUsers:
+          type: integer
+        totalCompanies:
+          type: integer
+        recentCodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Code"
+        codesByLevel:
+          type: array
+          items:
+            $ref: "#/components/schemas/LevelCount"
+      required:
+        - totalProducts
+        - totalBatches
+        - totalCodes
+        - totalMapped
+        - totalUnmapped
+        - totalLocations
+        - totalUsers
+        - totalCompanies
+        - recentCodes
+        - codesByLevel
+
+    LevelCount:
+      type: object
+      properties:
+        level:
+          $ref: "#/components/schemas/CodeLevel"
+        count:
+          type: integer
+      required: [level, count]
+
+    StockRow:
+      type: object
+      properties:
+        productId:
+          type: integer
+        productName:
+          type: string
+        batchId:
+          type: integer
+        batchNumber:
+          type: string
+        totalCodes:
+          type: integer
+        mapped:
+          type: integer
+        unmapped:
+          type: integer
+        location:
+          type: ["string", "null"]
+      required:
+        - productId
+        - productName
+        - batchId
+        - batchNumber
+        - totalCodes
+        - mapped
+        - unmapped
+        - location
+
+    ProductReportRow:
+      type: object
+      properties:
+        productId:
+          type: integer
+        productName:
+          type: string
+        batchId:
+          type: integer
+        batchNumber:
+          type: string
+        size:
+          type: string
+        total:
+          type: integer
+        mapped:
+          type: integer
+        unmapped:
+          type: integer
+      required:
+        - productId
+        - productName
+        - batchId
+        - batchNumber
+        - size
+        - total
+        - mapped
+        - unmapped
+
+    ShipperSummaryRow:
+      type: object
+      properties:
+        productId:
+          type: integer
+        productName:
+          type: string
+        batchId:
+          type: integer
+        batchNumber:
+          type: string
+        size:
+          type: string
+        total:
+          type: integer
+        shipperMapped:
+          type: integer
+        shipperUnmapped:
+          type: integer
+      required:
+        - productId
+        - productName
+        - batchId
+        - batchNumber
+        - size
+        - total
+        - shipperMapped
+        - shipperUnmapped
+
+    PalletSummaryRow:
+      type: object
+      properties:
+        productId:
+          type: integer
+        productName:
+          type: string
+        batchId:
+          type: integer
+        batchNumber:
+          type: string
+        size:
+          type: string
+        total:
+          type: integer
+        palletMapped:
+          type: integer
+        palletUnmapped:
+          type: integer
+      required:
+        - productId
+        - productName
+        - batchId
+        - batchNumber
+        - size
+        - total
+        - palletMapped
+        - palletUnmapped
+
+    MarkedByEntry:
+      type: object
+      properties:
+        codeId:
+          type: integer
+        rawString:
+          type: string
+        level:
+          $ref: "#/components/schemas/CodeLevel"
+        productName:
+          type: string
+        batchNumber:
+          type: ["string", "null"]
+        locationName:
+          type: ["string", "null"]
+        mappedByUsername:
+          type: string
+        mappedAt:
+          type: string
+          format: date-time
+      required:
+        - codeId
+        - rawString
+        - level
+        - productName
+        - batchNumber
+        - locationName
+        - mappedByUsername
+        - mappedAt
