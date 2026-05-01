@@ -115,7 +115,7 @@ async function main() {
         marketedBy: "Demo Pharma Pvt Ltd",
         sapDescription: "PARACETAMOL TABLETS IP 500MG",
         gtin: "08901234567896",
-        mrp: "45.00",
+        mrp: 45.00,
         registrationNo: "MH/DRUGS/2023/0451",
         l1Size: 10,
         l2Size: 100,
@@ -132,7 +132,7 @@ async function main() {
         marketedBy: "Demo Pharma Pvt Ltd",
         sapDescription: "ASCORBIC ACID 1000MG EFFERVESCENT",
         gtin: "08907654321094",
-        mrp: "299.00",
+        mrp: 299.00,
         registrationNo: "MH/DRUGS/2023/0892",
         l1Size: 6,
         l2Size: 36,
@@ -236,7 +236,7 @@ async function main() {
       .update(codesTable)
       .set({
         mapped: true,
-        mappedAt: new Date(),
+        mappedAt: new Date().toISOString(),
         mappedByUserId: 3, // demo_op
         locationId: warehouse!.id,
       })

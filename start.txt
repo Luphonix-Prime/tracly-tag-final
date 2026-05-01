@@ -1,0 +1,2 @@
+start cmd : pnpm --filter @workspace/api-server run dev
+frontend cmd : pnpm --filter @workspace/traclytag run dev

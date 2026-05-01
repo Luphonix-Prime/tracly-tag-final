@@ -196,7 +196,7 @@ router.post("/codes/:id/map", async (req, res): Promise<void> => {
     .update(codesTable)
     .set({
       mapped: true,
-      mappedAt: new Date(),
+      mappedAt: new Date().toISOString(),
       mappedByUserId: req.user!.id,
       locationId: parsed.data.locationId,
     })

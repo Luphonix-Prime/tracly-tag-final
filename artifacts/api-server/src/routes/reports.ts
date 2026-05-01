@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, gte, lte, sql, desc } from "drizzle-orm";
+import { and, eq, gte, lte, sql, desc, count } from "drizzle-orm";
 import {
   db,
   codesTable,
@@ -25,14 +25,14 @@ function dateRangeConds(from: unknown, to: unknown) {
   const conds = [];
   if (typeof from === "string" && from.length > 0) {
     const d = new Date(from);
-    if (!Number.isNaN(d.getTime())) conds.push(gte(codesTable.createdAt, d));
+    if (!Number.isNaN(d.getTime())) conds.push(gte(codesTable.createdAt, d.toISOString()));
   }
   if (typeof to === "string" && to.length > 0) {
     const d = new Date(to);
     if (!Number.isNaN(d.getTime())) {
       // Make `to` inclusive of the entire day.
       d.setUTCHours(23, 59, 59, 999);
-      conds.push(lte(codesTable.createdAt, d));
+      conds.push(lte(codesTable.createdAt, d.toISOString()));
     }
   }
   return conds;
@@ -42,7 +42,7 @@ router.get("/reports/dashboard", async (req, res): Promise<void> => {
   const scope = companyScope(req.user!);
 
   const [productsAgg] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: count() })
     .from(productsTable)
     .where(
       req.user!.role === "master"
@@ -51,23 +51,23 @@ router.get("/reports/dashboard", async (req, res): Promise<void> => {
     );
 
   const [batchesAgg] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: count() })
     .from(batchesTable)
     .innerJoin(productsTable, eq(batchesTable.productId, productsTable.id))
     .where(scope);
 
   const [codesAgg] = await db
     .select({
-      total: sql<number>`count(*)::int`,
-      mapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)::int`,
-      unmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)::int`,
+      total: count(),
+      mapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)`,
+      unmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)`,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
     .where(scope);
 
   const [locsAgg] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: count() })
     .from(locationsTable)
     .where(
       req.user!.role === "master"
@@ -76,7 +76,7 @@ router.get("/reports/dashboard", async (req, res): Promise<void> => {
     );
 
   const [usersAgg] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: count() })
     .from(usersTable)
     .where(
       req.user!.role === "master"
@@ -85,7 +85,7 @@ router.get("/reports/dashboard", async (req, res): Promise<void> => {
     );
 
   const [companiesAgg] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: count() })
     .from(companiesTable);
 
   const recent = await db
@@ -119,7 +119,7 @@ router.get("/reports/dashboard", async (req, res): Promise<void> => {
   const byLevel = await db
     .select({
       level: codesTable.level,
-      count: sql<number>`count(*)::int`,
+      count: count(),
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
@@ -161,9 +161,9 @@ router.get("/reports/stock", async (req, res): Promise<void> => {
       productName: productsTable.name,
       batchId: batchesTable.id,
       batchNumber: batchesTable.batchNumber,
-      totalCodes: sql<number>`count(${codesTable.id})::int`,
-      mapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)::int`,
-      unmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)::int`,
+      totalCodes: count(codesTable.id),
+      mapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)`,
+      unmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)`,
       location: sql<string | null>`null`,
     })
     .from(codesTable)
@@ -189,9 +189,9 @@ router.get("/reports/product", async (req, res): Promise<void> => {
       batchId: batchesTable.id,
       batchNumber: batchesTable.batchNumber,
       size: productsTable.skuSize,
-      total: sql<number>`count(${codesTable.id})::int`,
-      mapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)::int`,
-      unmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)::int`,
+      total: count(codesTable.id),
+      mapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)`,
+      unmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)`,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
@@ -216,9 +216,9 @@ router.get("/reports/shipper-summary", async (req, res): Promise<void> => {
       batchId: batchesTable.id,
       batchNumber: batchesTable.batchNumber,
       size: productsTable.skuSize,
-      total: sql<number>`count(${codesTable.id})::int`,
-      shipperMapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)::int`,
-      shipperUnmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)::int`,
+      total: count(codesTable.id),
+      shipperMapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)`,
+      shipperUnmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)`,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
@@ -242,9 +242,9 @@ router.get("/reports/pallet-summary", async (req, res): Promise<void> => {
       batchId: batchesTable.id,
       batchNumber: batchesTable.batchNumber,
       size: productsTable.skuSize,
-      total: sql<number>`count(${codesTable.id})::int`,
-      palletMapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)::int`,
-      palletUnmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)::int`,
+      total: count(codesTable.id),
+      palletMapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)`,
+      palletUnmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)`,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))

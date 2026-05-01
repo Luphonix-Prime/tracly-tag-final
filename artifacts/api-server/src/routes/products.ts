@@ -57,14 +57,14 @@ router.post("/products", async (req, res): Promise<void> => {
   const [row] = await db
     .insert(productsTable)
     .values({
-      companyId: companyId!,
+      companyId: Number(companyId!),
       skuId: parsed.data.skuId,
       name: parsed.data.name,
       skuSize: parsed.data.skuSize,
       marketedBy: parsed.data.marketedBy,
       sapDescription: parsed.data.sapDescription ?? null,
       gtin: parsed.data.gtin,
-      mrp: String(parsed.data.mrp),
+      mrp: Number(parsed.data.mrp),
       registrationNo: parsed.data.registrationNo ?? null,
       l1Size: parsed.data.l1Size,
       l2Size: parsed.data.l2Size,
