@@ -665,6 +665,9 @@ components:
           type: ["string", "null"]
         labelPdfUrl:
           type: ["string", "null"]
+        expiryDate:
+          type: string
+          format: date
         createdAt:
           type: string
           format: date-time
@@ -685,6 +688,7 @@ components:
         - cautionLogoUrl
         - productLogoUrl
         - labelPdfUrl
+        - expiryDate
         - createdAt
 
     CreateProductBody:
@@ -719,6 +723,9 @@ components:
           type: ["string", "null"]
         labelPdfUrl:
           type: ["string", "null"]
+        expiryDate:
+          type: string
+          format: date
       required:
         - skuId
         - name
@@ -729,6 +736,7 @@ components:
         - l1Size
         - l2Size
         - shipperSize
+        - expiryDate
 
     Location:
       type: object
@@ -803,9 +811,6 @@ components:
           type: string
         batchNumber:
           type: string
-        expiryDate:
-          type: string
-          format: date
         createdAt:
           type: string
           format: date-time
@@ -814,7 +819,6 @@ components:
         - productId
         - productName
         - batchNumber
-        - expiryDate
         - createdAt
 
     CreateBatchBody:
@@ -824,10 +828,7 @@ components:
           type: integer
         batchNumber:
           type: string
-        expiryDate:
-          type: string
-          format: date
-      required: [productId, batchNumber, expiryDate]
+      required: [productId, batchNumber]
 
     CodeLevel:
       type: string

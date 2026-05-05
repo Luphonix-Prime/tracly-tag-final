@@ -28,7 +28,7 @@ router.get("/batches", async (req, res): Promise<void> => {
       productId: batchesTable.productId,
       productName: productsTable.name,
       batchNumber: batchesTable.batchNumber,
-      expiryDate: batchesTable.expiryDate,
+      expiryDate: productsTable.expiryDate,
       createdAt: batchesTable.createdAt,
     })
     .from(batchesTable)
@@ -44,10 +44,6 @@ router.post("/batches", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const expiryDate =
-    parsed.data.expiryDate instanceof Date
-      ? parsed.data.expiryDate.toISOString().slice(0, 10)
-      : String(parsed.data.expiryDate).slice(0, 10);
 
   try {
     const [row] = await db
@@ -55,7 +51,6 @@ router.post("/batches", async (req, res): Promise<void> => {
       .values({
         productId: parsed.data.productId,
         batchNumber: parsed.data.batchNumber,
-        expiryDate,
       })
       .returning();
 
@@ -65,7 +60,7 @@ router.post("/batches", async (req, res): Promise<void> => {
         productId: batchesTable.productId,
         productName: productsTable.name,
         batchNumber: batchesTable.batchNumber,
-        expiryDate: batchesTable.expiryDate,
+        expiryDate: productsTable.expiryDate,
         createdAt: batchesTable.createdAt,
       })
       .from(batchesTable)

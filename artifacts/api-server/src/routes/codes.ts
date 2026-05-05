@@ -121,7 +121,7 @@ router.post("/codes", async (req, res): Promise<void> => {
       id: batchesTable.id,
       productId: batchesTable.productId,
       batchNumber: batchesTable.batchNumber,
-      expiryDate: batchesTable.expiryDate,
+      expiryDate: productsTable.expiryDate,
       gtin: productsTable.gtin,
       companyId: productsTable.companyId,
     })

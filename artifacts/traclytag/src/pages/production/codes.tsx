@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   useListCodes, getListCodesQueryKey, useGenerateCodes, useMapCode, 
-  useListBatches, useListLocations 
+  useListBatches, useListLocations, useListProducts 
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 
 const generateSchema = z.object({
+  productId: z.coerce.number().min(1, "Product is required"),
   batchId: z.coerce.number().min(1, "Batch is required"),
   level: z.enum(["unit", "l1", "l2", "shipper", "pallet"]),
   quantity: z.coerce.number().min(1).max(5000),
@@ -32,6 +33,7 @@ export default function Codes() {
   const [filterBatchId, setFilterBatchId] = useState<number | undefined>();
   const [search, setSearch] = useState("");
   
+  const { data: products = [] } = useListProducts();
   const { data: batches = [] } = useListBatches({});
   const { data: locations = [] } = useListLocations();
   
@@ -55,7 +57,8 @@ export default function Codes() {
   });
 
   const onGenerate = (values: z.infer<typeof generateSchema>) => {
-    generateCodes.mutate({ data: values }, {
+    const { productId, ...payload } = values;
+    generateCodes.mutate({ data: payload as any }, {
       onSuccess: (res) => {
         queryClient.invalidateQueries({ queryKey: getListCodesQueryKey() });
         toast.success(`Generated ${res.generated} codes`);
@@ -110,18 +113,46 @@ export default function Codes() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onGenerate)} className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="flex-1 w-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 w-full">
+                <FormField control={form.control} name="productId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product</FormLabel>
+                    <Select 
+                      onValueChange={(val) => {
+                        field.onChange(val);
+                        form.setValue("batchId", 0); // Reset batch when product changes
+                      }} 
+                      value={field.value?.toString() || ""}
+                    >
+                      <FormControl><SelectTrigger className="bg-background"><SelectValue placeholder="Select product" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {products.map(p => (
+                          <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
                 <FormField control={form.control} name="batchId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Batch</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value?.toString() || ""}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value?.toString() || ""}
+                      disabled={!form.watch("productId")}
+                    >
                       <FormControl><SelectTrigger className="bg-background"><SelectValue placeholder="Select batch" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        {batches.map(b => (
-                          <SelectItem key={b.id} value={b.id.toString()}>
-                            {b.batchNumber} ({(b as any).productName})
-                          </SelectItem>
-                        ))}
+                        {batches
+                          .filter(b => b.productId === Number(form.watch("productId")))
+                          .map(b => (
+                            <SelectItem key={b.id} value={b.id.toString()}>
+                              {b.batchNumber}
+                            </SelectItem>
+                          ))
+                        }
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -18,6 +18,7 @@ export const productsTable = sqliteTable("products", {
   cautionLogoUrl: text("caution_logo_url"),
   productLogoUrl: text("product_logo_url"),
   labelPdfUrl: text("label_pdf_url"),
+  expiryDate: text("expiry_date").notNull(),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 

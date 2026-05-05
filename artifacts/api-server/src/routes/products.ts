@@ -72,6 +72,10 @@ router.post("/products", async (req, res): Promise<void> => {
       cautionLogoUrl: parsed.data.cautionLogoUrl ?? null,
       productLogoUrl: parsed.data.productLogoUrl ?? null,
       labelPdfUrl: parsed.data.labelPdfUrl ?? null,
+      expiryDate:
+        parsed.data.expiryDate instanceof Date
+          ? parsed.data.expiryDate.toISOString().slice(0, 10)
+          : String(parsed.data.expiryDate).slice(0, 10),
     })
     .returning();
   res.status(201).json({

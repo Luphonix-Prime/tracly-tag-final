@@ -24,7 +24,6 @@ import { cn } from "@/lib/utils";
 const batchSchema = z.object({
   productId: z.coerce.number().min(1, "Product is required"),
   batchNumber: z.string().min(1, "Batch number is required"),
-  expiryDate: z.date({ required_error: "Expiry date is required" }),
 });
 
 export default function Batches() {
@@ -46,7 +45,6 @@ export default function Batches() {
     const payload = {
       productId: values.productId,
       batchNumber: values.batchNumber,
-      expiryDate: format(values.expiryDate, "yyyy-MM-dd"),
     };
 
     createBatch.mutate({ data: payload as any }, {
@@ -110,26 +108,6 @@ export default function Batches() {
                   <FormField control={form.control} name="batchNumber" render={({ field }) => (
                     <FormItem><FormLabel>Batch Number</FormLabel><FormControl><Input className="uppercase" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-                  
-                  <FormField control={form.control} name="expiryDate" render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Expiry Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
 
                   <DialogFooter className="pt-4">
                     <Button type="submit" disabled={createBatch.isPending}>Save Batch</Button>
@@ -164,17 +142,16 @@ export default function Batches() {
               <TableRow>
                 <TableHead>Batch Number</TableHead>
                 <TableHead>Product</TableHead>
-                <TableHead>Expiry Date</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center py-8">Loading...</TableCell></TableRow>
               ) : batches.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Layers className="h-8 w-8 text-muted-foreground/50" />
                       <p>No batches found</p>
@@ -186,7 +163,6 @@ export default function Batches() {
                   <TableRow key={batch.id}>
                     <TableCell className="font-mono font-medium text-primary">{batch.batchNumber}</TableCell>
                     <TableCell>{batch.productName || '-'}</TableCell>
-                    <TableCell>{batch.expiryDate ? format(new Date(batch.expiryDate), "MMM d, yyyy") : '-'}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">{format(new Date(batch.createdAt), "MMM d, yyyy HH:mm")}</TableCell>
                     <TableCell className="text-right">
                       <AlertDialog>

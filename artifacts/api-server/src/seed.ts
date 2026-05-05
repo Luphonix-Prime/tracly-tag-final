@@ -123,6 +123,7 @@ async function main() {
         cautionLogoUrl: null,
         productLogoUrl: null,
         labelPdfUrl: null,
+        expiryDate: "2028-04-30",
       },
       {
         companyId: demoCo!.id,
@@ -140,6 +141,7 @@ async function main() {
         cautionLogoUrl: null,
         productLogoUrl: null,
         labelPdfUrl: null,
+        expiryDate: "2027-12-31",
       },
     ])
     .returning();
@@ -152,12 +154,10 @@ async function main() {
       {
         productId: paracet!.id,
         batchNumber: "PCM2604A",
-        expiryDate: "2028-04-30",
       },
       {
         productId: vitaminC!.id,
         batchNumber: "VTC2604B",
-        expiryDate: "2027-12-31",
       },
     ])
     .returning();
@@ -176,7 +176,7 @@ async function main() {
   for (let i = 0; i < 30; i++) {
     const { raw, serial } = generateUnitCode({
       gtin: paracet!.gtin,
-      expiry: batchA!.expiryDate,
+      expiry: paracet!.expiryDate,
       batch: batchA!.batchNumber,
     });
     codeRows.push({
@@ -191,7 +191,7 @@ async function main() {
   for (let i = 0; i < 20; i++) {
     const { raw, serial } = generateUnitCode({
       gtin: vitaminC!.gtin,
-      expiry: batchB!.expiryDate,
+      expiry: vitaminC!.expiryDate,
       batch: batchB!.batchNumber,
     });
     codeRows.push({

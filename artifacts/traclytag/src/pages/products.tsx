@@ -10,7 +10,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Trash2, Plus, Package } from "lucide-react";
+import { Trash2, Plus, Package, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 const productSchema = z.object({
   skuId: z.string().min(1, "SKU ID required"),
@@ -76,6 +80,7 @@ const productSchema = z.object({
     .optional()
     .or(z.literal("")),
   labelPdfUrl: z.string().url("Must be a URL").optional().or(z.literal("")),
+  expiryDate: z.date({ required_error: "Expiry date is required" }),
 });
 
 type ProductForm = z.infer<typeof productSchema>;
@@ -104,6 +109,7 @@ export default function Products() {
       cautionLogoUrl: "",
       productLogoUrl: "",
       labelPdfUrl: "",
+      expiryDate: undefined as any,
     },
   });
 
@@ -115,6 +121,7 @@ export default function Products() {
       cautionLogoUrl: values.cautionLogoUrl || undefined,
       productLogoUrl: values.productLogoUrl || undefined,
       labelPdfUrl: values.labelPdfUrl || undefined,
+      expiryDate: format(values.expiryDate, "yyyy-MM-dd"),
     };
     createProduct.mutate(
       { data: payload },
@@ -254,6 +261,47 @@ export default function Products() {
                             <FormControl>
                               <Input {...field} />
                             </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="expiryDate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Expiry Date</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                      "w-full pl-3 text-left font-normal",
+                                      !field.value && "text-muted-foreground",
+                                    )}
+                                  >
+                                    {field.value ? (
+                                      format(field.value, "PPP")
+                                    ) : (
+                                      <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -412,20 +460,21 @@ export default function Products() {
                 <TableHead>GTIN</TableHead>
                 <TableHead className="text-right">MRP</TableHead>
                 <TableHead>Pack (L1/L2/Shipper)</TableHead>
+                <TableHead>Expiry</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     Loading…
                   </TableCell>
                 </TableRow>
               ) : products.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center py-12 text-muted-foreground"
                   >
                     <div className="flex flex-col items-center gap-2">
@@ -452,6 +501,11 @@ export default function Products() {
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {product.l1Size} / {product.l2Size} / {product.shipperSize}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {product.expiryDate
+                        ? format(new Date(product.expiryDate), "MMM d, yyyy")
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       <AlertDialog>
