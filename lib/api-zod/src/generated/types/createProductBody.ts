@@ -7,6 +7,8 @@
  */
 
 export interface CreateProductBody {
+  /** @nullable */
+  companyId?: number | null;
   skuId: string;
   name: string;
   skuSize: string;

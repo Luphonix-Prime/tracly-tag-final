@@ -46,11 +46,14 @@ router.post("/products", async (req, res): Promise<void> => {
     return;
   }
 
-  let companyId = req.user!.companyId;
+  const selectedCompanyId =
+    parsed.data.companyId == null ? null : Number(parsed.data.companyId);
+  let companyId =
+    req.user!.role === "master" ? selectedCompanyId : req.user!.companyId;
   if (req.user!.role === "master" && !companyId) {
     res
       .status(400)
-      .json({ error: "Master must select a company context to add products" });
+      .json({ error: "Select a company before adding products" });
     return;
   }
 

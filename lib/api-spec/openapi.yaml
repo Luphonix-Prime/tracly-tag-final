@@ -694,6 +694,9 @@ components:
     CreateProductBody:
       type: object
       properties:
+        companyId:
+          type: ["integer", "null"]
+          description: Required when creating a product as master
         skuId:
           type: string
         name:

@@ -123,6 +123,7 @@ export const ListProductsResponse = zod.array(ListProductsResponseItem)
 
 
 export const CreateProductBody = zod.object({
+  "companyId": zod.number().nullish(),
   "skuId": zod.string(),
   "name": zod.string(),
   "skuSize": zod.string(),
@@ -395,5 +396,4 @@ export const GetMarkedByLogResponseItem = zod.object({
   "mappedAt": zod.coerce.date()
 })
 export const GetMarkedByLogResponse = zod.array(GetMarkedByLogResponseItem)
-
 

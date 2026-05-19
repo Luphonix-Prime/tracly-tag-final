@@ -111,6 +111,8 @@ export interface Product {
 }
 
 export interface CreateProductBody {
+  /** @nullable */
+  companyId?: number | null;
   skuId: string;
   name: string;
   skuSize: string;
@@ -336,4 +338,3 @@ export type GetPalletSummaryParams = {
 from?: string;
 to?: string;
 };
-

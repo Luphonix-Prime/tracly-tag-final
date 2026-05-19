@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { 
   useListCodes, getListCodesQueryKey, useGenerateCodes, useMapCode, 
   useListBatches, useListLocations, useListProducts 
@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { QrCode, Search, Copy, Loader2, Link as LinkIcon } from "lucide-react";
+import { ChevronDown, Copy, Link as LinkIcon, Loader2, QrCode, Search } from "lucide-react";
 import { format } from "date-fns";
 
 import { PageHeader } from "@/components/PageHeader";
@@ -28,10 +28,19 @@ const generateSchema = z.object({
   quantity: z.coerce.number().min(1).max(5000),
 });
 
+function getCreatedAtDate(value: Date | string) {
+  return value instanceof Date ? value : new Date(value);
+}
+
+function getCreatedGroupKey(value: Date | string) {
+  return format(getCreatedAtDate(value), "yyyy-MM-dd HH:mm");
+}
+
 export default function Codes() {
   const [filterLevel, setFilterLevel] = useState<string>("all");
   const [filterBatchId, setFilterBatchId] = useState<number | undefined>();
   const [search, setSearch] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   
   const { data: products = [] } = useListProducts();
   const { data: batches = [] } = useListBatches({});
@@ -96,6 +105,88 @@ export default function Codes() {
     !search || 
     c.rawString.toLowerCase().includes(search.toLowerCase()) || 
     c.serialNumber?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const codeGroups = useMemo(() => {
+    const groups = filteredCodes.reduce<Array<{ key: string; createdAt: Date; codes: typeof filteredCodes }>>((acc, code) => {
+      const key = getCreatedGroupKey(code.createdAt);
+      const existing = acc.find((group) => group.key === key);
+      if (existing) {
+        existing.codes.push(code);
+        return acc;
+      }
+
+      acc.push({
+        key,
+        createdAt: getCreatedAtDate(code.createdAt),
+        codes: [code],
+      });
+      return acc;
+    }, []);
+
+    return groups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }, [filteredCodes]);
+
+  useEffect(() => {
+    if (codeGroups.length === 0) return;
+    const latestKey = codeGroups[0].key;
+    setExpandedGroups((current) => {
+      if (latestKey in current) return current;
+      return { ...current, [latestKey]: true };
+    });
+  }, [codeGroups]);
+
+  const setAllGroupsExpanded = (open: boolean) => {
+    setExpandedGroups(Object.fromEntries(codeGroups.map((group) => [group.key, open])));
+  };
+
+  const renderCodeRow = (code: (typeof filteredCodes)[number]) => (
+    <TableRow key={code.id}>
+      <TableCell>
+        {code.mapped ? (
+          <Badge variant="default" className="bg-green-500/10 text-green-700 hover:bg-green-500/20 border-green-500/20">Mapped</Badge>
+        ) : (
+          <Badge variant="secondary">Unmapped</Badge>
+        )}
+      </TableCell>
+      <TableCell><Badge variant="outline" className="uppercase font-mono">{code.level}</Badge></TableCell>
+      <TableCell>
+        <div className="font-medium text-sm">{(code as any).productName}</div>
+        <div className="text-xs text-muted-foreground font-mono">{(code as any).batchNumber}</div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <code className="text-xs bg-muted px-2 py-1 rounded w-[250px] truncate block" title={code.rawString}>
+            {code.rawString}
+          </code>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(code.rawString)}>
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="text-[10px] text-muted-foreground mt-1">SN: {code.serialNumber || code.ssccCode}</div>
+      </TableCell>
+      <TableCell>
+        {code.mapped ? (
+          <div className="text-sm">
+            <div>{(code as any).locationName}</div>
+            <div className="text-xs text-muted-foreground">by {(code as any).mappedByUsername}</div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        {!code.mapped && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => { setSelectedCodeId(code.id); setMapDialogOpen(true); }}
+          >
+            <LinkIcon className="h-3 w-3 mr-1" /> Map
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
   );
 
   return (
@@ -233,6 +324,16 @@ export default function Codes() {
                 onChange={(e) => setSearch(e.target.value)} 
               />
             </div>
+            {codeGroups.length > 0 && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setAllGroupsExpanded(true)}>
+                  Open all
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setAllGroupsExpanded(false)}>
+                  Collapse all
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -257,54 +358,36 @@ export default function Codes() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredCodes.map((code) => (
-                  <TableRow key={code.id}>
-                    <TableCell>
-                      {code.mapped ? (
-                        <Badge variant="default" className="bg-green-500/10 text-green-700 hover:bg-green-500/20 border-green-500/20">Mapped</Badge>
-                      ) : (
-                        <Badge variant="secondary">Unmapped</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell><Badge variant="outline" className="uppercase font-mono">{code.level}</Badge></TableCell>
-                    <TableCell>
-                      <div className="font-medium text-sm">{(code as any).productName}</div>
-                      <div className="text-xs text-muted-foreground font-mono">{(code as any).batchNumber}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <code className="text-xs bg-muted px-2 py-1 rounded w-[250px] truncate block" title={code.rawString}>
-                          {code.rawString}
-                        </code>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(code.rawString)}>
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground mt-1">SN: {code.serialNumber || code.ssccCode}</div>
-                    </TableCell>
-                    <TableCell>
-                      {code.mapped ? (
-                        <div className="text-sm">
-                          <div>{(code as any).locationName}</div>
-                          <div className="text-xs text-muted-foreground">by {(code as any).mappedByUsername}</div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {!code.mapped && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => { setSelectedCodeId(code.id); setMapDialogOpen(true); }}
+                codeGroups.flatMap((group) => {
+                  const isExpanded = expandedGroups[group.key] ?? false;
+                  const mappedCount = group.codes.filter((code) => code.mapped).length;
+
+                  return [
+                    <TableRow key={group.key} className="bg-muted/45 hover:bg-muted/60">
+                      <TableCell colSpan={6} className="py-2">
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-3 text-left"
+                          onClick={() => setExpandedGroups((current) => ({ ...current, [group.key]: !isExpanded }))}
+                          aria-expanded={isExpanded}
                         >
-                          <LinkIcon className="h-3 w-3 mr-1" /> Map
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
+                          <span className="flex items-center gap-2">
+                            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+                            <span className="font-medium">{format(group.createdAt, "dd MMM yyyy, h:mm a")}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {group.codes.length} entries
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{mappedCount} mapped</span>
+                            <span>{group.codes.length - mappedCount} unmapped</span>
+                          </span>
+                        </button>
+                      </TableCell>
+                    </TableRow>,
+                    ...(isExpanded ? group.codes.map(renderCodeRow) : []),
+                  ];
+                })
               )}
             </TableBody>
           </Table>

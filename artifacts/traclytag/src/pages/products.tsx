@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  useGetCurrentUser,
+  useListCompanies,
   useListProducts,
   getListProductsQueryKey,
   useCreateProduct,
@@ -46,6 +48,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -53,11 +56,38 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
+function getGtinCheckDigit(digits: string) {
+  let sum = 0;
+  const reversed = digits.split("").reverse();
+  for (let i = 0; i < reversed.length; i++) {
+    const digit = parseInt(reversed[i]!, 10);
+    sum += i % 2 === 0 ? digit * 3 : digit;
+  }
+  return (10 - (sum % 10)) % 10;
+}
+
+function isValidGtin(gtin: string) {
+  if (!/^\d{13,14}$/.test(gtin)) return false;
+  const padded = gtin.length === 13 ? `0${gtin}` : gtin;
+  return getGtinCheckDigit(padded.slice(0, 13)) === Number(padded.slice(13));
+}
+
+function getCorrectedGtin(gtin: string) {
+  if (!/^\d{13,14}$/.test(gtin)) return null;
+  const paddedBody = gtin.length === 13 ? `0${gtin.slice(0, 12)}` : gtin.slice(0, 13);
+  const checkDigit = getGtinCheckDigit(paddedBody);
+  return gtin.length === 13
+    ? `${gtin.slice(0, 12)}${checkDigit}`
+    : `${gtin.slice(0, 13)}${checkDigit}`;
+}
+
 const productSchema = z.object({
+  companyId: z.coerce.number().optional(),
   skuId: z.string().min(1, "SKU ID required"),
   name: z.string().min(1, "Name required"),
   skuSize: z.string().min(1, "SKU size required"),
@@ -86,6 +116,9 @@ const productSchema = z.object({
 type ProductForm = z.infer<typeof productSchema>;
 
 export default function Products() {
+  const { data: currentUser } = useGetCurrentUser();
+  const isMaster = currentUser?.role === "master";
+  const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
   const { data: products = [], isLoading } = useListProducts();
   const createProduct = useCreateProduct();
   const deleteProduct = useDeleteProduct();
@@ -96,6 +129,7 @@ export default function Products() {
     resolver: zodResolver(productSchema),
     defaultValues: {
       skuId: "",
+      companyId: undefined,
       name: "",
       skuSize: "",
       marketedBy: "",
@@ -112,10 +146,31 @@ export default function Products() {
       expiryDate: undefined as any,
     },
   });
+  const gtinValue = form.watch("gtin");
+  const correctedGtin = useMemo(() => {
+    if (!gtinValue || isValidGtin(gtinValue)) return null;
+    return getCorrectedGtin(gtinValue);
+  }, [gtinValue]);
 
   const onSubmit = (values: ProductForm) => {
+    if (isMaster && !values.companyId) {
+      form.setError("companyId", { message: "Company is required" });
+      return;
+    }
+
+    if (!isValidGtin(values.gtin)) {
+      const corrected = getCorrectedGtin(values.gtin);
+      form.setError("gtin", {
+        message: corrected
+          ? `Invalid check digit. Use ${corrected}.`
+          : "GTIN must be 13-14 digits.",
+      });
+      return;
+    }
+
     const payload = {
       ...values,
+      companyId: isMaster ? values.companyId : undefined,
       sapDescription: values.sapDescription || undefined,
       registrationNo: values.registrationNo || undefined,
       cautionLogoUrl: values.cautionLogoUrl || undefined,
@@ -180,6 +235,32 @@ export default function Products() {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                   <ScrollArea className="h-[60vh] pr-4">
                     <div className="space-y-4 pb-4">
+                      {isMaster && (
+                        <FormField
+                          control={form.control}
+                          name="companyId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Company</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value?.toString() || ""}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select company" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {companies.map((company) => (
+                                    <SelectItem key={company.id} value={company.id.toString()}>
+                                      {company.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -201,8 +282,31 @@ export default function Products() {
                             <FormItem>
                               <FormLabel>GTIN (13–14 digits)</FormLabel>
                               <FormControl>
-                                <Input className="font-mono" {...field} />
+                                <Input
+                                  className="font-mono"
+                                  inputMode="numeric"
+                                  maxLength={14}
+                                  {...field}
+                                  onChange={(event) => field.onChange(event.target.value.replace(/\D/g, ""))}
+                                />
                               </FormControl>
+                              {correctedGtin && (
+                                <FormDescription className="flex items-center justify-between gap-2">
+                                  <span>Expected value: {correctedGtin}</span>
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    size="sm"
+                                    className="h-auto p-0"
+                                    onClick={() => {
+                                      form.setValue("gtin", correctedGtin, { shouldValidate: true });
+                                      form.clearErrors("gtin");
+                                    }}
+                                  >
+                                    Use it
+                                  </Button>
+                                </FormDescription>
+                              )}
                               <FormMessage />
                             </FormItem>
                           )}
