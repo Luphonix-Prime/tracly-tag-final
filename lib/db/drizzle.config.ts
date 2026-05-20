@@ -4,6 +4,7 @@ export default defineConfig({
   schema: "./src/schema/index.ts",
   dialect: "turso",
   dbCredentials: {
-    url: "file:./traclytag.db",
+    url: process.env.DATABASE_URL || "file:./traclytag.db",
+    authToken: process.env.DATABASE_AUTH_TOKEN,
   },
 });
