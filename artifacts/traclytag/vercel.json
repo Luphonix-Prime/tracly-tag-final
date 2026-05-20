@@ -3,15 +3,19 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://tracly-tag-final-api-server.vercel.app/api/:path*"
-    },
-    {
       "source": "/api/uploads/:path*",
       "destination": "https://tracly-tag-final-api-server.vercel.app/api/uploads/:path*"
     },
     {
-      "source": "/((?!api/uploads|api/).*)",
+      "source": "/api/:path*",
+      "destination": "https://tracly-tag-final-api-server.vercel.app/api/:path*"
+    },
+    {
+      "source": "/code/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
