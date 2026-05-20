@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, desc, inArray, or } from "drizzle-orm";
+import { and, eq, desc, inArray, or, sql } from "drizzle-orm";
 import {
   db,
   codesTable,
@@ -84,8 +84,10 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
           registrationNo: productsTable.registrationNo,
           companyName: companiesTable.name,
           companyAddress: companiesTable.address,
-          productLogoUrl: productsTable.productLogoUrl,
-          sapDescription: productsTable.sapDescription,
+          // Keep public verification resilient even when optional product
+          // branding columns are absent in an older deployed database.
+          productLogoUrl: sql<string | null>`null`,
+          sapDescription: sql<string | null>`null`,
         })
         .from(codesTable)
         .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
