@@ -9,4 +9,6 @@
 export interface CreateBatchBody {
   productId: number;
   batchNumber: string;
+  mfgDate: Date;
+  expiryDate: Date;
 }

@@ -811,6 +811,12 @@ components:
           type: string
         batchNumber:
           type: string
+        mfgDate:
+          type: string
+          format: date
+        expiryDate:
+          type: string
+          format: date
         createdAt:
           type: string
           format: date-time
@@ -819,6 +825,8 @@ components:
         - productId
         - productName
         - batchNumber
+        - mfgDate
+        - expiryDate
         - createdAt
 
     CreateBatchBody:
@@ -828,7 +836,13 @@ components:
           type: integer
         batchNumber:
           type: string
-      required: [productId, batchNumber]
+        mfgDate:
+          type: string
+          format: date
+        expiryDate:
+          type: string
+          format: date
+      required: [productId, batchNumber, mfgDate, expiryDate]
 
     CodeLevel:
       type: string
@@ -872,6 +886,18 @@ components:
         createdAt:
           type: string
           format: date-time
+        mfgDate:
+          type: ["string", "null"]
+        expiryDate:
+          type: ["string", "null"]
+        marketedBy:
+          type: ["string", "null"]
+        registrationNo:
+          type: ["string", "null"]
+        companyName:
+          type: ["string", "null"]
+        companyAddress:
+          type: ["string", "null"]
       required:
         - id
         - productId

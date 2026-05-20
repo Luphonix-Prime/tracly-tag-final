@@ -8,6 +8,7 @@ import locationsRouter from "./locations";
 import batchesRouter from "./batches";
 import codesRouter from "./codes";
 import reportsRouter from "./reports";
+import uploadRouter from "./upload";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(locationsRouter);
 router.use(batchesRouter);
 router.use(codesRouter);
 router.use(reportsRouter);
+router.use(uploadRouter);
 
 export default router;

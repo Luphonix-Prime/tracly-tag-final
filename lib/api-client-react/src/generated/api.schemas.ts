@@ -162,12 +162,16 @@ export interface Batch {
   productId: number;
   productName: string;
   batchNumber: string;
+  mfgDate: string;
+  expiryDate: string;
   createdAt: string;
 }
 
 export interface CreateBatchBody {
   productId: number;
   batchNumber: string;
+  mfgDate: string;
+  expiryDate: string;
 }
 
 export type CodeLevel = typeof CodeLevel[keyof typeof CodeLevel];
@@ -208,6 +212,18 @@ export interface Code {
   /** @nullable */
   locationName: string | null;
   createdAt: string;
+  /** @nullable */
+  mfgDate?: string | null;
+  /** @nullable */
+  expiryDate?: string | null;
+  /** @nullable */
+  marketedBy?: string | null;
+  /** @nullable */
+  registrationNo?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  companyAddress?: string | null;
 }
 
 export interface GenerateCodesBody {

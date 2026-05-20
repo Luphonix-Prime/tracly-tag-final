@@ -28,7 +28,8 @@ router.get("/batches", async (req, res): Promise<void> => {
       productId: batchesTable.productId,
       productName: productsTable.name,
       batchNumber: batchesTable.batchNumber,
-      expiryDate: productsTable.expiryDate,
+      mfgDate: batchesTable.mfgDate,
+      expiryDate: batchesTable.expiryDate,
       createdAt: batchesTable.createdAt,
     })
     .from(batchesTable)
@@ -51,6 +52,8 @@ router.post("/batches", async (req, res): Promise<void> => {
       .values({
         productId: parsed.data.productId,
         batchNumber: parsed.data.batchNumber,
+        mfgDate: parsed.data.mfgDate.toISOString(),
+        expiryDate: parsed.data.expiryDate.toISOString(),
       })
       .returning();
 
@@ -60,7 +63,8 @@ router.post("/batches", async (req, res): Promise<void> => {
         productId: batchesTable.productId,
         productName: productsTable.name,
         batchNumber: batchesTable.batchNumber,
-        expiryDate: productsTable.expiryDate,
+        mfgDate: batchesTable.mfgDate,
+        expiryDate: batchesTable.expiryDate,
         createdAt: batchesTable.createdAt,
       })
       .from(batchesTable)

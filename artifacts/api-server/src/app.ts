@@ -5,6 +5,8 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./lib/session";
 import { loadUser } from "./middlewares/loadUser";
+import path from "path";
+import fs from "fs";
 
 const app: Express = express();
 
@@ -42,5 +44,12 @@ app.use(sessionMiddleware);
 app.use(loadUser);
 
 app.use("/api", router);
+
+// Serve static uploaded files under /api/uploads
+const uploadDir = path.resolve(__dirname, "../uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use("/api/uploads", express.static(uploadDir));
 
 export default app;

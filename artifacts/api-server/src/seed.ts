@@ -154,10 +154,14 @@ async function main() {
       {
         productId: paracet!.id,
         batchNumber: "PCM2604A",
+        mfgDate: "2026-04-01",
+        expiryDate: "2028-04-30",
       },
       {
         productId: vitaminC!.id,
         batchNumber: "VTC2604B",
+        mfgDate: "2026-04-15",
+        expiryDate: "2027-12-31",
       },
     ])
     .returning();
