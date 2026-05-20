@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import NotFound from "@/pages/not-found";
 
 import Login from "@/pages/login";
+import PublicVerify from "@/pages/public-verify";
 import Dashboard from "@/pages/dashboard";
 import Companies from "@/pages/companies";
 import Users from "@/pages/users";
@@ -70,6 +71,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/code/:serial" component={PublicVerify} />
       <Route path="/" component={RedirectToDashboard} />
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/companies"><ProtectedRoute component={Companies} /></Route>

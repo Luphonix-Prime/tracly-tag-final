@@ -58511,6 +58511,53 @@ var batches_default = router7;
 // src/routes/codes.ts
 var import_express8 = __toESM(require_express2(), 1);
 var router8 = (0, import_express8.Router)();
+router8.get("/codes/public/:serial", async (req, res) => {
+  const serial = req.params.serial;
+  if (!serial) {
+    res.status(400).json({ error: "Serial number is required" });
+    return;
+  }
+  try {
+    const aliasUser2 = usersTable;
+    const rows = await db.select({
+      id: codesTable.id,
+      productId: codesTable.productId,
+      productName: productsTable.name,
+      batchId: codesTable.batchId,
+      batchNumber: batchesTable.batchNumber,
+      level: codesTable.level,
+      rawString: codesTable.rawString,
+      serialNumber: codesTable.serialNumber,
+      ssccCode: codesTable.ssccCode,
+      mapped: codesTable.mapped,
+      mappedAt: codesTable.mappedAt,
+      mappedByUserId: codesTable.mappedByUserId,
+      mappedByUsername: aliasUser2.username,
+      locationId: codesTable.locationId,
+      locationName: locationsTable.locationName,
+      createdAt: codesTable.createdAt,
+      mfgDate: batchesTable.mfgDate,
+      expiryDate: batchesTable.expiryDate,
+      marketedBy: productsTable.marketedBy,
+      registrationNo: productsTable.registrationNo,
+      companyName: companiesTable.name,
+      companyAddress: companiesTable.address
+    }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser2, eq(codesTable.mappedByUserId, aliasUser2.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(
+      or(
+        eq(codesTable.serialNumber, serial),
+        eq(codesTable.ssccCode, serial)
+      )
+    ).limit(1);
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Product serial verification code not found or invalid" });
+      return;
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Error fetching public code details:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 router8.use(requireAuth);
 var aliasUser = usersTable;
 async function fetchEnrichedCodes(ids) {

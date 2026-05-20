@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, desc, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray, or } from "drizzle-orm";
 import {
   db,
   codesTable,
@@ -14,6 +14,66 @@ import { requireAuth } from "../lib/session";
 import { generateUnitCode, generateSsccCode } from "../lib/gs1";
 
 const router: IRouter = Router();
+
+router.get("/codes/public/:serial", async (req, res): Promise<void> => {
+  const serial = req.params.serial;
+  if (!serial) {
+    res.status(400).json({ error: "Serial number is required" });
+    return;
+  }
+
+  try {
+    const aliasUser = usersTable;
+    const rows = await db
+      .select({
+        id: codesTable.id,
+        productId: codesTable.productId,
+        productName: productsTable.name,
+        batchId: codesTable.batchId,
+        batchNumber: batchesTable.batchNumber,
+        level: codesTable.level,
+        rawString: codesTable.rawString,
+        serialNumber: codesTable.serialNumber,
+        ssccCode: codesTable.ssccCode,
+        mapped: codesTable.mapped,
+        mappedAt: codesTable.mappedAt,
+        mappedByUserId: codesTable.mappedByUserId,
+        mappedByUsername: aliasUser.username,
+        locationId: codesTable.locationId,
+        locationName: locationsTable.locationName,
+        createdAt: codesTable.createdAt,
+        mfgDate: batchesTable.mfgDate,
+        expiryDate: batchesTable.expiryDate,
+        marketedBy: productsTable.marketedBy,
+        registrationNo: productsTable.registrationNo,
+        companyName: companiesTable.name,
+        companyAddress: companiesTable.address,
+      })
+      .from(codesTable)
+      .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
+      .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
+      .leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id))
+      .leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id))
+      .leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id))
+      .where(
+        or(
+          eq(codesTable.serialNumber, serial),
+          eq(codesTable.ssccCode, serial)
+        )
+      )
+      .limit(1);
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Product serial verification code not found or invalid" });
+      return;
+    }
+
+    res.json(rows[0]);
+  } catch (error: any) {
+    console.error("Error fetching public code details:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.use(requireAuth);
 

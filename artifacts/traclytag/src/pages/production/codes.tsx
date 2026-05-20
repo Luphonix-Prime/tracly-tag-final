@@ -417,7 +417,7 @@ export default function Codes() {
               <div className="flex flex-col items-center justify-center p-5 border rounded-2xl bg-muted/20 shadow-sm space-y-3">
                 <div className="p-3 bg-white rounded-xl border border-border shadow-inner">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://traclytag.com/code/${selectedCode.serialNumber || selectedCode.ssccCode || ""}`)}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/code/${selectedCode.serialNumber || selectedCode.ssccCode || ""}`)}`}
                     alt="Verification QR"
                     className="w-[180px] h-[180px]"
                   />
@@ -427,13 +427,13 @@ export default function Codes() {
                     Direct Verification URL
                   </span>
                   <a
-                    href={`https://traclytag.com/code/${selectedCode.serialNumber || selectedCode.ssccCode || ""}`}
+                    href={`${window.location.origin}/code/${selectedCode.serialNumber || selectedCode.ssccCode || ""}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-semibold text-primary hover:underline font-mono break-all flex items-center gap-1.5 justify-center py-1.5 px-3 rounded-lg bg-primary/5 border border-primary/10 transition-colors"
                   >
                     <LinkIcon className="h-3 w-3 shrink-0" />
-                    <span>https://traclytag.com/code/{selectedCode.serialNumber || selectedCode.ssccCode || ""}</span>
+                    <span>{window.location.origin}/code/{selectedCode.serialNumber || selectedCode.ssccCode || ""}</span>
                   </a>
                 </div>
               </div>
