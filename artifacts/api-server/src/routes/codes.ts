@@ -97,24 +97,16 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
         .limit(1);
     };
     
-    // Normalize serial: remove common scanner prefixes
-    let searchSerial = serial;
-    if (serial.includes("::")) {
-      searchSerial = serial.split("::")[1] || serial;
+    // Normalize serial: remove common scanner prefixes and trim whitespace
+    let searchSerial = serial.trim();
+    if (searchSerial.includes("::")) {
+      searchSerial = searchSerial.split("::")[1] || searchSerial;
     }
     
     console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);
     
-    // Try rawString match FIRST (most likely scenario for barcode scans)
-    let rows = await buildQuery(eq(codesTable.rawString, searchSerial));
-    if (rows.length > 0) {
-      console.log(`[Public Verify] Found by rawString (primary match)`);
-      res.json(rows[0]);
-      return;
-    }
-
-    // Try direct lookup (serialNumber or ssccCode)
-    rows = await buildQuery(
+    // Try direct lookup (serialNumber or ssccCode) FIRST - most common for QR codes
+    let rows = await buildQuery(
       or(
         eq(codesTable.serialNumber, searchSerial),
         eq(codesTable.ssccCode, searchSerial)
@@ -123,6 +115,14 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
     
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by serialNumber/ssccCode`);
+      res.json(rows[0]);
+      return;
+    }
+
+    // Try rawString match SECOND (barcode label scans)
+    rows = await buildQuery(eq(codesTable.rawString, searchSerial));
+    if (rows.length > 0) {
+      console.log(`[Public Verify] Found by rawString (barcode match)`);
       res.json(rows[0]);
       return;
     }
