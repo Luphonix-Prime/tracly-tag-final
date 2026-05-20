@@ -86,3 +86,77 @@ export function generateSsccCode(companyPrefix: string, _seq: number): {
   const raw = `00${sscc}`;
   return { raw, sscc };
 }
+
+/* Parse GS1 codes to extract serial number or SSCC */
+export function parseGs1Code(rawCode: string): {
+  serialNumber?: string;
+  ssccCode?: string;
+  gtin?: string;
+  batch?: string;
+  expiry?: string;
+} {
+  const result: Record<string, string | undefined> = {};
+  let i = 0;
+  
+  // Replace FNC1 with a separator for easier parsing
+  const normalized = rawCode.replace(new RegExp(FNC1, 'g'), '|');
+  let pos = 0;
+
+  while (pos < normalized.length) {
+    const ai = normalized.substring(pos, pos + 2);
+    pos += 2;
+
+    // Fixed-length AIs
+    if (ai === '00') {
+      // SSCC - 18 digits
+      result.ssccCode = normalized.substring(pos, pos + 18);
+      pos += 18;
+    } else if (ai === '01') {
+      // GTIN - 14 digits
+      result.gtin = normalized.substring(pos, pos + 14);
+      pos += 14;
+    } else if (ai === '17') {
+      // Expiry date - 6 digits (YYMMDD)
+      const yymmdd = normalized.substring(pos, pos + 6);
+      pos += 6;
+      result.expiry = yymmdd;
+    } else if (ai === '10') {
+      // Batch/Lot - variable, ends with FNC1 (|) or next AI
+      const nextSep = normalized.indexOf('|', pos);
+      const nextAi = Math.min(
+        nextSep > 0 ? nextSep : normalized.length,
+        normalized.search(/^[0-9]{2}[^|]/) === -1 ? normalized.length :
+        normalized.substring(pos).search(/\|/) > 0 ? 
+          pos + normalized.substring(pos).search(/\|/) : 
+          normalized.length
+      );
+      
+      let batchEnd = normalized.length;
+      for (let j = pos; j < normalized.length - 2; j++) {
+        if (normalized.substring(j, j + 1) === '|') {
+          batchEnd = j;
+          break;
+        }
+      }
+      result.batch = normalized.substring(pos, batchEnd).replace('|', '');
+      pos = batchEnd + 1;
+    } else if (ai === '21') {
+      // Serial number - variable, ends with FNC1 (|) or next AI
+      let serialEnd = normalized.length;
+      for (let j = pos; j < normalized.length; j++) {
+        if (normalized.substring(j, j + 1) === '|') {
+          serialEnd = j;
+          break;
+        }
+      }
+      result.serialNumber = normalized.substring(pos, serialEnd);
+      pos = serialEnd + 1;
+    } else {
+      // Unknown AI, skip to next separator or end
+      const nextSep = normalized.indexOf('|', pos);
+      pos = nextSep > 0 ? nextSep + 1 : normalized.length;
+    }
+  }
+
+  return result as any;
+}

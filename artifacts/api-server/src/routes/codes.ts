@@ -11,12 +11,12 @@ import {
 } from "@workspace/db";
 import { GenerateCodesBody, MapCodeBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/session";
-import { generateUnitCode, generateSsccCode } from "../lib/gs1";
+import { generateUnitCode, generateSsccCode, parseGs1Code } from "../lib/gs1";
 
 const router: IRouter = Router();
 
 router.get("/codes/public/:serial", async (req, res): Promise<void> => {
-  const serial = req.params.serial;
+  let serial = req.params.serial;
   if (!serial) {
     res.status(400).json({ error: "Serial number is required" });
     return;
@@ -24,7 +24,9 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
 
   try {
     const aliasUser = usersTable;
-    const rows = await db
+    
+    // Try direct lookup first
+    let rows = await db
       .select({
         id: codesTable.id,
         productId: codesTable.productId,
@@ -64,6 +66,58 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
         )
       )
       .limit(1);
+
+    // If not found, try parsing as GS1 code and extract serial/SSCC
+    if (rows.length === 0) {
+      const parsed = parseGs1Code(serial);
+      
+      // Try searching with parsed serial number or SSCC
+      const searchConditions = [];
+      if (parsed.serialNumber) {
+        searchConditions.push(eq(codesTable.serialNumber, parsed.serialNumber));
+      }
+      if (parsed.ssccCode) {
+        searchConditions.push(eq(codesTable.ssccCode, parsed.ssccCode));
+      }
+      
+      if (searchConditions.length > 0) {
+        rows = await db
+          .select({
+            id: codesTable.id,
+            productId: codesTable.productId,
+            productName: productsTable.name,
+            batchId: codesTable.batchId,
+            batchNumber: batchesTable.batchNumber,
+            level: codesTable.level,
+            rawString: codesTable.rawString,
+            serialNumber: codesTable.serialNumber,
+            ssccCode: codesTable.ssccCode,
+            mapped: codesTable.mapped,
+            mappedAt: codesTable.mappedAt,
+            mappedByUserId: codesTable.mappedByUserId,
+            mappedByUsername: aliasUser.username,
+            locationId: codesTable.locationId,
+            locationName: locationsTable.locationName,
+            createdAt: codesTable.createdAt,
+            mfgDate: batchesTable.mfgDate,
+            expiryDate: batchesTable.expiryDate,
+            marketedBy: productsTable.marketedBy,
+            registrationNo: productsTable.registrationNo,
+            companyName: companiesTable.name,
+            companyAddress: companiesTable.address,
+            productLogoUrl: productsTable.productLogoUrl,
+            sapDescription: productsTable.sapDescription,
+          })
+          .from(codesTable)
+          .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
+          .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
+          .leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id))
+          .leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id))
+          .leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id))
+          .where(or(...searchConditions))
+          .limit(1);
+      }
+    }
 
     if (rows.length === 0) {
       res.status(404).json({ error: "Product serial verification code not found or invalid" });
