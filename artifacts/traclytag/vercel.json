@@ -12,11 +12,11 @@
     },
     {
       "source": "/code/:path*",
-      "destination": "/index"
+      "destination": "/index.html"
     },
     {
       "source": "/:path*",
-      "destination": "/index"
+      "destination": "/index.html"
     }
   ]
 }
