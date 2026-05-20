@@ -3,9 +3,13 @@ import { createClient } from "@libsql/client";
 import * as schema from "./schema";
 import path from "path";
 
-const dbUrl = `file:${path.resolve(process.cwd(), "traclytag.db")}`;
+const dbUrl = process.env.DATABASE_URL || `file:${path.resolve(process.cwd(), "traclytag.db")}`;
+const dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
 
-const client = createClient({ url: dbUrl });
+const client = createClient({ 
+  url: dbUrl,
+  authToken: dbAuthToken
+});
 
 export const db = drizzle(client, { schema });
 
