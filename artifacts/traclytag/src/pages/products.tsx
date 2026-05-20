@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Trash2, Plus, Package, CalendarIcon } from "lucide-react";
+import { Trash2, Plus, Package, CalendarIcon, Upload, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 import { PageHeader } from "@/components/PageHeader";
@@ -91,6 +91,49 @@ export default function Products() {
   const deleteProduct = useDeleteProduct();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+
+  const handleUpload = (fieldName: "cautionLogoUrl" | "productLogoUrl" | "labelPdfUrl") => {
+    const input = document.createElement("input");
+    input.type = "file";
+    if (fieldName === "labelPdfUrl") {
+      input.accept = ".pdf";
+    } else {
+      input.accept = "image/*";
+    }
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setUploadingField(fieldName);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to upload file");
+        }
+
+        const data = await response.json();
+        // Construct standard URL to satisfy Zod .url() validation in frontend
+        const absoluteUrl = window.location.origin + data.url;
+        form.setValue(fieldName, absoluteUrl);
+        toast.success("File uploaded successfully");
+      } catch (error: any) {
+        toast.error(error.message || "Error uploading file");
+      } finally {
+        setUploadingField(null);
+      }
+    };
+    input.click();
+  };
 
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
@@ -386,12 +429,33 @@ export default function Products() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Caution Logo URL</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="https://…"
-                                  {...field}
-                                />
-                              </FormControl>
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input
+                                    placeholder="https://…"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="shrink-0 flex gap-2 items-center"
+                                  onClick={() => handleUpload("cautionLogoUrl")}
+                                  disabled={uploadingField === "cautionLogoUrl"}
+                                >
+                                  {uploadingField === "cautionLogoUrl" ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <span>Uploading...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4" />
+                                      <span>Upload</span>
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -402,12 +466,33 @@ export default function Products() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Product Logo URL</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="https://…"
-                                  {...field}
-                                />
-                              </FormControl>
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input
+                                    placeholder="https://…"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="shrink-0 flex gap-2 items-center"
+                                  onClick={() => handleUpload("productLogoUrl")}
+                                  disabled={uploadingField === "productLogoUrl"}
+                                >
+                                  {uploadingField === "productLogoUrl" ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <span>Uploading...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4" />
+                                      <span>Upload</span>
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -418,12 +503,33 @@ export default function Products() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Label PDF URL</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="https://…"
-                                  {...field}
-                                />
-                              </FormControl>
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input
+                                    placeholder="https://…"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="shrink-0 flex gap-2 items-center"
+                                  onClick={() => handleUpload("labelPdfUrl")}
+                                  disabled={uploadingField === "labelPdfUrl"}
+                                >
+                                  {uploadingField === "labelPdfUrl" ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <span>Uploading...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4" />
+                                      <span>Upload</span>
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}

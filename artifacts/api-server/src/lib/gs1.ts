@@ -33,7 +33,13 @@ function formatExpiry(d: Date | string): string {
 }
 
 function makeSerial(): string {
-  return randomBytes(6).toString("hex").toUpperCase().slice(0, 10);
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let serial = "";
+  for (let i = 0; i < 9; i++) {
+    const r = randomBytes(1)[0]! % chars.length;
+    serial += chars[r];
+  }
+  return serial;
 }
 
 function makeRandomDigits(count: number): string {

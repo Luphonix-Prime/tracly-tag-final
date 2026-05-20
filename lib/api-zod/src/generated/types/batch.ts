@@ -11,5 +11,7 @@ export interface Batch {
   productId: number;
   productName: string;
   batchNumber: string;
+  mfgDate: Date;
+  expiryDate: Date;
   createdAt: Date;
 }

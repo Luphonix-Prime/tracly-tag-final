@@ -34,4 +34,16 @@ export interface Code {
   /** @nullable */
   locationName: string | null;
   createdAt: Date;
+  /** @nullable */
+  mfgDate?: string | null;
+  /** @nullable */
+  expiryDate?: string | null;
+  /** @nullable */
+  marketedBy?: string | null;
+  /** @nullable */
+  registrationNo?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  companyAddress?: string | null;
 }
