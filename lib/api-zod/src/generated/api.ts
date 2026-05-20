@@ -186,6 +186,8 @@ export const ListBatchesResponseItem = zod.object({
   "productId": zod.number(),
   "productName": zod.string(),
   "batchNumber": zod.string(),
+  "mfgDate": zod.coerce.date(),
+  "expiryDate": zod.coerce.date(),
   "createdAt": zod.coerce.date()
 })
 export const ListBatchesResponse = zod.array(ListBatchesResponseItem)
@@ -193,7 +195,9 @@ export const ListBatchesResponse = zod.array(ListBatchesResponseItem)
 
 export const CreateBatchBody = zod.object({
   "productId": zod.number(),
-  "batchNumber": zod.string()
+  "batchNumber": zod.string(),
+  "mfgDate": zod.coerce.date(),
+  "expiryDate": zod.coerce.date()
 })
 
 
@@ -227,7 +231,13 @@ export const ListCodesResponseItem = zod.object({
   "mappedByUsername": zod.string().nullable(),
   "locationId": zod.number().nullable(),
   "locationName": zod.string().nullable(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "mfgDate": zod.string().nullish(),
+  "expiryDate": zod.string().nullish(),
+  "marketedBy": zod.string().nullish(),
+  "registrationNo": zod.string().nullish(),
+  "companyName": zod.string().nullish(),
+  "companyAddress": zod.string().nullish()
 })
 export const ListCodesResponse = zod.array(ListCodesResponseItem)
 
@@ -273,7 +283,13 @@ export const MapCodeResponse = zod.object({
   "mappedByUsername": zod.string().nullable(),
   "locationId": zod.number().nullable(),
   "locationName": zod.string().nullable(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "mfgDate": zod.string().nullish(),
+  "expiryDate": zod.string().nullish(),
+  "marketedBy": zod.string().nullish(),
+  "registrationNo": zod.string().nullish(),
+  "companyName": zod.string().nullish(),
+  "companyAddress": zod.string().nullish()
 })
 
 
@@ -302,7 +318,13 @@ export const GetDashboardSummaryResponse = zod.object({
   "mappedByUsername": zod.string().nullable(),
   "locationId": zod.number().nullable(),
   "locationName": zod.string().nullable(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "mfgDate": zod.string().nullish(),
+  "expiryDate": zod.string().nullish(),
+  "marketedBy": zod.string().nullish(),
+  "registrationNo": zod.string().nullish(),
+  "companyName": zod.string().nullish(),
+  "companyAddress": zod.string().nullish()
 })),
   "codesByLevel": zod.array(zod.object({
   "level": zod.enum(['unit', 'l1', 'l2', 'shipper', 'pallet']),

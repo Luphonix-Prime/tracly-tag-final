@@ -7,6 +7,7 @@ import {
   batchesTable,
   locationsTable,
   usersTable,
+  companiesTable,
 } from "@workspace/db";
 import { GenerateCodesBody, MapCodeBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/session";
@@ -38,12 +39,19 @@ async function fetchEnrichedCodes(ids: number[]) {
       locationId: codesTable.locationId,
       locationName: locationsTable.locationName,
       createdAt: codesTable.createdAt,
+      mfgDate: batchesTable.mfgDate,
+      expiryDate: batchesTable.expiryDate,
+      marketedBy: productsTable.marketedBy,
+      registrationNo: productsTable.registrationNo,
+      companyName: companiesTable.name,
+      companyAddress: companiesTable.address,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
     .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
     .leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id))
     .leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id))
+    .leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id))
     .where(
       ids.length === 1
         ? eq(codesTable.id, ids[0]!)
@@ -96,12 +104,19 @@ router.get("/codes", async (req, res): Promise<void> => {
       locationId: codesTable.locationId,
       locationName: locationsTable.locationName,
       createdAt: codesTable.createdAt,
+      mfgDate: batchesTable.mfgDate,
+      expiryDate: batchesTable.expiryDate,
+      marketedBy: productsTable.marketedBy,
+      registrationNo: productsTable.registrationNo,
+      companyName: companiesTable.name,
+      companyAddress: companiesTable.address,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
     .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
     .leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id))
     .leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id))
+    .leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id))
     .where(where)
     .orderBy(desc(codesTable.createdAt))
     .limit(Math.min(Math.max(limit, 1), 5000));
@@ -121,7 +136,7 @@ router.post("/codes", async (req, res): Promise<void> => {
       id: batchesTable.id,
       productId: batchesTable.productId,
       batchNumber: batchesTable.batchNumber,
-      expiryDate: productsTable.expiryDate,
+      expiryDate: batchesTable.expiryDate,
       gtin: productsTable.gtin,
       companyId: productsTable.companyId,
     })
