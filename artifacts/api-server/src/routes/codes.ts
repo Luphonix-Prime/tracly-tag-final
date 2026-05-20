@@ -15,6 +15,39 @@ import { generateUnitCode, generateSsccCode, parseGs1Code } from "../lib/gs1";
 
 const router: IRouter = Router();
 
+// Debug endpoint - shows recent codes in database
+router.get("/codes/debug/recent", async (_req, res): Promise<void> => {
+  try {
+    const codes = await db
+      .select({
+        id: codesTable.id,
+        serialNumber: codesTable.serialNumber,
+        ssccCode: codesTable.ssccCode,
+        rawString: codesTable.rawString,
+        level: codesTable.level,
+        createdAt: codesTable.createdAt,
+      })
+      .from(codesTable)
+      .orderBy(desc(codesTable.createdAt))
+      .limit(10);
+    
+    res.json({ 
+      total_codes_shown: codes.length,
+      codes: codes.map(c => ({
+        id: c.id,
+        level: c.level,
+        serialNumber: c.serialNumber || "null",
+        ssccCode: c.ssccCode || "null",
+        rawString: c.rawString.substring(0, 50) + (c.rawString.length > 50 ? "..." : ""),
+        createdAt: c.createdAt,
+      }))
+    });
+  } catch (error: any) {
+    console.error("Debug endpoint error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get("/codes/public/:serial", async (req, res): Promise<void> => {
   let serial = req.params.serial;
   if (!serial) {
@@ -64,61 +97,81 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
         .limit(1);
     };
     
-    // Try direct lookup first (serialNumber or ssccCode)
-    let rows = await buildQuery(
+    // Normalize serial: remove common scanner prefixes
+    let searchSerial = serial;
+    if (serial.includes("::")) {
+      searchSerial = serial.split("::")[1] || serial;
+    }
+    
+    console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);
+    
+    // Try rawString match FIRST (most likely scenario for barcode scans)
+    let rows = await buildQuery(eq(codesTable.rawString, searchSerial));
+    if (rows.length > 0) {
+      console.log(`[Public Verify] Found by rawString (primary match)`);
+      res.json(rows[0]);
+      return;
+    }
+
+    // Try direct lookup (serialNumber or ssccCode)
+    rows = await buildQuery(
       or(
-        eq(codesTable.serialNumber, serial),
-        eq(codesTable.ssccCode, serial)
+        eq(codesTable.serialNumber, searchSerial),
+        eq(codesTable.ssccCode, searchSerial)
       )
     );
+    
+    if (rows.length > 0) {
+      console.log(`[Public Verify] Found by serialNumber/ssccCode`);
+      res.json(rows[0]);
+      return;
+    }
 
-    // If not found, try parsing as GS1 code and extract serial/SSCC
-    if (rows.length === 0) {
-      const parsed = parseGs1Code(serial);
-      
-      // Try searching with parsed serial number or SSCC
+    // Try parsing as GS1 code and extract serial/SSCC
+    const parsed = parseGs1Code(searchSerial);
+    if (parsed.serialNumber || parsed.ssccCode) {
       const searchConditions = [];
       if (parsed.serialNumber) {
         searchConditions.push(eq(codesTable.serialNumber, parsed.serialNumber));
+        console.log(`[Public Verify] Parsed GS1 serialNumber: "${parsed.serialNumber}"`);
       }
       if (parsed.ssccCode) {
         searchConditions.push(eq(codesTable.ssccCode, parsed.ssccCode));
+        console.log(`[Public Verify] Parsed GS1 ssccCode: "${parsed.ssccCode}"`);
       }
       
       if (searchConditions.length > 0) {
         rows = await buildQuery(or(...searchConditions));
+        if (rows.length > 0) {
+          console.log(`[Public Verify] Found by GS1 parsing`);
+          res.json(rows[0]);
+          return;
+        }
       }
     }
 
-    // If still not found, try searching by rawString (full code match)
-    if (rows.length === 0) {
-      rows = await buildQuery(eq(codesTable.rawString, serial));
-    }
+    // Debug: Check what similar codes exist in database
+    console.log(`[Public Verify] NOT FOUND. Checking for similar codes...`);
+    const debugCodes = await db
+      .select({
+        serialNumber: codesTable.serialNumber,
+        ssccCode: codesTable.ssccCode,
+        rawString: codesTable.rawString,
+        level: codesTable.level,
+      })
+      .from(codesTable)
+      .limit(5);
+    
+    console.log(`[Public Verify] Sample codes in DB:`, JSON.stringify(debugCodes, null, 2));
 
-    // If still not found, try searching by rawString with custom prefix stripped
-    // (in case barcode scanner adds prefix like "bom1::")
-    if (rows.length === 0 && serial.includes("::")) {
-      const cleanedSerial = serial.split("::")[1] || serial;
-      if (cleanedSerial !== serial) {
-        rows = await buildQuery(
-          or(
-            eq(codesTable.serialNumber, cleanedSerial),
-            eq(codesTable.ssccCode, cleanedSerial),
-            eq(codesTable.rawString, cleanedSerial)
-          )
-        );
-      }
-    }
-
-    if (rows.length === 0) {
-      res.status(404).json({ error: "Product serial verification code not found or invalid" });
-      return;
-    }
-
-    res.json(rows[0]);
+    res.status(404).json({ 
+      error: "Product serial verification code not found or invalid",
+      searched: searchSerial,
+      hint: "Code does not exist in database. Please verify the code was generated and saved."
+    });
   } catch (error: any) {
     console.error("Error fetching public code details:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
 
