@@ -11,7 +11,7 @@ import {
 } from "@workspace/db";
 import { GenerateCodesBody, MapCodeBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/session";
-import { generateUnitCode, generateSsccCode, parseGs1Code } from "../lib/gs1";
+  import { generateUnitCode, generateSsccCode, parseGs1Code } from "../lib/gs1";
 
 const router: IRouter = Router();
 
