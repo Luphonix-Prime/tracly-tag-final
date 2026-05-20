@@ -15,11 +15,11 @@
     },
     {
       "source": "/code/:path*",
-      "destination": "/index.html"
+      "destination": "/index"
     },
     {
       "source": "/:path*",
-      "destination": "/index.html"
+      "destination": "/index"
     }
   ]
 }
