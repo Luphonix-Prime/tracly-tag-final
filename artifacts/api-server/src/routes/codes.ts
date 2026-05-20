@@ -25,47 +25,52 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
   try {
     const aliasUser = usersTable;
     
-    // Try direct lookup first
-    let rows = await db
-      .select({
-        id: codesTable.id,
-        productId: codesTable.productId,
-        productName: productsTable.name,
-        batchId: codesTable.batchId,
-        batchNumber: batchesTable.batchNumber,
-        level: codesTable.level,
-        rawString: codesTable.rawString,
-        serialNumber: codesTable.serialNumber,
-        ssccCode: codesTable.ssccCode,
-        mapped: codesTable.mapped,
-        mappedAt: codesTable.mappedAt,
-        mappedByUserId: codesTable.mappedByUserId,
-        mappedByUsername: aliasUser.username,
-        locationId: codesTable.locationId,
-        locationName: locationsTable.locationName,
-        createdAt: codesTable.createdAt,
-        mfgDate: batchesTable.mfgDate,
-        expiryDate: batchesTable.expiryDate,
-        marketedBy: productsTable.marketedBy,
-        registrationNo: productsTable.registrationNo,
-        companyName: companiesTable.name,
-        companyAddress: companiesTable.address,
-        productLogoUrl: productsTable.productLogoUrl,
-        sapDescription: productsTable.sapDescription,
-      })
-      .from(codesTable)
-      .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
-      .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
-      .leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id))
-      .leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id))
-      .leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id))
-      .where(
-        or(
-          eq(codesTable.serialNumber, serial),
-          eq(codesTable.ssccCode, serial)
-        )
+    // Helper function to build the select query
+    const buildQuery = (condition: any) => {
+      return db
+        .select({
+          id: codesTable.id,
+          productId: codesTable.productId,
+          productName: productsTable.name,
+          batchId: codesTable.batchId,
+          batchNumber: batchesTable.batchNumber,
+          level: codesTable.level,
+          rawString: codesTable.rawString,
+          serialNumber: codesTable.serialNumber,
+          ssccCode: codesTable.ssccCode,
+          mapped: codesTable.mapped,
+          mappedAt: codesTable.mappedAt,
+          mappedByUserId: codesTable.mappedByUserId,
+          mappedByUsername: aliasUser.username,
+          locationId: codesTable.locationId,
+          locationName: locationsTable.locationName,
+          createdAt: codesTable.createdAt,
+          mfgDate: batchesTable.mfgDate,
+          expiryDate: batchesTable.expiryDate,
+          marketedBy: productsTable.marketedBy,
+          registrationNo: productsTable.registrationNo,
+          companyName: companiesTable.name,
+          companyAddress: companiesTable.address,
+          productLogoUrl: productsTable.productLogoUrl,
+          sapDescription: productsTable.sapDescription,
+        })
+        .from(codesTable)
+        .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
+        .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
+        .leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id))
+        .leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id))
+        .leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id))
+        .where(condition)
+        .limit(1);
+    };
+    
+    // Try direct lookup first (serialNumber or ssccCode)
+    let rows = await buildQuery(
+      or(
+        eq(codesTable.serialNumber, serial),
+        eq(codesTable.ssccCode, serial)
       )
-      .limit(1);
+    );
 
     // If not found, try parsing as GS1 code and extract serial/SSCC
     if (rows.length === 0) {
@@ -81,41 +86,27 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
       }
       
       if (searchConditions.length > 0) {
-        rows = await db
-          .select({
-            id: codesTable.id,
-            productId: codesTable.productId,
-            productName: productsTable.name,
-            batchId: codesTable.batchId,
-            batchNumber: batchesTable.batchNumber,
-            level: codesTable.level,
-            rawString: codesTable.rawString,
-            serialNumber: codesTable.serialNumber,
-            ssccCode: codesTable.ssccCode,
-            mapped: codesTable.mapped,
-            mappedAt: codesTable.mappedAt,
-            mappedByUserId: codesTable.mappedByUserId,
-            mappedByUsername: aliasUser.username,
-            locationId: codesTable.locationId,
-            locationName: locationsTable.locationName,
-            createdAt: codesTable.createdAt,
-            mfgDate: batchesTable.mfgDate,
-            expiryDate: batchesTable.expiryDate,
-            marketedBy: productsTable.marketedBy,
-            registrationNo: productsTable.registrationNo,
-            companyName: companiesTable.name,
-            companyAddress: companiesTable.address,
-            productLogoUrl: productsTable.productLogoUrl,
-            sapDescription: productsTable.sapDescription,
-          })
-          .from(codesTable)
-          .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
-          .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
-          .leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id))
-          .leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id))
-          .leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id))
-          .where(or(...searchConditions))
-          .limit(1);
+        rows = await buildQuery(or(...searchConditions));
+      }
+    }
+
+    // If still not found, try searching by rawString (full code match)
+    if (rows.length === 0) {
+      rows = await buildQuery(eq(codesTable.rawString, serial));
+    }
+
+    // If still not found, try searching by rawString with custom prefix stripped
+    // (in case barcode scanner adds prefix like "bom1::")
+    if (rows.length === 0 && serial.includes("::")) {
+      const cleanedSerial = serial.split("::")[1] || serial;
+      if (cleanedSerial !== serial) {
+        rows = await buildQuery(
+          or(
+            eq(codesTable.serialNumber, cleanedSerial),
+            eq(codesTable.ssccCode, cleanedSerial),
+            eq(codesTable.rawString, cleanedSerial)
+          )
+        );
       }
     }
 
