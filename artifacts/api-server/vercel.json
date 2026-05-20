@@ -1,9 +1,5 @@
 {
-  "functions": {
-    "src/app.ts": {
-      "runtime": "nodejs20.x"
-    }
-  },
+  "version": 2,
   "rewrites": [
     {
       "source": "/(.*)",
