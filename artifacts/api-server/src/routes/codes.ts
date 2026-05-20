@@ -48,6 +48,8 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
         registrationNo: productsTable.registrationNo,
         companyName: companiesTable.name,
         companyAddress: companiesTable.address,
+        productLogoUrl: productsTable.productLogoUrl,
+        sapDescription: productsTable.sapDescription,
       })
       .from(codesTable)
       .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))

@@ -58658,7 +58658,9 @@ router8.get("/codes/public/:serial", async (req, res) => {
       marketedBy: productsTable.marketedBy,
       registrationNo: productsTable.registrationNo,
       companyName: companiesTable.name,
-      companyAddress: companiesTable.address
+      companyAddress: companiesTable.address,
+      productLogoUrl: productsTable.productLogoUrl,
+      sapDescription: productsTable.sapDescription
     }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser2, eq(codesTable.mappedByUserId, aliasUser2.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(
       or(
         eq(codesTable.serialNumber, serial),
