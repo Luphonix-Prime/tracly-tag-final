@@ -6,8 +6,10 @@ import { requireAuth } from "../lib/session";
 
 const router: IRouter = Router();
 
-// Ensure uploads folder exists in artifacts/api-server/uploads
-const uploadDir = path.resolve(__dirname, "../uploads");
+// Ensure uploads folder exists in artifacts/api-server/uploads (or /tmp on Vercel)
+const uploadDir = process.env.VERCEL
+  ? "/tmp"
+  : path.resolve(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

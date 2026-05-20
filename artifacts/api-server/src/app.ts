@@ -46,7 +46,9 @@ app.use(loadUser);
 app.use("/api", router);
 
 // Serve static uploaded files under /api/uploads
-const uploadDir = path.resolve(__dirname, "../uploads");
+const uploadDir = process.env.VERCEL
+  ? "/tmp"
+  : path.resolve(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
