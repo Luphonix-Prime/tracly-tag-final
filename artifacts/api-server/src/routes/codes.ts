@@ -65,6 +65,7 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
           id: codesTable.id,
           productId: codesTable.productId,
           productName: productsTable.name,
+          gtin: productsTable.gtin,
           batchId: codesTable.batchId,
           batchNumber: batchesTable.batchNumber,
           level: codesTable.level,

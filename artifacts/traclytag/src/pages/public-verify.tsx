@@ -10,6 +10,7 @@ interface VerificationDetails {
   id: number;
   productId: number;
   productName: string;
+  gtin: string | null;
   batchId: number | null;
   batchNumber: string | null;
   level: string;
@@ -81,6 +82,12 @@ export default function PublicVerify() {
     }
   };
 
+  const hasValue = (value: string | null | undefined) => {
+    if (!value) return false;
+    const normalized = value.trim();
+    return normalized.length > 0 && normalized.toLowerCase() !== "n/a";
+  };
+
   return (
     <div className="min-h-screen bg-neutral-100 flex items-start justify-center p-0 sm:p-4">
       <div className="w-full max-w-md bg-white min-h-screen sm:min-h-0 sm:my-4 sm:rounded-xl shadow-md border-0 sm:border overflow-hidden">
@@ -142,6 +149,89 @@ export default function PublicVerify() {
         {/* Success State - Styled EXACTLY like the Sun Pharma validation screenshot */}
         {!loading && !error && data && (
           <div className="p-4 space-y-5">
+            {(() => {
+              const details = [
+                {
+                  label: "Serial Number",
+                  value: data.serialNumber || data.ssccCode,
+                  valueClassName: "font-mono font-bold text-neutral-900 break-all select-all",
+                },
+                hasValue(data.sapDescription) && data.sapDescription !== data.productName.toUpperCase()
+                  ? {
+                      label: "Generic Name",
+                      value: data.sapDescription,
+                      valueClassName: "font-semibold text-neutral-800",
+                    }
+                  : null,
+                {
+                  label: "Brand Name",
+                  value: data.productName.toUpperCase(),
+                  valueClassName: "font-bold text-neutral-800",
+                },
+                hasValue(data.marketedBy)
+                  ? {
+                      label: "Marketed By",
+                      value: data.marketedBy,
+                      valueClassName: "font-medium text-neutral-800",
+                    }
+                  : null,
+                hasValue(data.companyName) || hasValue(data.companyAddress)
+                  ? {
+                      label: "Manufacturer",
+                      value: [data.companyName, data.companyAddress].filter(hasValue).join(", "),
+                      valueClassName: "font-medium text-neutral-800 leading-relaxed",
+                    }
+                  : null,
+                hasValue(data.batchNumber)
+                  ? {
+                      label: "Batch Number",
+                      value: data.batchNumber,
+                      valueClassName: "font-mono font-bold text-neutral-800 select-all",
+                    }
+                  : null,
+                hasValue(data.gtin)
+                  ? {
+                      label: "GTIN",
+                      value: data.gtin,
+                      valueClassName: "font-mono font-semibold text-neutral-800 select-all",
+                    }
+                  : null,
+                hasValue(data.level)
+                  ? {
+                      label: "Packaging Level",
+                      value: data.level.toUpperCase(),
+                      valueClassName: "font-mono font-semibold text-neutral-800",
+                    }
+                  : null,
+                hasValue(data.mfgDate)
+                  ? {
+                      label: "Date of Manufacturing",
+                      value: formatDate(data.mfgDate),
+                      valueClassName: "font-medium text-neutral-800",
+                    }
+                  : null,
+                hasValue(data.expiryDate)
+                  ? {
+                      label: "Date of Expiry",
+                      value: formatDate(data.expiryDate),
+                      valueClassName: "font-medium text-neutral-800",
+                    }
+                  : null,
+                hasValue(data.registrationNo)
+                  ? {
+                      label: "Manufacturing License Number",
+                      value: data.registrationNo,
+                      valueClassName: "font-mono font-semibold text-neutral-800",
+                    }
+                  : null,
+              ].filter(Boolean) as Array<{
+                label: string;
+                value: string | null | undefined;
+                valueClassName: string;
+              }>;
+
+              return (
+                <>
             
             {/* Header Brand Logo */}
             <div className="text-center py-2 border-b border-neutral-200">
@@ -178,73 +268,18 @@ export default function PublicVerify() {
 
             {/* Product Verification Specifications Table */}
             <div className="space-y-3.5 text-xs text-neutral-700">
-              
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Serial Number</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-mono font-bold text-neutral-900 break-all select-all">
-                  {data.serialNumber || data.ssccCode || "N/A"}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Generic Name</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-semibold text-neutral-800">
-                  {data.sapDescription || data.productName.toUpperCase()}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Brand Name</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-bold text-neutral-800">
-                  {data.productName.toUpperCase()}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Name and address of the manufacturer</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-medium text-neutral-800 leading-relaxed">
-                  {data.companyName}<br />
-                  <span className="text-[11px] text-neutral-500 leading-normal block mt-0.5">
-                    {data.companyAddress || "N/A"}
-                  </span>
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Batch Number</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-mono font-bold text-neutral-800 select-all">
-                  {data.batchNumber || "N/A"}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Date of Manufacturing</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-medium text-neutral-800">
-                  {formatDate(data.mfgDate)}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Date of Expiry</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-medium text-neutral-800">
-                  {formatDate(data.expiryDate)}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5 border-b pb-4">
-                <span className="col-span-5 font-semibold text-neutral-600">Manufacturing license number</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-mono font-semibold text-neutral-800">
-                  {data.registrationNo || "N/A"}
-                </span>
-              </div>
+              {details.map((detail, index) => (
+                <div
+                  key={detail.label}
+                  className={`grid grid-cols-12 gap-x-2 items-start py-0.5 ${
+                    index === details.length - 1 ? "border-b pb-4" : ""
+                  }`}
+                >
+                  <span className="col-span-5 font-semibold text-neutral-600">{detail.label}</span>
+                  <span className="col-span-1 text-center text-neutral-400">:</span>
+                  <span className={`col-span-6 ${detail.valueClassName}`}>{detail.value}</span>
+                </div>
+              ))}
 
             </div>
 
@@ -257,6 +292,9 @@ export default function PublicVerify() {
                 Ref: TRACLY-{data.id}
               </p>
             </div>
+                </>
+              );
+            })()}
 
           </div>
         )}
