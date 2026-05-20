@@ -8,6 +8,10 @@
     {
       "source": "/api/uploads/:path*",
       "destination": "https://tracly-tag-final-api-server.vercel.app/api/uploads/:path*"
+    },
+    {
+      "source": "/((?!api/uploads|api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
