@@ -4118,7 +4118,7 @@ var require_pino = __commonJS({
     function pinoBundlerAbsolutePath(p) {
       try {
         const path = __require("path");
-        const outputDir = "C:\\Users\\dhyey\\OneDrive\\Desktop\\traclytag\\traclytagreplit\\artifacts\\api-server\\api";
+        const outputDir = "C:\\Users\\Keval\\Documents\\tracly-tag-final-1\\artifacts\\api-server\\api";
         return path.resolve(outputDir, p.replace(/^\.\//, ""));
       } catch (e) {
         const f = new Function("p", "return new URL(p, import.meta.url).pathname");

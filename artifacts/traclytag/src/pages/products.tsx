@@ -1,5 +1,7 @@
 import { useState } from "react";
 import {
+  useGetCurrentUser,
+  useListCompanies,
   useListProducts,
   getListProductsQueryKey,
   useCreateProduct,
@@ -55,9 +57,11 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 const productSchema = z.object({
+  companyId: z.coerce.number().optional(),
   skuId: z.string().min(1, "SKU ID required"),
   name: z.string().min(1, "Name required"),
   skuSize: z.string().min(1, "SKU size required"),
@@ -86,12 +90,16 @@ const productSchema = z.object({
 type ProductForm = z.infer<typeof productSchema>;
 
 export default function Products() {
+  const { data: currentUser } = useGetCurrentUser();
   const { data: products = [], isLoading } = useListProducts();
+  const { data: companies = [] } = useListCompanies({ query: { enabled: currentUser?.role === "master" } } as any);
   const createProduct = useCreateProduct();
   const deleteProduct = useDeleteProduct();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+
+  const isMaster = currentUser?.role === "master";
 
   const handleUpload = (fieldName: "cautionLogoUrl" | "productLogoUrl" | "labelPdfUrl") => {
     const input = document.createElement("input");
@@ -138,6 +146,7 @@ export default function Products() {
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: {
+      companyId: isMaster ? undefined : currentUser?.companyId || undefined,
       skuId: "",
       name: "",
       skuSize: "",
@@ -159,6 +168,7 @@ export default function Products() {
   const onSubmit = (values: ProductForm) => {
     const payload = {
       ...values,
+      companyId: isMaster ? values.companyId : currentUser?.companyId,
       sapDescription: values.sapDescription || undefined,
       registrationNo: values.registrationNo || undefined,
       cautionLogoUrl: values.cautionLogoUrl || undefined,
@@ -166,8 +176,14 @@ export default function Products() {
       labelPdfUrl: values.labelPdfUrl || undefined,
       expiryDate: format(values.expiryDate, "yyyy-MM-dd"),
     };
+
+    if (isMaster && !payload.companyId) {
+      toast.error("Select a company before creating a product");
+      return;
+    }
+
     createProduct.mutate(
-      { data: payload },
+      { data: payload as any },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
@@ -223,6 +239,35 @@ export default function Products() {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                   <ScrollArea className="h-[60vh] pr-4">
                     <div className="space-y-4 pb-4">
+                      {isMaster && (
+                        <FormField
+                          control={form.control}
+                          name="companyId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Company</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value?.toString() || ""}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a company" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {companies.map((company) => (
+                                    <SelectItem key={company.id} value={company.id.toString()}>
+                                      {company.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -541,11 +586,31 @@ export default function Products() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setIsCreateOpen(false)}
+                      onClick={() => {
+                        setIsCreateOpen(false);
+                        form.reset({
+                          companyId: isMaster ? undefined : currentUser?.companyId || undefined,
+                          skuId: "",
+                          name: "",
+                          skuSize: "",
+                          marketedBy: "",
+                          sapDescription: "",
+                          gtin: "",
+                          mrp: 0,
+                          registrationNo: "",
+                          l1Size: 10,
+                          l2Size: 100,
+                          shipperSize: 1000,
+                          cautionLogoUrl: "",
+                          productLogoUrl: "",
+                          labelPdfUrl: "",
+                          expiryDate: undefined as any,
+                        });
+                      }}
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={createProduct.isPending}>
+                    <Button type="submit" disabled={createProduct.isPending || (isMaster && !form.watch("companyId"))}>
                       Save Product
                     </Button>
                   </DialogFooter>

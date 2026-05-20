@@ -46,8 +46,19 @@ router.post("/products", async (req, res): Promise<void> => {
     return;
   }
 
+  const requestedCompanyId =
+    typeof req.body?.companyId === "number"
+      ? req.body.companyId
+      : typeof req.body?.companyId === "string" && req.body.companyId.trim() !== ""
+        ? Number(req.body.companyId)
+        : null;
+
   let companyId = req.user!.companyId;
-  if (req.user!.role === "master" && !companyId) {
+  if (req.user!.role === "master") {
+    companyId = requestedCompanyId;
+  }
+
+  if (!companyId || Number.isNaN(Number(companyId))) {
     res
       .status(400)
       .json({ error: "Master must select a company context to add products" });
