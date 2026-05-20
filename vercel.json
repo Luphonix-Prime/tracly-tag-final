@@ -1,0 +1,25 @@
+{
+  "framework": "vite",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @workspace/traclytag build",
+  "outputDirectory": "artifacts/traclytag/dist",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/uploads/:path*",
+      "destination": "https://tracly-tag-final-api-server.vercel.app/api/uploads/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://tracly-tag-final-api-server.vercel.app/api/:path*"
+    },
+    {
+      "source": "/code/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}
