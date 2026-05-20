@@ -6,7 +6,7 @@ import { requireAuth } from "../lib/session";
 
 const router: IRouter = Router();
 
-router.use(requireAuth);
+router.use("/batches", requireAuth);
 
 router.get("/batches", async (req, res): Promise<void> => {
   const rawProductId = req.query.productId;

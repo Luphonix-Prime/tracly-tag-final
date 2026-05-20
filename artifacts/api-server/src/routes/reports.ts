@@ -13,7 +13,7 @@ import { requireAuth } from "../lib/session";
 
 const router: IRouter = Router();
 
-router.use(requireAuth);
+router.use("/reports", requireAuth);
 
 function companyScope(user: NonNullable<typeof globalThis> extends never ? never : { role: string; companyId: number | null }) {
   return user.role === "master"

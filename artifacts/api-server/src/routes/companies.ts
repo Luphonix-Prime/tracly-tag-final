@@ -6,7 +6,7 @@ import { requireAuth, requireRole } from "../lib/session";
 
 const router: IRouter = Router();
 
-router.use(requireAuth);
+router.use("/companies", requireAuth);
 
 router.get("/companies", async (_req, res): Promise<void> => {
   const rows = await db

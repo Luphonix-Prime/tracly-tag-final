@@ -175,8 +175,6 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
   }
 });
 
-router.use(requireAuth);
-
 const aliasUser = usersTable;
 
 async function fetchEnrichedCodes(ids: number[]) {
@@ -221,7 +219,7 @@ async function fetchEnrichedCodes(ids: number[]) {
   return rows;
 }
 
-router.get("/codes", async (req, res): Promise<void> => {
+router.get("/codes", requireAuth, async (req, res): Promise<void> => {
   const level = typeof req.query.level === "string" ? req.query.level : null;
   const batchId =
     typeof req.query.batchId === "string"
@@ -284,7 +282,7 @@ router.get("/codes", async (req, res): Promise<void> => {
   res.json(rows);
 });
 
-router.post("/codes", async (req, res): Promise<void> => {
+router.post("/codes", requireAuth, async (req, res): Promise<void> => {
   const parsed = GenerateCodesBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -354,7 +352,7 @@ router.post("/codes", async (req, res): Promise<void> => {
   res.status(201).json({ generated: inserted.length, codes: rows });
 });
 
-router.post("/codes/:id/map", async (req, res): Promise<void> => {
+router.post("/codes/:id/map", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw ?? "", 10);
   if (Number.isNaN(id)) {

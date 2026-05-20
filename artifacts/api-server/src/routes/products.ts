@@ -7,7 +7,7 @@ import { isValidGtin } from "../lib/gs1";
 
 const router: IRouter = Router();
 
-router.use(requireAuth);
+router.use("/products", requireAuth);
 
 function effectiveCompanyId(user: NonNullable<typeof globalThis> extends never ? never : { role: string; companyId: number | null }): number | null {
   if (user.role === "master") return null;

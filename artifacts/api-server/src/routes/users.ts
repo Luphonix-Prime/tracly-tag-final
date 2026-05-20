@@ -7,7 +7,7 @@ import { requireAuth } from "../lib/session";
 
 const router: IRouter = Router();
 
-router.use(requireAuth);
+router.use("/users", requireAuth);
 
 router.get("/users", async (req, res): Promise<void> => {
   const rows = await db

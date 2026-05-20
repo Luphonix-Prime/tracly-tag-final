@@ -58262,7 +58262,7 @@ function requireRole(...roles) {
 
 // src/routes/companies.ts
 var router3 = (0, import_express3.Router)();
-router3.use(requireAuth);
+router3.use("/companies", requireAuth);
 router3.get("/companies", async (_req, res) => {
   const rows = await db.select().from(companiesTable).orderBy(desc(companiesTable.createdAt));
   res.json(rows);
@@ -58304,7 +58304,7 @@ var companies_default = router3;
 // src/routes/users.ts
 var import_express4 = __toESM(require_express2(), 1);
 var router4 = (0, import_express4.Router)();
-router4.use(requireAuth);
+router4.use("/users", requireAuth);
 router4.get("/users", async (req, res) => {
   const rows = await db.select({
     id: usersTable.id,
@@ -58448,10 +58448,60 @@ function generateSsccCode(companyPrefix, _seq) {
   const raw = `00${sscc}`;
   return { raw, sscc };
 }
+function parseGs1Code(rawCode) {
+  const result = {};
+  let i = 0;
+  const normalized = rawCode.replace(new RegExp(FNC1, "g"), "|");
+  let pos = 0;
+  while (pos < normalized.length) {
+    const ai = normalized.substring(pos, pos + 2);
+    pos += 2;
+    if (ai === "00") {
+      result.ssccCode = normalized.substring(pos, pos + 18);
+      pos += 18;
+    } else if (ai === "01") {
+      result.gtin = normalized.substring(pos, pos + 14);
+      pos += 14;
+    } else if (ai === "17") {
+      const yymmdd = normalized.substring(pos, pos + 6);
+      pos += 6;
+      result.expiry = yymmdd;
+    } else if (ai === "10") {
+      const nextSep = normalized.indexOf("|", pos);
+      const nextAi = Math.min(
+        nextSep > 0 ? nextSep : normalized.length,
+        normalized.search(/^[0-9]{2}[^|]/) === -1 ? normalized.length : normalized.substring(pos).search(/\|/) > 0 ? pos + normalized.substring(pos).search(/\|/) : normalized.length
+      );
+      let batchEnd = normalized.length;
+      for (let j = pos; j < normalized.length - 2; j++) {
+        if (normalized.substring(j, j + 1) === "|") {
+          batchEnd = j;
+          break;
+        }
+      }
+      result.batch = normalized.substring(pos, batchEnd).replace("|", "");
+      pos = batchEnd + 1;
+    } else if (ai === "21") {
+      let serialEnd = normalized.length;
+      for (let j = pos; j < normalized.length; j++) {
+        if (normalized.substring(j, j + 1) === "|") {
+          serialEnd = j;
+          break;
+        }
+      }
+      result.serialNumber = normalized.substring(pos, serialEnd);
+      pos = serialEnd + 1;
+    } else {
+      const nextSep = normalized.indexOf("|", pos);
+      pos = nextSep > 0 ? nextSep + 1 : normalized.length;
+    }
+  }
+  return result;
+}
 
 // src/routes/products.ts
 var router5 = (0, import_express5.Router)();
-router5.use(requireAuth);
+router5.use("/products", requireAuth);
 function effectiveCompanyId(user) {
   if (user.role === "master") return null;
   return user.companyId;
@@ -58519,7 +58569,7 @@ var products_default = router5;
 // src/routes/locations.ts
 var import_express6 = __toESM(require_express2(), 1);
 var router6 = (0, import_express6.Router)();
-router6.use(requireAuth);
+router6.use("/locations", requireAuth);
 router6.get("/locations", async (req, res) => {
   const rows = req.user.role === "master" ? await db.select().from(locationsTable).orderBy(desc(locationsTable.createdAt)) : await db.select().from(locationsTable).where(eq(locationsTable.companyId, req.user.companyId)).orderBy(desc(locationsTable.createdAt));
   res.json(rows);
@@ -58562,7 +58612,7 @@ var locations_default = router6;
 // src/routes/batches.ts
 var import_express7 = __toESM(require_express2(), 1);
 var router7 = (0, import_express7.Router)();
-router7.use(requireAuth);
+router7.use("/batches", requireAuth);
 router7.get("/batches", async (req, res) => {
   const rawProductId = req.query.productId;
   const productId = typeof rawProductId === "string" ? parseInt(rawProductId, 10) : null;
@@ -58628,56 +58678,128 @@ var batches_default = router7;
 // src/routes/codes.ts
 var import_express8 = __toESM(require_express2(), 1);
 var router8 = (0, import_express8.Router)();
+router8.get("/codes/debug/recent", async (_req, res) => {
+  try {
+    const codes = await db.select({
+      id: codesTable.id,
+      serialNumber: codesTable.serialNumber,
+      ssccCode: codesTable.ssccCode,
+      rawString: codesTable.rawString,
+      level: codesTable.level,
+      createdAt: codesTable.createdAt
+    }).from(codesTable).orderBy(desc(codesTable.createdAt)).limit(10);
+    res.json({
+      total_codes_shown: codes.length,
+      codes: codes.map((c) => ({
+        id: c.id,
+        level: c.level,
+        serialNumber: c.serialNumber || "null",
+        ssccCode: c.ssccCode || "null",
+        rawString: c.rawString.substring(0, 50) + (c.rawString.length > 50 ? "..." : ""),
+        createdAt: c.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error("Debug endpoint error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 router8.get("/codes/public/:serial", async (req, res) => {
-  const serial = req.params.serial;
+  let serial = req.params.serial;
   if (!serial) {
     res.status(400).json({ error: "Serial number is required" });
     return;
   }
   try {
     const aliasUser2 = usersTable;
-    const rows = await db.select({
-      id: codesTable.id,
-      productId: codesTable.productId,
-      productName: productsTable.name,
-      batchId: codesTable.batchId,
-      batchNumber: batchesTable.batchNumber,
-      level: codesTable.level,
-      rawString: codesTable.rawString,
-      serialNumber: codesTable.serialNumber,
-      ssccCode: codesTable.ssccCode,
-      mapped: codesTable.mapped,
-      mappedAt: codesTable.mappedAt,
-      mappedByUserId: codesTable.mappedByUserId,
-      mappedByUsername: aliasUser2.username,
-      locationId: codesTable.locationId,
-      locationName: locationsTable.locationName,
-      createdAt: codesTable.createdAt,
-      mfgDate: batchesTable.mfgDate,
-      expiryDate: batchesTable.expiryDate,
-      marketedBy: productsTable.marketedBy,
-      registrationNo: productsTable.registrationNo,
-      companyName: companiesTable.name,
-      companyAddress: companiesTable.address,
-      productLogoUrl: productsTable.productLogoUrl,
-      sapDescription: productsTable.sapDescription
-    }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser2, eq(codesTable.mappedByUserId, aliasUser2.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(
+    const buildQuery = (condition) => {
+      return db.select({
+        id: codesTable.id,
+        productId: codesTable.productId,
+        productName: productsTable.name,
+        batchId: codesTable.batchId,
+        batchNumber: batchesTable.batchNumber,
+        level: codesTable.level,
+        rawString: codesTable.rawString,
+        serialNumber: codesTable.serialNumber,
+        ssccCode: codesTable.ssccCode,
+        mapped: codesTable.mapped,
+        mappedAt: codesTable.mappedAt,
+        mappedByUserId: codesTable.mappedByUserId,
+        mappedByUsername: aliasUser2.username,
+        locationId: codesTable.locationId,
+        locationName: locationsTable.locationName,
+        createdAt: codesTable.createdAt,
+        mfgDate: batchesTable.mfgDate,
+        expiryDate: batchesTable.expiryDate,
+        marketedBy: productsTable.marketedBy,
+        registrationNo: productsTable.registrationNo,
+        companyName: companiesTable.name,
+        companyAddress: companiesTable.address,
+        productLogoUrl: productsTable.productLogoUrl,
+        sapDescription: productsTable.sapDescription
+      }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser2, eq(codesTable.mappedByUserId, aliasUser2.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(condition).limit(1);
+    };
+    let searchSerial = serial.trim();
+    if (searchSerial.includes("::")) {
+      searchSerial = searchSerial.split("::")[1] || searchSerial;
+    }
+    console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);
+    let rows = await buildQuery(
       or(
-        eq(codesTable.serialNumber, serial),
-        eq(codesTable.ssccCode, serial)
+        eq(codesTable.serialNumber, searchSerial),
+        eq(codesTable.ssccCode, searchSerial)
       )
-    ).limit(1);
-    if (rows.length === 0) {
-      res.status(404).json({ error: "Product serial verification code not found or invalid" });
+    );
+    if (rows.length > 0) {
+      console.log(`[Public Verify] Found by serialNumber/ssccCode`);
+      res.json(rows[0]);
       return;
     }
-    res.json(rows[0]);
+    rows = await buildQuery(eq(codesTable.rawString, searchSerial));
+    if (rows.length > 0) {
+      console.log(`[Public Verify] Found by rawString (barcode match)`);
+      res.json(rows[0]);
+      return;
+    }
+    const parsed = parseGs1Code(searchSerial);
+    if (parsed.serialNumber || parsed.ssccCode) {
+      const searchConditions = [];
+      if (parsed.serialNumber) {
+        searchConditions.push(eq(codesTable.serialNumber, parsed.serialNumber));
+        console.log(`[Public Verify] Parsed GS1 serialNumber: "${parsed.serialNumber}"`);
+      }
+      if (parsed.ssccCode) {
+        searchConditions.push(eq(codesTable.ssccCode, parsed.ssccCode));
+        console.log(`[Public Verify] Parsed GS1 ssccCode: "${parsed.ssccCode}"`);
+      }
+      if (searchConditions.length > 0) {
+        rows = await buildQuery(or(...searchConditions));
+        if (rows.length > 0) {
+          console.log(`[Public Verify] Found by GS1 parsing`);
+          res.json(rows[0]);
+          return;
+        }
+      }
+    }
+    console.log(`[Public Verify] NOT FOUND. Checking for similar codes...`);
+    const debugCodes = await db.select({
+      serialNumber: codesTable.serialNumber,
+      ssccCode: codesTable.ssccCode,
+      rawString: codesTable.rawString,
+      level: codesTable.level
+    }).from(codesTable).limit(5);
+    console.log(`[Public Verify] Sample codes in DB:`, JSON.stringify(debugCodes, null, 2));
+    res.status(404).json({
+      error: "Product serial verification code not found or invalid",
+      searched: searchSerial,
+      hint: "Code does not exist in database. Please verify the code was generated and saved."
+    });
   } catch (error) {
     console.error("Error fetching public code details:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
-router8.use(requireAuth);
 var aliasUser = usersTable;
 async function fetchEnrichedCodes(ids) {
   if (ids.length === 0) return [];
@@ -58709,7 +58831,7 @@ async function fetchEnrichedCodes(ids) {
   ).orderBy(desc(codesTable.createdAt));
   return rows;
 }
-router8.get("/codes", async (req, res) => {
+router8.get("/codes", requireAuth, async (req, res) => {
   const level = typeof req.query.level === "string" ? req.query.level : null;
   const batchId = typeof req.query.batchId === "string" ? parseInt(req.query.batchId, 10) : null;
   const productId = typeof req.query.productId === "string" ? parseInt(req.query.productId, 10) : null;
@@ -58750,7 +58872,7 @@ router8.get("/codes", async (req, res) => {
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(where).orderBy(desc(codesTable.createdAt)).limit(Math.min(Math.max(limit, 1), 5e3));
   res.json(rows);
 });
-router8.post("/codes", async (req, res) => {
+router8.post("/codes", requireAuth, async (req, res) => {
   const parsed = GenerateCodesBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -58806,7 +58928,7 @@ router8.post("/codes", async (req, res) => {
   const rows = await fetchEnrichedCodes(ids);
   res.status(201).json({ generated: inserted.length, codes: rows });
 });
-router8.post("/codes/:id/map", async (req, res) => {
+router8.post("/codes/:id/map", requireAuth, async (req, res) => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw ?? "", 10);
   if (Number.isNaN(id)) {
@@ -58836,7 +58958,7 @@ var codes_default = router8;
 // src/routes/reports.ts
 var import_express9 = __toESM(require_express2(), 1);
 var router9 = (0, import_express9.Router)();
-router9.use(requireAuth);
+router9.use("/reports", requireAuth);
 function companyScope(user) {
   return user.role === "master" ? void 0 : eq(productsTable.companyId, user.companyId);
 }
