@@ -28450,6 +28450,119 @@ var require_logger = __commonJS({
   }
 });
 
+// ../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js
+var require_cookie_signature2 = __commonJS({
+  "../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js"(exports) {
+    var crypto2 = __require("crypto");
+    exports.sign = function(val, secret2) {
+      if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
+      if ("string" != typeof secret2) throw new TypeError("Secret string must be provided.");
+      return val + "." + crypto2.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+    };
+    exports.unsign = function(val, secret2) {
+      if ("string" != typeof val) throw new TypeError("Signed cookie string must be provided.");
+      if ("string" != typeof secret2) throw new TypeError("Secret string must be provided.");
+      var str = val.slice(0, val.lastIndexOf(".")), mac = exports.sign(str, secret2);
+      return sha1(mac) == sha1(val) ? str : false;
+    };
+    function sha1(str) {
+      return crypto2.createHash("sha1").update(str).digest("hex");
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/cookie-parser@1.4.7/node_modules/cookie-parser/index.js
+var require_cookie_parser = __commonJS({
+  "../../node_modules/.pnpm/cookie-parser@1.4.7/node_modules/cookie-parser/index.js"(exports, module) {
+    "use strict";
+    var cookie = require_cookie();
+    var signature = require_cookie_signature2();
+    module.exports = cookieParser2;
+    module.exports.JSONCookie = JSONCookie;
+    module.exports.JSONCookies = JSONCookies;
+    module.exports.signedCookie = signedCookie;
+    module.exports.signedCookies = signedCookies;
+    function cookieParser2(secret2, options) {
+      var secrets = !secret2 || Array.isArray(secret2) ? secret2 || [] : [secret2];
+      return function cookieParser3(req, res, next) {
+        if (req.cookies) {
+          return next();
+        }
+        var cookies = req.headers.cookie;
+        req.secret = secrets[0];
+        req.cookies = /* @__PURE__ */ Object.create(null);
+        req.signedCookies = /* @__PURE__ */ Object.create(null);
+        if (!cookies) {
+          return next();
+        }
+        req.cookies = cookie.parse(cookies, options);
+        if (secrets.length !== 0) {
+          req.signedCookies = signedCookies(req.cookies, secrets);
+          req.signedCookies = JSONCookies(req.signedCookies);
+        }
+        req.cookies = JSONCookies(req.cookies);
+        next();
+      };
+    }
+    function JSONCookie(str) {
+      if (typeof str !== "string" || str.substr(0, 2) !== "j:") {
+        return void 0;
+      }
+      try {
+        return JSON.parse(str.slice(2));
+      } catch (err) {
+        return void 0;
+      }
+    }
+    function JSONCookies(obj) {
+      var cookies = Object.keys(obj);
+      var key;
+      var val;
+      for (var i = 0; i < cookies.length; i++) {
+        key = cookies[i];
+        val = JSONCookie(obj[key]);
+        if (val) {
+          obj[key] = val;
+        }
+      }
+      return obj;
+    }
+    function signedCookie(str, secret2) {
+      if (typeof str !== "string") {
+        return void 0;
+      }
+      if (str.substr(0, 2) !== "s:") {
+        return str;
+      }
+      var secrets = !secret2 || Array.isArray(secret2) ? secret2 || [] : [secret2];
+      for (var i = 0; i < secrets.length; i++) {
+        var val = signature.unsign(str.slice(2), secrets[i]);
+        if (val !== false) {
+          return val;
+        }
+      }
+      return false;
+    }
+    function signedCookies(obj, secret2) {
+      var cookies = Object.keys(obj);
+      var dec;
+      var key;
+      var ret = /* @__PURE__ */ Object.create(null);
+      var val;
+      for (var i = 0; i < cookies.length; i++) {
+        key = cookies[i];
+        val = obj[key];
+        dec = signedCookie(val, secret2);
+        if (val !== dec) {
+          ret[key] = dec;
+          delete obj[key];
+        }
+      }
+      return ret;
+    }
+  }
+});
+
 // ../../node_modules/.pnpm/safe-buffer@5.2.1/node_modules/safe-buffer/index.js
 var require_safe_buffer = __commonJS({
   "../../node_modules/.pnpm/safe-buffer@5.2.1/node_modules/safe-buffer/index.js"(exports, module) {
@@ -29031,7 +29144,7 @@ var require_on_headers = __commonJS({
 });
 
 // ../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js
-var require_cookie_signature2 = __commonJS({
+var require_cookie_signature3 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js"(exports) {
     var crypto2 = __require("crypto");
     exports.sign = function(val, secret2) {
@@ -29435,7 +29548,7 @@ var require_express_session = __commonJS({
     var deprecate = require_depd()("express-session");
     var onHeaders = require_on_headers();
     var parseUrl = require_parseurl();
-    var signature = require_cookie_signature2();
+    var signature = require_cookie_signature3();
     var uid = require_uid_safe().sync;
     var Cookie = require_cookie2();
     var MemoryStore = require_memory();
@@ -46431,6 +46544,7 @@ var require_multer = __commonJS({
 var import_express12 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
+var import_cookie_parser = __toESM(require_cookie_parser(), 1);
 
 // src/routes/index.ts
 var import_express11 = __toESM(require_express2(), 1);
@@ -58062,10 +58176,15 @@ router2.post("/auth/login", async (req, res) => {
     const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
     companyName = c?.name ?? null;
   }
-  req.session.userId = user.id;
-  await new Promise(
-    (resolve, reject) => req.session.save((err) => err ? reject(err) : resolve())
-  );
+  const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  res.cookie("connect.sid", user.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1e3 * 60 * 60 * 24 * 7,
+    // 7 days
+    secure: isProduction2,
+    sameSite: "lax"
+  });
   res.json(
     LoginResponse.parse({
       id: user.id,
@@ -58078,10 +58197,8 @@ router2.post("/auth/login", async (req, res) => {
   );
 });
 router2.post("/auth/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.sendStatus(204);
-  });
+  res.clearCookie("connect.sid");
+  res.sendStatus(204);
 });
 router2.get("/auth/me", async (req, res) => {
   if (!req.user) {
@@ -58955,8 +59072,9 @@ var logger = (0, import_pino.default)({
 
 // src/middlewares/loadUser.ts
 var loadUser = async (req, _res, next) => {
-  const userId = req.session?.userId;
-  if (!userId) {
+  const userIdRaw = req.signedCookies?.["connect.sid"];
+  const userId = userIdRaw ? parseInt(userIdRaw, 10) : void 0;
+  if (!userId || Number.isNaN(userId)) {
     next();
     return;
   }
@@ -59005,7 +59123,7 @@ app.use(
 );
 app.use(import_express12.default.json({ limit: "1mb" }));
 app.use(import_express12.default.urlencoded({ extended: true }));
-app.use(sessionMiddleware);
+app.use((0, import_cookie_parser.default)(process.env["SESSION_SECRET"] ?? "dev-insecure-secret"));
 app.use(loadUser);
 app.use("/api", routes_default);
 var uploadDir2 = process.env.VERCEL ? "/tmp" : path3.resolve(__dirname, "../uploads");
@@ -59309,6 +59427,14 @@ object-assign/index.js:
   (c) Sindre Sorhus
   @license MIT
   *)
+
+cookie-parser/index.js:
+  (*!
+   * cookie-parser
+   * Copyright(c) 2014 TJ Holowaychuk
+   * Copyright(c) 2015 Douglas Christopher Wilson
+   * MIT Licensed
+   *)
 
 safe-buffer/index.js:
   (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)

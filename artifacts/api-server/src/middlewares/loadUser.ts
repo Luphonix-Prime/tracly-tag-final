@@ -3,8 +3,9 @@ import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 
 export const loadUser: RequestHandler = async (req, _res, next) => {
-  const userId = req.session?.userId;
-  if (!userId) {
+  const userIdRaw = req.signedCookies?.["connect.sid"];
+  const userId = userIdRaw ? parseInt(userIdRaw, 10) : undefined;
+  if (!userId || Number.isNaN(userId)) {
     next();
     return;
   }

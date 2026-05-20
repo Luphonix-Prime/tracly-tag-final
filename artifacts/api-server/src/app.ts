@@ -1,9 +1,9 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import { pinoHttp } from "pino-http";
+import cookieParser from "cookie-parser";
 import router from "./routes/index";
 import { logger } from "./lib/logger";
-import { sessionMiddleware } from "./lib/session";
 import { loadUser } from "./middlewares/loadUser";
 import path from "path";
 import fs from "fs";
@@ -40,7 +40,7 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-app.use(sessionMiddleware);
+app.use(cookieParser(process.env["SESSION_SECRET"] ?? "dev-insecure-secret"));
 app.use(loadUser);
 
 app.use("/api", router);

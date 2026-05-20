@@ -38,10 +38,14 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     companyName = c?.name ?? null;
   }
 
-  req.session.userId = user.id;
-  await new Promise<void>((resolve, reject) =>
-    req.session.save((err) => (err ? reject(err) : resolve())),
-  );
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  res.cookie("connect.sid", user.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    secure: isProduction,
+    sameSite: "lax",
+  });
 
   res.json(
     LoginResponse.parse({
@@ -56,10 +60,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 });
 
 router.post("/auth/logout", (req, res): void => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.sendStatus(204);
-  });
+  res.clearCookie("connect.sid");
+  res.sendStatus(204);
 });
 
 router.get("/auth/me", async (req, res): Promise<void> => {
