@@ -9,7 +9,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { 
   QrCode, Loader2, MapPin, Mail, Lock, User, Phone, 
   Building2, Globe, Fingerprint, Laptop, X, Check, 
-  ExternalLink, RefreshCw, Terminal, TerminalSquare, ShieldAlert
+  ExternalLink, RefreshCw, Terminal, TerminalSquare, ShieldAlert,
+  Copy, Info
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,9 +56,28 @@ export default function Login() {
   // --- SSO States ---
   const [isSsoOpen, setIsSsoOpen] = useState(false);
   const [ssoProvider, setSsoProvider] = useState("");
-  const [ssoCustomName, setSsoCustomName] = useState("");
-  const [ssoCustomEmail, setSsoCustomEmail] = useState("");
-  const [ssoCustomCompany, setSsoCustomCompany] = useState("");
+  const [ssoConfig, setSsoConfig] = useState<{ google: boolean; github: boolean }>({ google: false, github: false });
+  const [ssoModalTab, setSsoModalTab] = useState<"create" | "callback" | "env">("create");
+
+  useEffect(() => {
+    fetch("/api/auth/sso/config")
+      .then(res => res.json())
+      .then(data => {
+        setSsoConfig(data);
+      })
+      .catch(err => console.error("Failed to load SSO configuration:", err));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("error");
+    if (error) {
+      toast.error(decodeURIComponent(error));
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      window.history.replaceState({}, document.title, url.pathname + url.search);
+    }
+  }, []);
 
   // --- Passkey States ---
   const [isPasskeySimulatorOpen, setIsPasskeySimulatorOpen] = useState(false);
@@ -254,37 +274,23 @@ export default function Login() {
 
   // --- SSO Actions ---
   const handleSsoLogin = (provider: string) => {
+    const p = provider.toLowerCase();
+    if (p === "google" && ssoConfig.google) {
+      window.location.href = "/api/auth/sso/google";
+      return;
+    }
+    if (p === "github" && ssoConfig.github) {
+      window.location.href = "/api/auth/sso/github";
+      return;
+    }
     setSsoProvider(provider);
-    setSsoCustomName("");
-    setSsoCustomEmail("");
-    setSsoCustomCompany("");
+    setSsoModalTab("create");
     setIsSsoOpen(true);
   };
 
-  const handleSsoSubmit = async (ssoData: any) => {
-    try {
-      const response = await fetch("/api/auth/sso", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: ssoProvider,
-          username: ssoData.username,
-          email: ssoData.email,
-          name: ssoData.name,
-          companyName: ssoData.companyName,
-          companyWebsiteUrl: ssoData.companyWebsiteUrl,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "SSO Login failed");
-
-      toast.success(`Authenticated with ${ssoProvider} successfully!`);
-      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-      setIsSsoOpen(false);
-      handleRedirect();
-    } catch (err: any) {
-      toast.error(err.message || "SSO Login failed");
-    }
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard!`);
   };
 
   // --- Passkey Actions ---
@@ -1116,6 +1122,7 @@ export default function Login() {
       </div>
 
       {/* --- SSO Identity Provider Modal --- */}
+      {/* --- SSO Identity Provider Modal --- */}
       <AnimatePresence>
         {isSsoOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -1123,104 +1130,212 @@ export default function Login() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card text-card-foreground border border-border rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+              className="bg-card text-card-foreground border border-border rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden backdrop-blur-md bg-card/90 dark:bg-zinc-900/90"
             >
+              {/* Modal Header */}
               <div className="p-6 border-b flex justify-between items-center bg-muted/30">
-                <div className="flex items-center gap-2">
-                  {ssoProvider === "Google" && <FcGoogle className="h-5 w-5" />}
-                  {ssoProvider === "Microsoft" && <FaMicrosoft className="h-4.5 w-4.5 text-[#00a4ef]" />}
-                  {ssoProvider === "GitHub" && <FaGithub className="h-5 w-5" />}
-                  <span className="font-bold">Mock {ssoProvider} Identity Provider</span>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 rounded-xl">
+                    {ssoProvider === "Google" && <FcGoogle className="h-6 w-6" />}
+                    {ssoProvider === "Microsoft" && <FaMicrosoft className="h-5.5 w-5.5 text-[#00a4ef]" />}
+                    {ssoProvider === "GitHub" && <FaGithub className="h-6 w-6" />}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-foreground">{ssoProvider} Single Sign-On Setup</h3>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Developer credentials configuration wizard</p>
+                  </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setIsSsoOpen(false)} className="rounded-full h-8 w-8 hover:bg-muted">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="p-6 space-y-5">
-                <div className="text-xs text-muted-foreground bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 p-3.5 rounded-2xl border border-indigo-500/20">
-                  Select a mock profile to log in immediately, or fill in custom details to test registering a new company workspace.
-                </div>
+              <div className="p-6 space-y-6">
+                {ssoProvider === "Microsoft" ? (
+                  <div className="space-y-4">
+                    <div className="flex gap-3 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 p-4 rounded-2xl border border-yellow-500/20 text-xs leading-relaxed">
+                      <Info className="h-5 w-5 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold block mb-1">Microsoft SSO Planned</span>
+                        Microsoft OAuth 2.0 integration is currently under development. To test or enable actual Single Sign-On, please configure Google or GitHub credentials.
+                      </div>
+                    </div>
+                    <div className="bg-muted/40 p-4 rounded-2xl border text-xs text-muted-foreground space-y-2">
+                      <p>Currently configured integrations on this server:</p>
+                      <div className="flex gap-2 mt-1">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${ssoConfig.google ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/25" : "bg-muted text-muted-foreground border-border"}`}>
+                          Google: {ssoConfig.google ? "ACTIVE" : "MISSING KEYS"}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${ssoConfig.github ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/25" : "bg-muted text-muted-foreground border-border"}`}>
+                          GitHub: {ssoConfig.github ? "ACTIVE" : "MISSING KEYS"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Setup Status Notice */}
+                    <div className="flex gap-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 p-4 rounded-2xl border border-indigo-500/20 text-xs leading-relaxed">
+                      <Info className="h-5 w-5 shrink-0 mt-0.5 animate-pulse" />
+                      <div>
+                        <span className="font-semibold block mb-1">SSO Credentials Missing</span>
+                        To enable actual {ssoProvider} SSO, client keys must be configured in your environment variables. Follow the steps below to setup developer credentials.
+                      </div>
+                    </div>
 
-                {/* Preset Profiles */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">Preset Social Profiles</span>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => handleSsoSubmit({
-                        username: "jane_sso",
-                        email: "jane.sso@acme.com",
-                        name: "Jane Doe",
-                        companyName: "Acme Logistics",
-                        companyWebsiteUrl: "https://acmelogistics.com"
-                      })}
-                      className="flex flex-col text-left p-3.5 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-500/5 cursor-pointer transition-all duration-200"
-                    >
-                      <span className="font-semibold text-sm text-foreground">Jane Doe</span>
-                      <span className="text-[10px] text-muted-foreground">jane.sso@acme.com</span>
-                      <span className="text-[9px] mt-1 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full w-fit">Acme Logistics</span>
-                    </button>
-                    <button
-                      onClick={() => handleSsoSubmit({
-                        username: "bob_sso",
-                        email: "bob.sso@prime.org",
-                        name: "Bob Smith",
-                        companyName: "Prime Retailers",
-                        companyWebsiteUrl: "https://primeretailers.org"
-                      })}
-                      className="flex flex-col text-left p-3.5 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-500/5 cursor-pointer transition-all duration-200"
-                    >
-                      <span className="font-semibold text-sm text-foreground">Bob Smith</span>
-                      <span className="text-[10px] text-muted-foreground">bob.sso@prime.org</span>
-                      <span className="text-[9px] mt-1 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full w-fit">Prime Retailers</span>
-                    </button>
-                  </div>
-                </div>
+                    {/* Navigation Tabs */}
+                    <div className="flex border-b border-border">
+                      <button
+                        onClick={() => setSsoModalTab("create")}
+                        className={`flex-1 pb-3 text-xs font-semibold tracking-wide border-b-2 transition-all ${ssoModalTab === "create" ? "border-indigo-500 text-indigo-600 dark:text-indigo-400" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                      >
+                        1. Developer Console
+                      </button>
+                      <button
+                        onClick={() => setSsoModalTab("callback")}
+                        className={`flex-1 pb-3 text-xs font-semibold tracking-wide border-b-2 transition-all ${ssoModalTab === "callback" ? "border-indigo-500 text-indigo-600 dark:text-indigo-400" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                      >
+                        2. Redirect Callback
+                      </button>
+                      <button
+                        onClick={() => setSsoModalTab("env")}
+                        className={`flex-1 pb-3 text-xs font-semibold tracking-wide border-b-2 transition-all ${ssoModalTab === "env" ? "border-indigo-500 text-indigo-600 dark:text-indigo-400" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                      >
+                        3. Env Setup
+                      </button>
+                    </div>
 
-                <div className="relative flex py-1 items-center">
-                  <div className="flex-grow border-t border-border"></div>
-                  <span className="flex-shrink mx-4 text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Or use custom profile</span>
-                  <div className="flex-grow border-t border-border"></div>
-                </div>
+                    {/* Tab 1: Create Credentials Instructions */}
+                    {ssoModalTab === "create" && (
+                      <div className="space-y-4 max-h-[220px] overflow-y-auto pr-1">
+                        {ssoProvider === "Google" ? (
+                          <div className="space-y-3 text-xs leading-relaxed text-muted-foreground">
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">1</span>
+                              <p>Go to the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline inline-flex items-center gap-0.5">Google Cloud Console <ExternalLink className="h-3 w-3" /></a> and create or select a project.</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">2</span>
+                              <p>Under <strong>OAuth consent screen</strong>, set user type to External, fill required fields, and add scopes: <code className="bg-muted px-1 rounded text-foreground">openid</code>, <code className="bg-muted px-1 rounded text-foreground">email</code>, and <code className="bg-muted px-1 rounded text-foreground">profile</code>.</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">3</span>
+                              <p>Go to <strong>Credentials</strong> &gt; <strong>Create Credentials</strong> &gt; <strong>OAuth client ID</strong>. Choose <strong>Web application</strong>.</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">4</span>
+                              <p>Add Authorized JavaScript Origin: <code className="bg-muted px-1 rounded text-foreground">http://localhost:5173</code>.</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">5</span>
+                              <p>Add Authorized Redirect URI: (copy from step 2 tab).</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 text-xs leading-relaxed text-muted-foreground">
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">1</span>
+                              <p>Go to <a href="https://github.com/settings/developers" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline inline-flex items-center gap-0.5">GitHub Developer Settings <ExternalLink className="h-3 w-3" /></a>.</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">2</span>
+                              <p>Select <strong>OAuth Apps</strong> and click <strong>New OAuth App</strong>.</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">3</span>
+                              <p>Set Homepage URL to <code className="bg-muted px-1 rounded text-foreground">http://localhost:5173</code>.</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">4</span>
+                              <p>Set Authorization callback URL: (copy from step 2 tab).</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="bg-indigo-600 text-white font-bold h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">5</span>
+                              <p>Register the application, copy the <strong>Client ID</strong>, and click <strong>Generate a new client secret</strong>.</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                {/* Custom Profile Form */}
-                <div className="grid grid-cols-2 gap-3.5 text-sm">
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Full Name</label>
-                    <Input placeholder="Alice Brown" value={ssoCustomName} onChange={e => setSsoCustomName(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Email</label>
-                    <Input type="email" placeholder="alice@company.com" value={ssoCustomEmail} onChange={e => setSsoCustomEmail(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
-                  </div>
-                  <div className="space-y-1 col-span-2">
-                    <label className="text-xs text-muted-foreground">Company Name</label>
-                    <Input placeholder="Brown Enterprises" value={ssoCustomCompany} onChange={e => setSsoCustomCompany(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
-                  </div>
-                </div>
+                    {/* Tab 2: Redirect Callback */}
+                    {ssoModalTab === "callback" && (
+                      <div className="space-y-4">
+                        <p className="text-xs text-muted-foreground leading-normal">
+                          This is the callback URL you must specify in the Developer Console settings:
+                        </p>
+                        <div className="flex items-center gap-2 bg-muted/80 p-3.5 rounded-2xl border font-mono text-xs text-foreground">
+                          <span className="select-all overflow-x-auto whitespace-nowrap scrollbar-none flex-grow">
+                            {`http://localhost:5173/api/auth/sso/callback/${ssoProvider.toLowerCase()}`}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyToClipboard(`http://localhost:5173/api/auth/sso/callback/${ssoProvider.toLowerCase()}`, "Callback URL")}
+                            className="shrink-0 h-8 w-8 hover:bg-background rounded-lg border"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="bg-muted/40 p-3.5 rounded-2xl border border-dashed text-[10px] text-muted-foreground leading-relaxed">
+                          <span className="font-semibold block text-foreground mb-0.5">Why port 5173?</span>
+                          Vite proxies all <code className="bg-muted px-1">/api/*</code> requests back to Express (port 3000). Routing OAuth callback redirects through the front-end origin prevents CORS session cookie (<code className="bg-muted px-1">connect.sid</code>) mismatch issues.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab 3: Environment Configuration */}
+                    {ssoModalTab === "env" && (
+                      <div className="space-y-4">
+                        <p className="text-xs text-muted-foreground leading-normal">
+                          Add the copied developer keys to the `.env` file at the root of the project:
+                        </p>
+                        <div className="relative">
+                          <pre className="bg-zinc-950 text-zinc-300 p-4 rounded-2xl border border-zinc-800 font-mono text-xs leading-normal overflow-x-auto whitespace-pre">
+                            {ssoProvider === "Google" ? (
+                              `# Google Credentials\nGOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com\nGOOGLE_CLIENT_SECRET=GOCSPX-your_client_secret`
+                            ) : (
+                              `# GitHub Credentials\nGITHUB_CLIENT_ID=your_client_id\nGITHUB_CLIENT_SECRET=your_client_secret`
+                            )}
+                          </pre>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const content = ssoProvider === "Google" 
+                                ? "GOOGLE_CLIENT_ID=your_client_id_here.apps.googleusercontent.com\nGOOGLE_CLIENT_SECRET=your_client_secret_here"
+                                : "GITHUB_CLIENT_ID=your_client_id_here\nGITHUB_CLIENT_SECRET=your_client_secret_here";
+                              copyToClipboard(content, ".env template");
+                            }}
+                            className="absolute top-2.5 right-2.5 h-8 w-8 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-lg"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="space-y-2 text-xs text-muted-foreground leading-normal">
+                          <p>Then, restart your API backend terminal to pick up the changes:</p>
+                          <pre className="bg-muted p-2.5 rounded-xl border font-mono text-[10px] text-foreground">
+                            pnpm --filter @workspace/api-server run dev
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
-              <div className="p-6 border-t flex justify-end gap-2.5 bg-muted/10">
-                <Button variant="outline" onClick={() => setIsSsoOpen(false)} className="rounded-full h-10 font-medium">Cancel</Button>
-                <Button
-                  onClick={() => {
-                    if (!ssoCustomName || !ssoCustomEmail || !ssoCustomCompany) {
-                      toast.error("Please fill in Name, Email, and Company to proceed.");
-                      return;
-                    }
-                    const userSlug = ssoCustomName.toLowerCase().replace(/\s+/g, "_");
-                    handleSsoSubmit({
-                      username: `${userSlug}_sso`,
-                      email: ssoCustomEmail,
-                      name: ssoCustomName,
-                      companyName: ssoCustomCompany,
-                      companyWebsiteUrl: `https://${userSlug}.com`
-                    });
-                  }}
-                  className="rounded-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5"
-                >
-                  Authenticate SSO
-                </Button>
+              {/* Modal Footer */}
+              <div className="p-6 border-t flex justify-between items-center bg-muted/10">
+                <span className="text-[10px] text-muted-foreground">
+                  Read complete instructions in <code className="bg-muted px-1.5 py-0.5 rounded font-mono">sso_setup_guide.md</code>
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsSsoOpen(false)} className="rounded-full h-10 font-medium text-xs px-4">
+                    Close Guide
+                  </Button>
+                </div>
               </div>
             </motion.div>
           </div>

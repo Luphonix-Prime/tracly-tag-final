@@ -170,84 +170,218 @@ router.get("/auth/me", async (req, res): Promise<void> => {
 });
 
 // --- SSO Endpoints ---
-router.post("/auth/sso", async (req, res): Promise<void> => {
-  const { provider, email, username, name, companyName, companyWebsiteUrl } = req.body;
-  if (!email || !username) {
-    res.status(400).json({ error: "Email and username are required" });
+
+interface SsoUserPayload {
+  provider: string;
+  providerId: string;
+  email: string;
+  name: string;
+  username: string;
+}
+
+async function authenticateOrProvisionSsoUser(payload: SsoUserPayload) {
+  const { email, name, username } = payload;
+
+  // Check if a user with this email or username already exists
+  let [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, email));
+
+  if (!user) {
+    // If not found by email, check by username (to avoid unique constraint violation)
+    const [userByUsername] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.username, username));
+      
+    if (userByUsername) {
+      user = userByUsername;
+    }
+  }
+
+  if (user) {
+    return user;
+  }
+
+  // Provisioning a new user and company
+  const targetCompanyName = `${name}'s Workspace`;
+  const targetWebsite = `https://${username.toLowerCase()}.traclytag.com`;
+
+  // Create company
+  const [company] = await db
+    .insert(companiesTable)
+    .values({
+      name: targetCompanyName,
+      email: email,
+      address: targetWebsite,
+      gstin: null,
+    })
+    .returning();
+
+  if (!company) {
+    throw new Error("Failed to auto-provision company workspace");
+  }
+
+  // Generate random password hash (since password_hash is notNull in usersTable)
+  const randomPassword = crypto.randomBytes(16).toString("hex");
+  const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+  // Ensure unique username
+  let finalUsername = username;
+  const [existingUsername] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.username, finalUsername));
+    
+  if (existingUsername) {
+    finalUsername = `${username}_${crypto.randomInt(1000, 9999)}`;
+  }
+
+  // Create client_admin user
+  const [newUser] = await db
+    .insert(usersTable)
+    .values({
+      username: finalUsername,
+      email,
+      phone: null,
+      passwordHash,
+      role: "client_admin",
+      companyId: company.id,
+    })
+    .returning();
+
+  if (!newUser) {
+    throw new Error("Failed to auto-provision user account");
+  }
+
+  return newUser;
+}
+
+const getSuccessRedirectUrl = (req: any): string => {
+  if (req.get("host")?.includes("localhost:3000") || req.get("host")?.includes("127.0.0.1:3000")) {
+    return "http://localhost:5173/dashboard";
+  }
+  return "/dashboard";
+};
+
+const getFailureRedirectUrl = (req: any, errorMsg: string): string => {
+  const prefix = (req.get("host")?.includes("localhost:3000") || req.get("host")?.includes("127.0.0.1:3000"))
+    ? "http://localhost:5173"
+    : "";
+  return `${prefix}/login?error=${encodeURIComponent(errorMsg)}`;
+};
+
+router.get("/auth/sso/config", (req, res): void => {
+  res.json({
+    google: !!process.env.GOOGLE_CLIENT_ID,
+    github: !!process.env.GITHUB_CLIENT_ID,
+  });
+});
+
+router.get("/auth/sso/google", (req, res): void => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    res.status(400).json({ error: "Google SSO is not configured on the server." });
+    return;
+  }
+  
+  const state = crypto.randomBytes(16).toString("hex");
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  
+  res.cookie("oauth_state", state, {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 10, // 10 minutes
+    secure: isProduction,
+    sameSite: "lax",
+  });
+
+  const redirectPrefix = process.env.SSO_REDIRECT_URI || `${req.protocol}://${req.get("host")}/api/auth/sso/callback`;
+  const redirectUri = `${redirectPrefix}/google`;
+  
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${encodeURIComponent(clientId)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent("openid email profile")}` +
+    `&state=${encodeURIComponent(state)}`;
+    
+  res.redirect(authUrl);
+});
+
+router.get("/auth/sso/callback/google", async (req, res): Promise<void> => {
+  const { code, state, error } = req.query;
+  const savedState = req.signedCookies?.["oauth_state"];
+  res.clearCookie("oauth_state");
+
+  if (error) {
+    res.redirect(getFailureRedirectUrl(req, String(error)));
+    return;
+  }
+
+  if (!code || !state || state !== savedState) {
+    res.redirect(getFailureRedirectUrl(req, "Invalid state or code missing"));
+    return;
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    res.redirect(getFailureRedirectUrl(req, "Server Google credentials are not configured"));
     return;
   }
 
   try {
-    let [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.username, username));
+    const redirectPrefix = process.env.SSO_REDIRECT_URI || `${req.protocol}://${req.get("host")}/api/auth/sso/callback`;
+    const redirectUri = `${redirectPrefix}/google`;
 
-    if (!user) {
-      const [userByEmail] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.email, email));
-      if (userByEmail) {
-        user = userByEmail;
-      }
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: String(code),
+        grant_type: "authorization_code",
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    const tokenData = (await tokenResponse.json()) as any;
+    if (!tokenResponse.ok) {
+      throw new Error(tokenData.error_description || tokenData.error || "Failed to exchange Google authorization code");
     }
 
-    let resolvedCompanyId = user?.companyId ?? null;
-    let resolvedCompanyName: string | null = null;
+    const { access_token } = tokenData;
 
-    if (!user) {
-      const targetCompanyName = companyName || `${name || username}'s Organization`;
-      const targetWebsite = companyWebsiteUrl || `https://${username.toLowerCase()}.traclytag.com`;
+    const userinfoResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
 
-      const [company] = await db
-        .insert(companiesTable)
-        .values({
-          name: targetCompanyName,
-          email: email,
-          address: targetWebsite,
-          gstin: null,
-        })
-        .returning();
-
-      if (!company) {
-        throw new Error("Failed to create company");
-      }
-
-      resolvedCompanyId = company.id;
-      resolvedCompanyName = company.name;
-
-      const randomPassword = crypto.randomBytes(16).toString("hex");
-      const passwordHash = await bcrypt.hash(randomPassword, 10);
-
-      const [newUser] = await db
-        .insert(usersTable)
-        .values({
-          username,
-          email,
-          phone: null,
-          passwordHash,
-          role: "client_admin",
-          companyId: resolvedCompanyId,
-        })
-        .returning();
-
-      if (!newUser) {
-        throw new Error("Failed to create user");
-      }
-      user = newUser;
-    } else {
-      if (user.companyId) {
-        const [c] = await db
-          .select({ name: companiesTable.name })
-          .from(companiesTable)
-          .where(eq(companiesTable.id, user.companyId));
-        resolvedCompanyName = c?.name ?? null;
-      }
+    const profile = (await userinfoResponse.json()) as any;
+    if (!userinfoResponse.ok) {
+      throw new Error(profile.error_description || "Failed to fetch Google user profile");
     }
+
+    const email = profile.email;
+    const name = profile.name || profile.given_name || "Google User";
+    const sub = profile.sub;
+
+    if (!email) {
+      throw new Error("No email returned from Google authentication");
+    }
+
+    const loggedInUser = await authenticateOrProvisionSsoUser({
+      provider: "google",
+      providerId: sub,
+      email,
+      name,
+      username: email.split("@")[0] || `user_${sub.slice(-6)}`,
+    });
 
     const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
-    res.cookie("connect.sid", user.id.toString(), {
+    res.cookie("connect.sid", loggedInUser.id.toString(), {
       signed: true,
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7,
@@ -255,17 +389,148 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
       sameSite: "lax",
     });
 
-    res.json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      companyId: user.companyId,
-      companyName: resolvedCompanyName,
+    res.redirect(getSuccessRedirectUrl(req));
+  } catch (err: any) {
+    req.log.error({ err }, "Google SSO callback handler failed");
+    res.redirect(getFailureRedirectUrl(req, err.message || "Google authentication failed"));
+  }
+});
+
+router.get("/auth/sso/github", (req, res): void => {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  if (!clientId) {
+    res.status(400).json({ error: "GitHub SSO is not configured on the server." });
+    return;
+  }
+  
+  const state = crypto.randomBytes(16).toString("hex");
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  
+  res.cookie("oauth_state", state, {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 10,
+    secure: isProduction,
+    sameSite: "lax",
+  });
+
+  const redirectPrefix = process.env.SSO_REDIRECT_URI || `${req.protocol}://${req.get("host")}/api/auth/sso/callback`;
+  const redirectUri = `${redirectPrefix}/github`;
+  
+  const authUrl = `https://github.com/login/oauth/authorize?` +
+    `client_id=${encodeURIComponent(clientId)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${encodeURIComponent("user:email")}` +
+    `&state=${encodeURIComponent(state)}`;
+    
+  res.redirect(authUrl);
+});
+
+router.get("/auth/sso/callback/github", async (req, res): Promise<void> => {
+  const { code, state, error } = req.query;
+  const savedState = req.signedCookies?.["oauth_state"];
+  res.clearCookie("oauth_state");
+
+  if (error) {
+    res.redirect(getFailureRedirectUrl(req, String(error)));
+    return;
+  }
+
+  if (!code || !state || state !== savedState) {
+    res.redirect(getFailureRedirectUrl(req, "Invalid state or code missing"));
+    return;
+  }
+
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    res.redirect(getFailureRedirectUrl(req, "Server GitHub credentials are not configured"));
+    return;
+  }
+
+  try {
+    const redirectPrefix = process.env.SSO_REDIRECT_URI || `${req.protocol}://${req.get("host")}/api/auth/sso/callback`;
+    const redirectUri = `${redirectPrefix}/github`;
+
+    const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: String(code),
+        redirect_uri: redirectUri,
+      }),
     });
-  } catch (err) {
-    req.log.error({ err }, "SSO Authentication failed");
-    res.status(500).json({ error: "SSO Authentication failed" });
+
+    const tokenData = (await tokenResponse.json()) as any;
+    if (!tokenResponse.ok || tokenData.error) {
+      throw new Error(tokenData.error_description || tokenData.error || "Failed to exchange GitHub authorization code");
+    }
+
+    const { access_token } = tokenData;
+
+    const userResponse = await fetch("https://api.github.com/user", {
+      headers: { 
+        Authorization: `Bearer ${access_token}`,
+        "User-Agent": "TraclyTag-App"
+      },
+    });
+
+    const profile = (await userResponse.json()) as any;
+    if (!userResponse.ok) {
+      throw new Error(profile.message || "Failed to fetch GitHub profile");
+    }
+
+    const emailsResponse = await fetch("https://api.github.com/user/emails", {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        "User-Agent": "TraclyTag-App"
+      }
+    });
+
+    let email = profile.email;
+    if (emailsResponse.ok) {
+      const emailsList = await emailsResponse.json();
+      if (Array.isArray(emailsList)) {
+        const primaryEmail = emailsList.find((e: any) => e.primary && e.verified) || emailsList[0];
+        if (primaryEmail) {
+          email = primaryEmail.email;
+        }
+      }
+    }
+
+    if (!email) {
+      throw new Error("No public or verified email returned from GitHub");
+    }
+
+    const name = profile.name || profile.login || "GitHub User";
+    const sub = String(profile.id);
+
+    const loggedInUser = await authenticateOrProvisionSsoUser({
+      provider: "github",
+      providerId: sub,
+      email,
+      name,
+      username: profile.login || email.split("@")[0],
+    });
+
+    const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+    res.cookie("connect.sid", loggedInUser.id.toString(), {
+      signed: true,
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      secure: isProduction,
+      sameSite: "lax",
+    });
+
+    res.redirect(getSuccessRedirectUrl(req));
+  } catch (err: any) {
+    req.log.error({ err }, "GitHub SSO callback handler failed");
+    res.redirect(getFailureRedirectUrl(req, err.message || "GitHub authentication failed"));
   }
 });
 
