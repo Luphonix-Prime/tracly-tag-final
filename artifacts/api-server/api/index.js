@@ -18768,14 +18768,14 @@ var require_etag = __commonJS({
   "../../node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports, module) {
     "use strict";
     module.exports = etag;
-    var crypto2 = __require("crypto");
+    var crypto3 = __require("crypto");
     var Stats = __require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash2 = crypto2.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash2 = crypto3.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash2 + '"';
     }
@@ -22250,17 +22250,17 @@ var require_content_disposition = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js"(exports) {
-    var crypto2 = __require("crypto");
+    var crypto3 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto2.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(input, secret2) {
       if ("string" != typeof input) throw new TypeError("Signed cookie string must be provided.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
       var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret2), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
-      return expectedBuffer.length === inputBuffer.length && crypto2.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
+      return expectedBuffer.length === inputBuffer.length && crypto3.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
     };
   }
 });
@@ -27988,7 +27988,7 @@ var require_pino = __commonJS({
     function pinoBundlerAbsolutePath(p) {
       try {
         const path4 = __require("path");
-        const outputDir = "C:\\Users\\dhyey\\OneDrive\\Desktop\\traclytag\\traclytagreplit\\artifacts\\api-server\\api";
+        const outputDir = "C:\\Users\\Keval\\Documents\\tracelytag\\tracly-tag-final\\artifacts\\api-server\\api";
         return path4.resolve(outputDir, p.replace(/^\.\//, ""));
       } catch (e) {
         const f = new Function("p", "return new URL(p, import.meta.url).pathname");
@@ -28453,11 +28453,11 @@ var require_logger = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js
 var require_cookie_signature2 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js"(exports) {
-    var crypto2 = __require("crypto");
+    var crypto3 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if ("string" != typeof secret2) throw new TypeError("Secret string must be provided.");
-      return val + "." + crypto2.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -28466,7 +28466,7 @@ var require_cookie_signature2 = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto2.createHash("sha1").update(str).digest("hex");
+      return crypto3.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -29146,11 +29146,11 @@ var require_on_headers = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js
 var require_cookie_signature3 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js"(exports) {
-    var crypto2 = __require("crypto");
+    var crypto3 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" !== typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto2.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(val, secret2) {
       if ("string" !== typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -29159,7 +29159,7 @@ var require_cookie_signature3 = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto2.createHash("sha1").update(str).digest("hex");
+      return crypto3.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -29168,8 +29168,8 @@ var require_cookie_signature3 = __commonJS({
 var require_random_bytes = __commonJS({
   "../../node_modules/.pnpm/random-bytes@1.0.0/node_modules/random-bytes/index.js"(exports, module) {
     "use strict";
-    var crypto2 = __require("crypto");
-    var generateAttempts = crypto2.randomBytes === crypto2.pseudoRandomBytes ? 1 : 3;
+    var crypto3 = __require("crypto");
+    var generateAttempts = crypto3.randomBytes === crypto3.pseudoRandomBytes ? 1 : 3;
     module.exports = randomBytes3;
     module.exports.sync = randomBytesSync;
     function randomBytes3(size, callback) {
@@ -29193,7 +29193,7 @@ var require_random_bytes = __commonJS({
       var err = null;
       for (var i = 0; i < generateAttempts; i++) {
         try {
-          return crypto2.randomBytes(size);
+          return crypto3.randomBytes(size);
         } catch (e) {
           err = e;
         }
@@ -29201,7 +29201,7 @@ var require_random_bytes = __commonJS({
       throw err;
     }
     function generateRandomBytes(size, attempts, callback) {
-      crypto2.randomBytes(size, function onRandomBytes(err, buf) {
+      crypto3.randomBytes(size, function onRandomBytes(err, buf) {
         if (!err) return callback(null, buf);
         if (!--attempts) return callback(err);
         setTimeout(generateRandomBytes.bind(null, size, attempts, callback), 10);
@@ -29543,7 +29543,7 @@ var require_express_session = __commonJS({
     "use strict";
     var Buffer2 = require_safe_buffer().Buffer;
     var cookie = require_cookie();
-    var crypto2 = __require("crypto");
+    var crypto3 = __require("crypto");
     var debug = require_src2()("express-session");
     var deprecate = require_depd()("express-session");
     var onHeaders = require_on_headers();
@@ -29916,7 +29916,7 @@ var require_express_session = __commonJS({
         }
         return val;
       });
-      return crypto2.createHash("sha1").update(str, "utf8").digest("hex");
+      return crypto3.createHash("sha1").update(str, "utf8").digest("hex");
     }
     function issecure(req, trustProxy) {
       if (req.connection && req.connection.encrypted) {
@@ -43035,9 +43035,9 @@ var require_disk = __commonJS({
     var fs3 = __require("fs");
     var os = __require("os");
     var path4 = __require("path");
-    var crypto2 = __require("crypto");
+    var crypto3 = __require("crypto");
     function getFilename(req, file, cb) {
-      crypto2.randomBytes(16, function(err, raw) {
+      crypto3.randomBytes(16, function(err, raw) {
         cb(err, err ? void 0 : raw.toString("hex"));
       });
     }
@@ -50453,6 +50453,15 @@ var LoginResponse = objectType({
   "role": enumType(["master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable()
+});
+var RegisterBody = objectType({
+  "username": stringType(),
+  "email": stringType(),
+  "password": stringType(),
+  "phone": stringType().nullish(),
+  "companyName": stringType(),
+  "companyEmail": stringType(),
+  "companyWebsiteUrl": stringType()
 });
 var GetCurrentUserResponse = objectType({
   "id": numberType(),
@@ -58054,7 +58063,9 @@ __export(schema_exports, {
   batchesTable: () => batchesTable,
   codesTable: () => codesTable,
   companiesTable: () => companiesTable,
+  deviceCodesTable: () => deviceCodesTable,
   locationsTable: () => locationsTable,
+  passkeysTable: () => passkeysTable,
   productsTable: () => productsTable,
   usersTable: () => usersTable
 });
@@ -58143,6 +58154,28 @@ var codesTable = sqliteTable("codes", {
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
+// ../../lib/db/src/schema/passkeys.ts
+var passkeysTable = sqliteTable("passkeys", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  credentialId: text("credential_id").notNull().unique(),
+  publicKey: text("public_key").notNull(),
+  counter: integer("counter").notNull().default(0),
+  createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
+});
+
+// ../../lib/db/src/schema/deviceCodes.ts
+var deviceCodesTable = sqliteTable("device_codes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  deviceCode: text("device_code").notNull().unique(),
+  userCode: text("user_code").notNull().unique(),
+  userId: integer("user_id").references(() => usersTable.id, { onDelete: "cascade" }),
+  status: text("status").notNull(),
+  // 'pending', 'approved', 'expired', 'denied'
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
+});
+
 // ../../lib/db/src/index.ts
 import path from "path";
 var dbUrl = process.env.DATABASE_URL || `file:${path.resolve(process.cwd(), "traclytag.db")}`;
@@ -58154,7 +58187,66 @@ var client = createClient2({
 var db = drizzle(client, { schema: schema_exports });
 
 // src/routes/auth.ts
+import crypto2 from "crypto";
 var router2 = (0, import_express2.Router)();
+router2.post("/auth/register", async (req, res) => {
+  const parsed = RegisterBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { username, email, password, phone, companyName, companyEmail, companyWebsiteUrl } = parsed.data;
+  const [existingUser] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+  if (existingUser) {
+    res.status(400).json({ error: "Username already exists" });
+    return;
+  }
+  try {
+    const [company] = await db.insert(companiesTable).values({
+      name: companyName,
+      email: companyEmail,
+      address: companyWebsiteUrl,
+      gstin: null
+    }).returning();
+    if (!company) {
+      throw new Error("Failed to create company");
+    }
+    const passwordHash = await bcryptjs_default.hash(password, 10);
+    const [user] = await db.insert(usersTable).values({
+      username,
+      email,
+      phone: phone ?? null,
+      passwordHash,
+      role: "client_admin",
+      companyId: company.id
+    }).returning();
+    if (!user) {
+      throw new Error("Failed to create user");
+    }
+    const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+    res.cookie("connect.sid", user.id.toString(), {
+      signed: true,
+      httpOnly: true,
+      maxAge: 1e3 * 60 * 60 * 24 * 7,
+      // 7 days
+      secure: isProduction2,
+      sameSite: "lax"
+    });
+    res.status(201).json(
+      LoginResponse.parse({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        companyName: company.name
+      })
+    );
+  } catch (err) {
+    req.log.error({ err }, "Registration failed");
+    res.status(400).json({ error: "Registration failed. Please try again." });
+  }
+});
 router2.post("/auth/login", async (req, res) => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) {
@@ -58218,6 +58310,424 @@ router2.get("/auth/me", async (req, res) => {
     companyId: req.user.companyId,
     companyName
   });
+});
+router2.post("/auth/sso", async (req, res) => {
+  const { provider, email, username, name, companyName, companyWebsiteUrl } = req.body;
+  if (!email || !username) {
+    res.status(400).json({ error: "Email and username are required" });
+    return;
+  }
+  try {
+    let [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    if (!user) {
+      const [userByEmail] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+      if (userByEmail) {
+        user = userByEmail;
+      }
+    }
+    let resolvedCompanyId = user?.companyId ?? null;
+    let resolvedCompanyName = null;
+    if (!user) {
+      const targetCompanyName = companyName || `${name || username}'s Organization`;
+      const targetWebsite = companyWebsiteUrl || `https://${username.toLowerCase()}.traclytag.com`;
+      const [company] = await db.insert(companiesTable).values({
+        name: targetCompanyName,
+        email,
+        address: targetWebsite,
+        gstin: null
+      }).returning();
+      if (!company) {
+        throw new Error("Failed to create company");
+      }
+      resolvedCompanyId = company.id;
+      resolvedCompanyName = company.name;
+      const randomPassword = crypto2.randomBytes(16).toString("hex");
+      const passwordHash = await bcryptjs_default.hash(randomPassword, 10);
+      const [newUser] = await db.insert(usersTable).values({
+        username,
+        email,
+        phone: null,
+        passwordHash,
+        role: "client_admin",
+        companyId: resolvedCompanyId
+      }).returning();
+      if (!newUser) {
+        throw new Error("Failed to create user");
+      }
+      user = newUser;
+    } else {
+      if (user.companyId) {
+        const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
+        resolvedCompanyName = c?.name ?? null;
+      }
+    }
+    const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+    res.cookie("connect.sid", user.id.toString(), {
+      signed: true,
+      httpOnly: true,
+      maxAge: 1e3 * 60 * 60 * 24 * 7,
+      secure: isProduction2,
+      sameSite: "lax"
+    });
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      companyId: user.companyId,
+      companyName: resolvedCompanyName
+    });
+  } catch (err) {
+    req.log.error({ err }, "SSO Authentication failed");
+    res.status(500).json({ error: "SSO Authentication failed" });
+  }
+});
+router2.post("/auth/passkey/register-options", async (req, res) => {
+  const { username } = req.body;
+  const challenge = crypto2.randomBytes(32).toString("base64url");
+  const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  res.cookie("passkey_challenge", challenge, {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1e3 * 60 * 5,
+    secure: isProduction2,
+    sameSite: "lax"
+  });
+  res.json({
+    challenge,
+    rp: { name: "TraclyTag", id: req.hostname === "localhost" ? "localhost" : req.hostname },
+    user: {
+      id: crypto2.randomBytes(16).toString("base64url"),
+      name: username || "anonymous",
+      displayName: username || "Anonymous User"
+    },
+    pubKeyCredParams: [
+      { type: "public-key", alg: -7 },
+      { type: "public-key", alg: -257 }
+    ],
+    timeout: 6e4,
+    attestation: "none"
+  });
+});
+router2.post("/auth/passkey/register-verify", async (req, res) => {
+  const { registrationResponse, userData, isSimulated } = req.body;
+  const savedChallenge = req.signedCookies?.["passkey_challenge"];
+  if (!savedChallenge) {
+    res.status(400).json({ error: "Session expired or challenge missing" });
+    return;
+  }
+  res.clearCookie("passkey_challenge");
+  try {
+    const { id: credentialId, response } = registrationResponse;
+    if (!isSimulated && response?.clientDataJSON) {
+      try {
+        const clientData = JSON.parse(Buffer.from(response.clientDataJSON, "base64url").toString("utf-8"));
+        if (clientData.challenge !== savedChallenge) {
+          res.status(400).json({ error: "Challenge verification failed" });
+          return;
+        }
+      } catch (e) {
+        req.log.warn({ e }, "Failed to parse clientDataJSON during passkey verify");
+      }
+    }
+    const { username, email, companyName, companyEmail, companyWebsiteUrl } = userData;
+    let [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    if (!user) {
+      const [company] = await db.insert(companiesTable).values({
+        name: companyName,
+        email: companyEmail,
+        address: companyWebsiteUrl,
+        gstin: null
+      }).returning();
+      if (!company) throw new Error("Failed to create company");
+      const randomPassword = crypto2.randomBytes(16).toString("hex");
+      const passwordHash = await bcryptjs_default.hash(randomPassword, 10);
+      const [newUser] = await db.insert(usersTable).values({
+        username,
+        email,
+        phone: null,
+        passwordHash,
+        role: "client_admin",
+        companyId: company.id
+      }).returning();
+      if (!newUser) throw new Error("Failed to create user");
+      user = newUser;
+    }
+    const publicKey = isSimulated ? "MOCK_SIMULATED_PUBLIC_KEY" : response?.attestationObject || "STANDARD_WEBAUTHN_KEY";
+    await db.insert(passkeysTable).values({
+      userId: user.id,
+      credentialId,
+      publicKey,
+      counter: 0
+    });
+    let companyNameVal = null;
+    if (user.companyId) {
+      const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
+      companyNameVal = c?.name ?? null;
+    }
+    const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+    res.cookie("connect.sid", user.id.toString(), {
+      signed: true,
+      httpOnly: true,
+      maxAge: 1e3 * 60 * 60 * 24 * 7,
+      secure: isProduction2,
+      sameSite: "lax"
+    });
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      companyId: user.companyId,
+      companyName: companyNameVal
+    });
+  } catch (err) {
+    req.log.error({ err }, "Passkey registration verify failed");
+    res.status(500).json({ error: err.message || "Passkey registration failed" });
+  }
+});
+router2.post("/auth/passkey/login-options", async (req, res) => {
+  const { username } = req.body;
+  if (!username) {
+    res.status(400).json({ error: "Username is required for passkey login" });
+    return;
+  }
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const userPasskeys = await db.select().from(passkeysTable).where(eq(passkeysTable.userId, user.id));
+    if (userPasskeys.length === 0) {
+      res.status(400).json({ error: "No passkeys registered for this user" });
+      return;
+    }
+    const challenge = crypto2.randomBytes(32).toString("base64url");
+    const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+    res.cookie("passkey_challenge", challenge, {
+      signed: true,
+      httpOnly: true,
+      maxAge: 1e3 * 60 * 5,
+      secure: isProduction2,
+      sameSite: "lax"
+    });
+    res.json({
+      challenge,
+      rpId: req.hostname === "localhost" ? "localhost" : req.hostname,
+      allowCredentials: userPasskeys.map((pk) => ({
+        id: pk.credentialId,
+        type: "public-key"
+      })),
+      timeout: 6e4
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to generate login options" });
+  }
+});
+router2.post("/auth/passkey/login-verify", async (req, res) => {
+  const { loginResponse, username, isSimulated } = req.body;
+  const savedChallenge = req.signedCookies?.["passkey_challenge"];
+  if (!savedChallenge) {
+    res.status(400).json({ error: "Session expired or challenge missing" });
+    return;
+  }
+  res.clearCookie("passkey_challenge");
+  try {
+    const { id: credentialId, response } = loginResponse;
+    const [passkey] = await db.select().from(passkeysTable).where(eq(passkeysTable.credentialId, credentialId));
+    if (!passkey) {
+      res.status(401).json({ error: "Passkey credential not registered" });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, passkey.userId));
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    if (!isSimulated && response?.clientDataJSON) {
+      try {
+        const clientData = JSON.parse(Buffer.from(response.clientDataJSON, "base64url").toString("utf-8"));
+        if (clientData.challenge !== savedChallenge) {
+          res.status(400).json({ error: "Challenge verification failed" });
+          return;
+        }
+      } catch (e) {
+        req.log.warn({ e }, "Failed to parse clientDataJSON during login verify");
+      }
+    }
+    const currentCounter = passkey.counter;
+    await db.update(passkeysTable).set({ counter: currentCounter + 1 }).where(eq(passkeysTable.id, passkey.id));
+    let companyNameVal = null;
+    if (user.companyId) {
+      const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
+      companyNameVal = c?.name ?? null;
+    }
+    const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+    res.cookie("connect.sid", user.id.toString(), {
+      signed: true,
+      httpOnly: true,
+      maxAge: 1e3 * 60 * 60 * 24 * 7,
+      secure: isProduction2,
+      sameSite: "lax"
+    });
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      companyId: user.companyId,
+      companyName: companyNameVal
+    });
+  } catch (err) {
+    req.log.error({ err }, "Passkey login verification failed");
+    res.status(500).json({ error: err.message || "Passkey login failed" });
+  }
+});
+router2.post("/auth/device/code", async (req, res) => {
+  try {
+    const deviceCode = crypto2.randomBytes(24).toString("hex");
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let userCode = "";
+    for (let i = 0; i < 8; i++) {
+      if (i === 4) userCode += "-";
+      userCode += chars.charAt(crypto2.randomInt(chars.length));
+    }
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1e3).toISOString();
+    await db.insert(deviceCodesTable).values({
+      deviceCode,
+      userCode,
+      status: "pending",
+      expiresAt
+    });
+    const host = req.get("host") || "localhost:5173";
+    const protocol = req.protocol || "http";
+    const verificationUri = `${protocol}://${host.split(":")[0]}:${host.split(":")[1] || "5173"}/activate`;
+    res.json({
+      device_code: deviceCode,
+      user_code: userCode,
+      verification_uri: verificationUri,
+      expires_in: 300,
+      interval: 3
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to initialize device authorization flow" });
+  }
+});
+router2.post("/auth/device/token", async (req, res) => {
+  const { device_code } = req.body;
+  if (!device_code) {
+    res.status(400).json({ error: "device_code is required" });
+    return;
+  }
+  try {
+    const [record] = await db.select().from(deviceCodesTable).where(eq(deviceCodesTable.deviceCode, device_code));
+    if (!record) {
+      res.status(400).json({ error: "invalid_grant" });
+      return;
+    }
+    if (new Date(record.expiresAt).getTime() < Date.now()) {
+      res.status(400).json({ error: "expired_token" });
+      return;
+    }
+    if (record.status === "pending") {
+      res.status(400).json({ error: "authorization_pending" });
+      return;
+    }
+    if (record.status === "denied") {
+      res.status(400).json({ error: "access_denied" });
+      return;
+    }
+    if (record.status === "approved" && record.userId) {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, record.userId));
+      if (!user) {
+        res.status(400).json({ error: "invalid_grant" });
+        return;
+      }
+      let companyNameVal = null;
+      if (user.companyId) {
+        const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
+        companyNameVal = c?.name ?? null;
+      }
+      const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+      res.cookie("connect.sid", user.id.toString(), {
+        signed: true,
+        httpOnly: true,
+        maxAge: 1e3 * 60 * 60 * 24 * 7,
+        secure: isProduction2,
+        sameSite: "lax"
+      });
+      res.json({
+        status: "success",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          companyId: user.companyId,
+          companyName: companyNameVal
+        }
+      });
+      return;
+    }
+    res.status(400).json({ error: "invalid_grant" });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to process token polling request" });
+  }
+});
+router2.get("/auth/device/verify-code", async (req, res) => {
+  const userCode = req.query.user_code;
+  if (!userCode) {
+    res.status(400).json({ error: "user_code is required" });
+    return;
+  }
+  try {
+    const [record] = await db.select().from(deviceCodesTable).where(eq(deviceCodesTable.userCode, userCode));
+    if (!record) {
+      res.status(404).json({ error: "Code not found" });
+      return;
+    }
+    if (new Date(record.expiresAt).getTime() < Date.now()) {
+      res.status(400).json({ error: "Code has expired" });
+      return;
+    }
+    res.json({
+      status: record.status,
+      expiresAt: record.expiresAt
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to verify code" });
+  }
+});
+router2.post("/auth/device/authorize", async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const { user_code, approve } = req.body;
+  if (!user_code) {
+    res.status(400).json({ error: "user_code is required" });
+    return;
+  }
+  try {
+    const [record] = await db.select().from(deviceCodesTable).where(eq(deviceCodesTable.userCode, user_code));
+    if (!record) {
+      res.status(404).json({ error: "Code not found" });
+      return;
+    }
+    if (new Date(record.expiresAt).getTime() < Date.now()) {
+      res.status(400).json({ error: "Code has expired" });
+      return;
+    }
+    const finalStatus = approve ? "approved" : "denied";
+    await db.update(deviceCodesTable).set({
+      status: finalStatus,
+      userId: req.user.id
+    }).where(eq(deviceCodesTable.id, record.id));
+    res.json({ success: true, status: finalStatus });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to authorize device" });
+  }
 });
 var auth_default = router2;
 
@@ -58526,8 +59036,8 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: "Invalid GTIN check digit" });
     return;
   }
-  let companyId = req.user.companyId;
-  if (req.user.role === "master" && !companyId) {
+  let companyId = req.user.companyId || (req.user.role === "master" ? req.body.companyId || req.query.companyId : null);
+  if (!companyId) {
     res.status(400).json({ error: "Master must select a company context to add products" });
     return;
   }
@@ -58736,8 +59246,10 @@ router8.get("/codes/public/:serial", async (req, res) => {
         registrationNo: productsTable.registrationNo,
         companyName: companiesTable.name,
         companyAddress: companiesTable.address,
-        productLogoUrl: productsTable.productLogoUrl,
-        sapDescription: productsTable.sapDescription
+        // Keep public verification resilient even when optional product
+        // branding columns are absent in an older deployed database.
+        productLogoUrl: sql`null`,
+        sapDescription: sql`null`
       }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser2, eq(codesTable.mappedByUserId, aliasUser2.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(condition).limit(1);
     };
     let searchSerial = serial.trim();
