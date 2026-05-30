@@ -59036,8 +59036,8 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: "Invalid GTIN check digit" });
     return;
   }
-  let companyId = req.user.companyId;
-  if (req.user.role === "master" && !companyId) {
+  let companyId = req.user.companyId || (req.user.role === "master" ? req.body.companyId || req.query.companyId : null);
+  if (!companyId) {
     res.status(400).json({ error: "Master must select a company context to add products" });
     return;
   }
