@@ -4,6 +4,8 @@ import {
   getListProductsQueryKey,
   useCreateProduct,
   useDeleteProduct,
+  useGetCurrentUser,
+  useListCompanies,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -16,6 +18,7 @@ import { format } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -81,11 +84,16 @@ const productSchema = z.object({
     .or(z.literal("")),
   labelPdfUrl: z.string().url("Must be a URL").optional().or(z.literal("")),
   expiryDate: z.date({ required_error: "Expiry date is required" }),
+  companyId: z.coerce.number().optional(),
 });
 
 type ProductForm = z.infer<typeof productSchema>;
 
 export default function Products() {
+  const { data: currentUser } = useGetCurrentUser();
+  const isMaster = currentUser?.role === "master";
+  const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
+
   const { data: products = [], isLoading } = useListProducts();
   const createProduct = useCreateProduct();
   const deleteProduct = useDeleteProduct();
@@ -153,12 +161,14 @@ export default function Products() {
       productLogoUrl: "",
       labelPdfUrl: "",
       expiryDate: undefined as any,
+      companyId: undefined,
     },
   });
 
   const onSubmit = (values: ProductForm) => {
     const payload = {
       ...values,
+      companyId: isMaster ? values.companyId : undefined,
       sapDescription: values.sapDescription || undefined,
       registrationNo: values.registrationNo || undefined,
       cautionLogoUrl: values.cautionLogoUrl || undefined,
@@ -223,6 +233,35 @@ export default function Products() {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                   <ScrollArea className="h-[60vh] pr-4">
                     <div className="space-y-4 pb-4">
+                      {isMaster && (
+                        <FormField
+                          control={form.control}
+                          name="companyId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Company Context</FormLabel>
+                              <Select
+                                onValueChange={(val) => field.onChange(Number(val))}
+                                value={field.value?.toString() || ""}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a company context" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {companies.map((c) => (
+                                    <SelectItem key={c.id} value={c.id.toString()}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}

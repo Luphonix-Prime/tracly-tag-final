@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLogin, useRegister, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { QrCode, Loader2, MapPin, Mail, Lock, User, Phone, Building2, Globe } from "lucide-react";
+import { 
+  QrCode, Loader2, MapPin, Mail, Lock, User, Phone, 
+  Building2, Globe, Fingerprint, Laptop, X, Check, 
+  ExternalLink, RefreshCw, Terminal, TerminalSquare, ShieldAlert
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -48,6 +52,32 @@ export default function Login() {
   const registerMutation = useRegister();
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
+  // --- SSO States ---
+  const [isSsoOpen, setIsSsoOpen] = useState(false);
+  const [ssoProvider, setSsoProvider] = useState("");
+  const [ssoCustomName, setSsoCustomName] = useState("");
+  const [ssoCustomEmail, setSsoCustomEmail] = useState("");
+  const [ssoCustomCompany, setSsoCustomCompany] = useState("");
+
+  // --- Passkey States ---
+  const [isPasskeySimulatorOpen, setIsPasskeySimulatorOpen] = useState(false);
+  const [passkeyMode, setPasskeyMode] = useState<"login" | "register">("login");
+  const [passkeyUsername, setPasskeyUsername] = useState("");
+  const [passkeyOptions, setPasskeyOptions] = useState<any>(null);
+  const [passkeyScanning, setPasskeyScanning] = useState(false);
+  const [passkeySuccess, setPasskeySuccess] = useState(false);
+
+  // --- Device Flow States ---
+  const [isDeviceSimulatorOpen, setIsDeviceSimulatorOpen] = useState(false);
+  const [deviceCode, setDeviceCode] = useState("");
+  const [userCode, setUserCode] = useState("");
+  const [verificationUri, setVerificationUri] = useState("");
+  const [isDevicePolling, setIsDevicePolling] = useState(false);
+  const [deviceLogs, setDeviceLogs] = useState<string[]>([]);
+  const [deviceSuccess, setDeviceSuccess] = useState(false);
+  const [deviceUser, setDeviceUser] = useState<any>(null);
+  const terminalBottomRef = useRef<HTMLDivElement>(null);
+
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -70,6 +100,31 @@ export default function Login() {
       location: "",
     },
   });
+
+  // Autoscroll terminal logs
+  useEffect(() => {
+    if (terminalBottomRef.current) {
+      terminalBottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [deviceLogs]);
+
+  // Clean up polling interval on unmount
+  useEffect(() => {
+    return () => {
+      const pollInterval = (window as any).devicePollInterval;
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, []);
+
+  const handleRedirect = () => {
+    const redirect = sessionStorage.getItem("auth_redirect");
+    if (redirect) {
+      sessionStorage.removeItem("auth_redirect");
+      setLocation(redirect);
+    } else {
+      setLocation("/dashboard");
+    }
+  };
 
   const fetchLocationAutomatically = (formType: "login" | "signUp") => {
     if (!navigator.geolocation) {
@@ -162,7 +217,7 @@ export default function Login() {
         }
         toast.success("Logged in successfully");
         queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        setLocation("/dashboard");
+        handleRedirect();
       },
       onError: (error: any) => {
         toast.error(error?.data?.error || "Invalid username or password");
@@ -189,7 +244,7 @@ export default function Login() {
         }
         toast.success("Account & Company registered successfully");
         queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        setLocation("/dashboard");
+        handleRedirect();
       },
       onError: (error: any) => {
         toast.error(error?.data?.error || "Registration failed. Username may already exist.");
@@ -197,29 +252,381 @@ export default function Login() {
     });
   }
 
+  // --- SSO Actions ---
   const handleSsoLogin = (provider: string) => {
-    toast.info(`Single Sign-On (SSO) with ${provider} is initiating...`);
+    setSsoProvider(provider);
+    setSsoCustomName("");
+    setSsoCustomEmail("");
+    setSsoCustomCompany("");
+    setIsSsoOpen(true);
   };
 
-  // Animation variants for staggering children
+  const handleSsoSubmit = async (ssoData: any) => {
+    try {
+      const response = await fetch("/api/auth/sso", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: ssoProvider,
+          username: ssoData.username,
+          email: ssoData.email,
+          name: ssoData.name,
+          companyName: ssoData.companyName,
+          companyWebsiteUrl: ssoData.companyWebsiteUrl,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "SSO Login failed");
+
+      toast.success(`Authenticated with ${ssoProvider} successfully!`);
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      setIsSsoOpen(false);
+      handleRedirect();
+    } catch (err: any) {
+      toast.error(err.message || "SSO Login failed");
+    }
+  };
+
+  // --- Passkey Actions ---
+  const handlePasskeyLogin = async (username: string) => {
+    if (!username) {
+      toast.error("Please enter your username to sign in with passkey.");
+      return;
+    }
+
+    try {
+      const optionsRes = await fetch("/api/auth/passkey/login-options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const options = await optionsRes.json();
+      if (!optionsRes.ok) throw new Error(options.error || "Failed to get passkey options");
+
+      try {
+        if (!navigator.credentials || !navigator.credentials.get) {
+          throw new Error("WebAuthn not supported");
+        }
+        
+        const challengeBuffer = Uint8Array.from(atob(options.challenge.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+        const allowCreds = options.allowCredentials.map((c: any) => ({
+          id: Uint8Array.from(atob(c.id.replace(/-/g, "+").replace(/_/g, "/")), x => x.charCodeAt(0)),
+          type: "public-key"
+        }));
+
+        const assertion = await navigator.credentials.get({
+          publicKey: {
+            challenge: challengeBuffer,
+            allowCredentials: allowCreds,
+            timeout: options.timeout,
+            rpId: options.rpId,
+          }
+        }) as PublicKeyCredential;
+
+        if (assertion) {
+          const response = assertion.response as AuthenticatorAssertionResponse;
+          const loginVerifyBody = {
+            loginResponse: {
+              id: assertion.id,
+              rawId: assertion.id,
+              response: {
+                clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(response.clientDataJSON))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, ""),
+                authenticatorData: btoa(String.fromCharCode(...new Uint8Array(response.authenticatorData))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, ""),
+                signature: btoa(String.fromCharCode(...new Uint8Array(response.signature))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, ""),
+              },
+              type: "public-key"
+            },
+            username,
+            isSimulated: false
+          };
+
+          const verifyRes = await fetch("/api/auth/passkey/login-verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(loginVerifyBody)
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok) throw new Error(verifyData.error || "Passkey validation failed");
+
+          toast.success("Passkey login successful!");
+          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          handleRedirect();
+          return;
+        }
+      } catch (webauthnErr: any) {
+        console.warn("Native WebAuthn failed, falling back to simulator:", webauthnErr);
+        setPasskeyOptions(options);
+        setPasskeyUsername(username);
+        setPasskeyMode("login");
+        setPasskeySuccess(false);
+        setIsPasskeySimulatorOpen(true);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Passkey login failed");
+    }
+  };
+
+  const handlePasskeyRegister = async (values: any) => {
+    try {
+      const optionsRes = await fetch("/api/auth/passkey/register-options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: values.username }),
+      });
+      const options = await optionsRes.json();
+      if (!optionsRes.ok) throw new Error(options.error || "Failed to get registration options");
+
+      try {
+        if (!navigator.credentials || !navigator.credentials.create) {
+          throw new Error("WebAuthn not supported");
+        }
+
+        const challengeBuffer = Uint8Array.from(atob(options.challenge.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+        const userBuffer = Uint8Array.from(atob(options.user.id), c => c.charCodeAt(0));
+
+        const credential = await navigator.credentials.create({
+          publicKey: {
+            challenge: challengeBuffer,
+            rp: options.rp,
+            user: {
+              id: userBuffer,
+              name: options.user.name,
+              displayName: options.user.displayName,
+            },
+            pubKeyCredParams: options.pubKeyCredParams,
+            timeout: options.timeout,
+            attestation: options.attestation
+          }
+        }) as PublicKeyCredential;
+
+        if (credential) {
+          const response = credential.response as AuthenticatorAttestationResponse;
+          const regVerifyBody = {
+            registrationResponse: {
+              id: credential.id,
+              rawId: credential.id,
+              response: {
+                clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(response.clientDataJSON))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, ""),
+                attestationObject: btoa(String.fromCharCode(...new Uint8Array(response.attestationObject))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
+              },
+              type: "public-key"
+            },
+            userData: values,
+            isSimulated: false
+          };
+
+          const verifyRes = await fetch("/api/auth/passkey/register-verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(regVerifyBody),
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok) throw new Error(verifyData.error || "Passkey registration failed");
+
+          toast.success("Registered and logged in with Passkey!");
+          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          handleRedirect();
+          return;
+        }
+      } catch (webauthnErr) {
+        console.warn("Native WebAuthn registration failed, falling back to simulator:", webauthnErr);
+        setPasskeyOptions(options);
+        setPasskeyUsername(values.username);
+        setPasskeyMode("register");
+        setPasskeySuccess(false);
+        setIsPasskeySimulatorOpen(true);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Passkey registration failed");
+    }
+  };
+
+  const executeSimulatedPasskey = async () => {
+    setPasskeyScanning(true);
+    
+    // Simulate biometric scan delay
+    setTimeout(async () => {
+      try {
+        const mockCredId = `mock_cred_${Math.random().toString(36).substring(2, 10)}`;
+        
+        if (passkeyMode === "register") {
+          const values = signUpForm.getValues();
+          const regBody = {
+            registrationResponse: {
+              id: mockCredId,
+              rawId: mockCredId,
+              response: {},
+              type: "public-key"
+            },
+            userData: {
+              username: values.username,
+              email: values.email,
+              companyName: values.companyName,
+              companyEmail: values.companyEmail,
+              companyWebsiteUrl: values.companyWebsiteUrl,
+            },
+            isSimulated: true
+          };
+
+          const res = await fetch("/api/auth/passkey/register-verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(regBody),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Registration verification failed");
+
+          setPasskeySuccess(true);
+          toast.success("Registered successfully using Biometric Passkey Simulator!");
+          setTimeout(() => {
+            setIsPasskeySimulatorOpen(false);
+            queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+            handleRedirect();
+          }, 1000);
+        } else {
+          const loginBody = {
+            loginResponse: {
+              id: passkeyOptions.allowCredentials[0]?.id || "mock_cred_default",
+              rawId: passkeyOptions.allowCredentials[0]?.id || "mock_cred_default",
+              response: {},
+              type: "public-key"
+            },
+            username: passkeyUsername,
+            isSimulated: true
+          };
+
+          const res = await fetch("/api/auth/passkey/login-verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(loginBody),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Login verification failed");
+
+          setPasskeySuccess(true);
+          toast.success("Authenticated successfully using Biometric Passkey Simulator!");
+          setTimeout(() => {
+            setIsPasskeySimulatorOpen(false);
+            queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+            handleRedirect();
+          }, 1000);
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Biometric authentication failed");
+      } finally {
+        setPasskeyScanning(false);
+      }
+    }, 1800);
+  };
+
+  // --- Device Simulator Actions ---
+  const addDeviceLog = (msg: string) => {
+    const time = new Date().toLocaleTimeString();
+    setDeviceLogs(prev => [...prev, `[${time}] ${msg}`]);
+  };
+
+  const startDeviceFlow = async () => {
+    // Clear old poll intervals
+    const existingInterval = (window as any).devicePollInterval;
+    if (existingInterval) clearInterval(existingInterval);
+
+    setDeviceLogs([]);
+    setDeviceSuccess(false);
+    setDeviceUser(null);
+    addDeviceLog("Initializing OAuth 2.0 Device Flow...");
+
+    try {
+      const res = await fetch("/api/auth/device/code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: "traclytag_terminal" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to initialize device code");
+
+      setDeviceCode(data.device_code);
+      setUserCode(data.user_code);
+      setVerificationUri(data.verification_uri);
+      setIsDevicePolling(true);
+
+      addDeviceLog("Device authorization request registered.");
+      addDeviceLog(`User Code generated: ${data.user_code}`);
+      addDeviceLog(`Link: ${data.verification_uri}`);
+      addDeviceLog("Polling backend status at interval = 3s...");
+
+      let attempts = 0;
+      const intervalId = setInterval(async () => {
+        attempts++;
+        if (attempts > 100) {
+          clearInterval(intervalId);
+          setIsDevicePolling(false);
+          addDeviceLog("ERROR: Code expired. Request timeout.");
+          return;
+        }
+
+        try {
+          const pollRes = await fetch("/api/auth/device/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ device_code: data.device_code }),
+          });
+          const pollData = await pollRes.json();
+
+          if (pollRes.ok && pollData.status === "success") {
+            clearInterval(intervalId);
+            setIsDevicePolling(false);
+            setDeviceSuccess(true);
+            setDeviceUser(pollData.user);
+            addDeviceLog("STATUS: APPROVED!");
+            addDeviceLog(`Authorized under account: ${pollData.user.username}`);
+            addDeviceLog("Establishing encrypted session token...");
+            addDeviceLog("Syncing active tag buffer...");
+            addDeviceLog("SUCCESS: Terminal linked successfully.");
+            toast.success("Device linked successfully!");
+            return;
+          }
+
+          if (pollData.error === "authorization_pending") {
+            addDeviceLog("STATUS: AUTHORIZATION_PENDING...");
+          } else if (pollData.error === "expired_token") {
+            clearInterval(intervalId);
+            setIsDevicePolling(false);
+            addDeviceLog("STATUS: EXPIRED_TOKEN");
+          } else if (pollData.error === "access_denied") {
+            clearInterval(intervalId);
+            setIsDevicePolling(false);
+            addDeviceLog("STATUS: ACCESS_DENIED");
+          }
+        } catch (e) {
+          addDeviceLog("Polling error, retrying...");
+        }
+      }, 3000);
+
+      (window as any).devicePollInterval = intervalId;
+
+    } catch (err: any) {
+      addDeviceLog(`ERROR: ${err.message}`);
+      toast.error(err.message || "Failed to start device flow");
+    }
+  };
+
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-      },
-    },
+      transition: { staggerChildren: 0.08 }
+    }
   };
 
   const itemVariants = {
     hidden: { y: 25, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } as const },
+    visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100 } }
   };
 
   return (
     <div className="relative flex min-h-screen w-full flex-col md:flex-row bg-background">
-      <div className="absolute top-4 right-4 z-20">
+      <div className="absolute top-4 right-4 z-20 flex gap-2">
         <ThemeToggle />
       </div>
 
@@ -232,17 +639,32 @@ export default function Login() {
             animate="visible"
             className="flex flex-col gap-5"
           >
-            {/* Logo branding block */}
-            <motion.div variants={itemVariants} className="flex items-center gap-2 mb-2">
-              <div className="inline-flex items-center justify-center p-2.5 bg-indigo-500/10 rounded-full">
-                <QrCode className="h-6 w-6 text-indigo-600 animate-pulse" />
+            {/* Logo branding block & Device Simulator button */}
+            <motion.div variants={itemVariants} className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center justify-center p-2.5 bg-indigo-500/10 rounded-full">
+                  <QrCode className="h-6 w-6 text-indigo-600 animate-pulse" />
+                </div>
+                <span className="text-xl font-bold tracking-wider text-indigo-600">TraclyTag</span>
               </div>
-              <span className="text-xl font-bold tracking-wider text-indigo-600">TraclyTag</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsDeviceSimulatorOpen(true);
+                  startDeviceFlow();
+                }}
+                className="h-8 text-[10px] rounded-full border-indigo-500/30 text-indigo-600 hover:bg-indigo-500/10 cursor-pointer"
+              >
+                <Laptop className="h-3.5 w-3.5 mr-1" />
+                Device Simulator
+              </Button>
             </motion.div>
 
             {/* Header title */}
             <motion.div variants={itemVariants} className="text-left">
-              <h1 className="text-3xl font-bold tracking-tight">Welcome Back!</h1>
+              <h1 className="text-3xl font-bold tracking-tight animate-fade-in">Welcome Back!</h1>
               <p className="text-sm text-muted-foreground mt-1">Manage serial tracking & DataMatrix code generation</p>
             </motion.div>
 
@@ -267,7 +689,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Username</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <User className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -287,7 +709,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Password</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <Lock className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -308,7 +730,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Location</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-1.5 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-1.5 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <MapPin className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -338,14 +760,25 @@ export default function Login() {
                         )}
                       />
                       
-                      <Button 
-                        type="submit" 
-                        className="w-full mt-3 h-12 rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold"
-                        disabled={loginMutation.isPending}
-                      >
-                        {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Continue
-                      </Button>
+                      <div className="flex flex-col gap-2.5 mt-3">
+                        <Button 
+                          type="submit" 
+                          className="w-full h-12 rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold cursor-pointer"
+                          disabled={loginMutation.isPending}
+                        >
+                          {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Continue
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handlePasskeyLogin(loginForm.getValues("username"))}
+                          className="w-full h-11 rounded-full flex items-center justify-center gap-2 border-gray-300/60 dark:border-gray-800 hover:bg-indigo-500/5 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-xs cursor-pointer transition-colors"
+                        >
+                          <Fingerprint className="h-4.5 w-4.5" />
+                          <span>Sign In with Passkey</span>
+                        </Button>
+                      </div>
 
                       <div className="relative my-3">
                         <div className="absolute inset-0 flex items-center">
@@ -363,7 +796,7 @@ export default function Login() {
                           type="button"
                           variant="outline"
                           onClick={() => handleSsoLogin("Google")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 hover:bg-muted font-medium"
+                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
                         >
                           <FcGoogle className="h-4 w-4" />
                           <span>Google</span>
@@ -372,7 +805,7 @@ export default function Login() {
                           type="button"
                           variant="outline"
                           onClick={() => handleSsoLogin("Microsoft")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 hover:bg-muted font-medium"
+                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
                         >
                           <FaMicrosoft className="h-3.5 w-3.5 text-[#00a4ef]" />
                           <span>Microsoft</span>
@@ -381,7 +814,7 @@ export default function Login() {
                           type="button"
                           variant="outline"
                           onClick={() => handleSsoLogin("GitHub")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 hover:bg-muted font-medium"
+                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
                         >
                           <FaGithub className="h-4 w-4" />
                           <span>GitHub</span>
@@ -403,7 +836,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Username</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <User className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -423,7 +856,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Email</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <Mail className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -445,7 +878,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Password</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <Lock className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -466,7 +899,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Phone</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <Phone className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -489,7 +922,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Company Name</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <Building2 className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -509,7 +942,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Company Email</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <Mail className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -531,7 +964,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Company Website URL</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <Globe className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -552,7 +985,7 @@ export default function Login() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Active Session Location</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 h-12 rounded-full overflow-hidden pl-5 pr-1.5 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-1.5 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
                               <MapPin className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
                               <FormControl>
                                 <Input 
@@ -582,14 +1015,32 @@ export default function Login() {
                         )}
                       />
 
-                      <Button 
-                        type="submit" 
-                        className="w-full mt-4 h-12 rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold"
-                        disabled={registerMutation.isPending}
-                      >
-                        {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Register Company & Admin
-                      </Button>
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <Button 
+                          type="submit" 
+                          className="w-full h-12 rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm text-xs font-semibold cursor-pointer"
+                          disabled={registerMutation.isPending}
+                        >
+                          {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Register Company
+                        </Button>
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const values = signUpForm.getValues();
+                            if (!values.username || !values.email || !values.companyName) {
+                              toast.error("Please fill in Username, Email, and Company Name to register with a Passkey.");
+                              return;
+                            }
+                            handlePasskeyRegister(values);
+                          }}
+                          className="w-full h-12 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-indigo-500/5 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-xs cursor-pointer transition-colors"
+                        >
+                          <Fingerprint className="h-4.5 w-4.5" />
+                          <span>Use Passkey</span>
+                        </Button>
+                      </div>
 
                       <div className="relative my-3">
                         <div className="absolute inset-0 flex items-center">
@@ -607,7 +1058,7 @@ export default function Login() {
                           type="button"
                           variant="outline"
                           onClick={() => handleSsoLogin("Google")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 hover:bg-muted font-medium"
+                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
                         >
                           <FcGoogle className="h-4 w-4" />
                           <span>Google</span>
@@ -616,7 +1067,7 @@ export default function Login() {
                           type="button"
                           variant="outline"
                           onClick={() => handleSsoLogin("Microsoft")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 hover:bg-muted font-medium"
+                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
                         >
                           <FaMicrosoft className="h-3.5 w-3.5 text-[#00a4ef]" />
                           <span>Microsoft</span>
@@ -625,7 +1076,7 @@ export default function Login() {
                           type="button"
                           variant="outline"
                           onClick={() => handleSsoLogin("GitHub")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 hover:bg-muted font-medium"
+                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
                         >
                           <FaGithub className="h-4 w-4" />
                           <span>GitHub</span>
@@ -663,6 +1114,344 @@ export default function Login() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
       </div>
+
+      {/* --- SSO Identity Provider Modal --- */}
+      <AnimatePresence>
+        {isSsoOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-card text-card-foreground border border-border rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b flex justify-between items-center bg-muted/30">
+                <div className="flex items-center gap-2">
+                  {ssoProvider === "Google" && <FcGoogle className="h-5 w-5" />}
+                  {ssoProvider === "Microsoft" && <FaMicrosoft className="h-4.5 w-4.5 text-[#00a4ef]" />}
+                  {ssoProvider === "GitHub" && <FaGithub className="h-5 w-5" />}
+                  <span className="font-bold">Mock {ssoProvider} Identity Provider</span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsSsoOpen(false)} className="rounded-full h-8 w-8 hover:bg-muted">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div className="text-xs text-muted-foreground bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 p-3.5 rounded-2xl border border-indigo-500/20">
+                  Select a mock profile to log in immediately, or fill in custom details to test registering a new company workspace.
+                </div>
+
+                {/* Preset Profiles */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">Preset Social Profiles</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleSsoSubmit({
+                        username: "jane_sso",
+                        email: "jane.sso@acme.com",
+                        name: "Jane Doe",
+                        companyName: "Acme Logistics",
+                        companyWebsiteUrl: "https://acmelogistics.com"
+                      })}
+                      className="flex flex-col text-left p-3.5 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-500/5 cursor-pointer transition-all duration-200"
+                    >
+                      <span className="font-semibold text-sm text-foreground">Jane Doe</span>
+                      <span className="text-[10px] text-muted-foreground">jane.sso@acme.com</span>
+                      <span className="text-[9px] mt-1 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full w-fit">Acme Logistics</span>
+                    </button>
+                    <button
+                      onClick={() => handleSsoSubmit({
+                        username: "bob_sso",
+                        email: "bob.sso@prime.org",
+                        name: "Bob Smith",
+                        companyName: "Prime Retailers",
+                        companyWebsiteUrl: "https://primeretailers.org"
+                      })}
+                      className="flex flex-col text-left p-3.5 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-500/5 cursor-pointer transition-all duration-200"
+                    >
+                      <span className="font-semibold text-sm text-foreground">Bob Smith</span>
+                      <span className="text-[10px] text-muted-foreground">bob.sso@prime.org</span>
+                      <span className="text-[9px] mt-1 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full w-fit">Prime Retailers</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-border"></div>
+                  <span className="flex-shrink mx-4 text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Or use custom profile</span>
+                  <div className="flex-grow border-t border-border"></div>
+                </div>
+
+                {/* Custom Profile Form */}
+                <div className="grid grid-cols-2 gap-3.5 text-sm">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Full Name</label>
+                    <Input placeholder="Alice Brown" value={ssoCustomName} onChange={e => setSsoCustomName(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Email</label>
+                    <Input type="email" placeholder="alice@company.com" value={ssoCustomEmail} onChange={e => setSsoCustomEmail(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-xs text-muted-foreground">Company Name</label>
+                    <Input placeholder="Brown Enterprises" value={ssoCustomCompany} onChange={e => setSsoCustomCompany(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t flex justify-end gap-2.5 bg-muted/10">
+                <Button variant="outline" onClick={() => setIsSsoOpen(false)} className="rounded-full h-10 font-medium">Cancel</Button>
+                <Button
+                  onClick={() => {
+                    if (!ssoCustomName || !ssoCustomEmail || !ssoCustomCompany) {
+                      toast.error("Please fill in Name, Email, and Company to proceed.");
+                      return;
+                    }
+                    const userSlug = ssoCustomName.toLowerCase().replace(/\s+/g, "_");
+                    handleSsoSubmit({
+                      username: `${userSlug}_sso`,
+                      email: ssoCustomEmail,
+                      name: ssoCustomName,
+                      companyName: ssoCustomCompany,
+                      companyWebsiteUrl: `https://${userSlug}.com`
+                    });
+                  }}
+                  className="rounded-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5"
+                >
+                  Authenticate SSO
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- Passkey Biometric Authenticator Simulator --- */}
+      <AnimatePresence>
+        {isPasskeySimulatorOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-card text-card-foreground border border-border rounded-3xl w-full max-w-sm shadow-2xl p-6 overflow-hidden text-center"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Biometric Passkey Authenticator</span>
+                <Button variant="ghost" size="icon" onClick={() => setIsPasskeySimulatorOpen(false)} className="rounded-full h-7 w-7 hover:bg-muted">
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              <div className="py-8 space-y-6">
+                <div className="relative mx-auto w-24 h-24 flex items-center justify-center">
+                  {/* Fingerprint glow pulses */}
+                  <div className="absolute inset-0 bg-indigo-500/10 rounded-full animate-ping" style={{ animationDuration: "3s" }} />
+                  <div className="absolute w-20 h-20 bg-indigo-500/20 rounded-full animate-pulse" />
+
+                  <div className={`z-10 w-16 h-16 rounded-full flex items-center justify-center transition-colors duration-300 ${passkeySuccess ? "bg-green-500 text-white animate-bounce" : "bg-indigo-600 text-white"}`}>
+                    {passkeyScanning ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : passkeySuccess ? (
+                      <Check className="h-8 w-8" />
+                    ) : (
+                      <Fingerprint className="h-9 w-9" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="font-bold text-lg text-foreground">
+                    {passkeyScanning ? "Scanning Fingerprint..." : passkeySuccess ? "Authentication Successful!" : "Passkey Verification"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                    {passkeyMode === "register" 
+                      ? `Link new credentials for "${passkeyUsername}" to this device.` 
+                      : `Approve credential request for user "${passkeyUsername}".`}
+                  </p>
+                </div>
+
+                <div className="text-[10px] text-muted-foreground font-mono bg-muted p-2.5 rounded-xl border max-w-xs mx-auto text-left space-y-1">
+                  <div>RP: <span className="text-foreground">TraclyTag ({passkeyOptions?.rpId || passkeyOptions?.rp?.id || "localhost"})</span></div>
+                  <div>Challenge ID: <span className="text-foreground text-[8px] font-mono">{passkeyOptions?.challenge?.slice(0, 16)}...</span></div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsPasskeySimulatorOpen(false)} className="rounded-full w-full h-11 font-medium">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={executeSimulatedPasskey}
+                  disabled={passkeyScanning || passkeySuccess}
+                  className="rounded-full w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-600/15"
+                >
+                  Verify Biometrics
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- Device Flow Terminal Simulator (Sidebar Drawer) --- */}
+      <AnimatePresence>
+        {isDeviceSimulatorOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs">
+            {/* Click outside backdrop to close */}
+            <div className="absolute inset-0" onClick={() => setIsDeviceSimulatorOpen(false)} />
+            
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="relative z-10 w-full max-w-lg bg-zinc-950 border-l border-zinc-800 text-zinc-300 flex flex-col h-full shadow-2xl"
+            >
+              {/* Terminal Header */}
+              <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-red-500/80 block" />
+                    <span className="w-3 h-3 rounded-full bg-yellow-500/80 block" />
+                    <span className="w-3 h-3 rounded-full bg-green-500/80 block" />
+                  </div>
+                  <span className="font-mono text-xs font-bold text-zinc-400 ml-2 flex items-center gap-1.5">
+                    <TerminalSquare className="h-3.5 w-3.5 text-indigo-500" />
+                    traclytag-cli@operator-terminal
+                  </span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsDeviceSimulatorOpen(false)} 
+                  className="rounded-full h-7 w-7 text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Terminal Shell Body */}
+              <div className="flex-1 overflow-y-auto p-5 font-mono text-[11px] leading-relaxed space-y-4">
+                {/* Console Log outputs */}
+                <div className="space-y-1 bg-black/40 p-3 rounded-xl border border-zinc-900 max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800">
+                  {deviceLogs.map((log, idx) => (
+                    <div key={idx} className={log.includes("ERROR") ? "text-red-400" : log.includes("SUCCESS") || log.includes("APPROVED") ? "text-emerald-400" : log.includes("User Code") ? "text-indigo-400 font-bold" : "text-zinc-500"}>
+                      {log}
+                    </div>
+                  ))}
+                  <div ref={terminalBottomRef} />
+                </div>
+
+                {!deviceSuccess ? (
+                  <div className="border border-zinc-800 bg-zinc-900/40 p-5 rounded-2xl space-y-4 text-center">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Authorization Required</span>
+                    
+                    <div className="flex flex-col items-center gap-3">
+                      {/* Monospace user activation code */}
+                      {userCode ? (
+                        <div className="bg-black/80 text-indigo-400 text-3xl font-extrabold px-6 py-3 rounded-xl border border-indigo-500/30 tracking-widest shadow-inner select-all">
+                          {userCode}
+                        </div>
+                      ) : (
+                        <Loader2 className="h-7 w-7 animate-spin text-zinc-600" />
+                      )}
+
+                      <div className="text-xs text-zinc-400 max-w-xs leading-normal">
+                        To register this device, enter the code above at the link below:
+                        <a 
+                          href="/activate" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="mt-1.5 text-indigo-400 hover:text-indigo-300 font-medium flex items-center justify-center gap-1 hover:underline"
+                        >
+                          /activate <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="relative flex items-center py-2">
+                      <div className="flex-grow border-t border-zinc-800"></div>
+                      <span className="flex-shrink mx-3 text-[8px] text-zinc-500 uppercase tracking-widest font-bold">Scanning QR Code</span>
+                      <div className="flex-grow border-t border-zinc-800"></div>
+                    </div>
+
+                    {/* QR Code mockup */}
+                    <div className="relative bg-white p-3 rounded-xl w-32 h-32 mx-auto border border-zinc-700 flex items-center justify-center group overflow-hidden">
+                      <div className="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="h-1 bg-indigo-500 w-full animate-pulse" />
+                      </div>
+                      <QrCode className="h-28 w-28 text-black" />
+                    </div>
+
+                    {isDevicePolling && (
+                      <div className="flex items-center justify-center gap-2 text-xs text-zinc-500">
+                        <RefreshCw className="h-3 w-3 animate-spin text-indigo-500" />
+                        <span>Awaiting browser authorization...</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Success Terminal Screen */
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="border border-emerald-500/20 bg-emerald-950/15 p-5 rounded-2xl space-y-4"
+                  >
+                    <div className="flex items-center gap-2 text-emerald-400 text-sm font-semibold">
+                      <Check className="h-4.5 w-4.5 bg-emerald-500/20 rounded-full p-0.5" />
+                      <span>Operator Console Online</span>
+                    </div>
+
+                    <div className="text-zinc-400 text-xs leading-relaxed space-y-2">
+                      <p>Hardware ID: <code className="bg-black/60 px-1 rounded text-zinc-200">tt-oper-0x4f82a</code></p>
+                      <p>Linked User: <code className="bg-black/60 px-1 rounded text-zinc-200">{deviceUser?.username}</code></p>
+                      <p>Organization: <code className="bg-black/60 px-1 rounded text-zinc-200">{deviceUser?.companyName || "N/A"}</code></p>
+                    </div>
+
+                    <div className="border border-zinc-800 bg-black/60 p-3 rounded-xl font-mono text-[9px] text-zinc-500 space-y-1">
+                      <div className="text-emerald-400 font-bold mb-1">--- SIMULATED CLI OUTPUT ---</div>
+                      <div>$ traclytag sync --verbose</div>
+                      <div>[OK] Found 3 un-synchronized code batches.</div>
+                      <div>[OK] Batch ID #104: Synced 50 codes (DataMatrix).</div>
+                      <div>[OK] Batch ID #105: Synced 12 codes (DataMatrix).</div>
+                      <div>[OK] Buffer synchronization completed successfully.</div>
+                      <div className="text-emerald-500 animate-pulse mt-1">OPERATOR MODE: ACTIVE — STANDBY FOR CODING COMMANDS...</div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Terminal Footer */}
+              <div className="p-4 border-t border-zinc-800 bg-zinc-900 flex justify-between items-center text-xs">
+                <span className="text-zinc-500">Status: {deviceSuccess ? "Linked" : isDevicePolling ? "Polling" : "Offline"}</span>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsDeviceSimulatorOpen(false);
+                      // Clear poll interval
+                      const existingInterval = (window as any).devicePollInterval;
+                      if (existingInterval) clearInterval(existingInterval);
+                      setIsDevicePolling(false);
+                    }} 
+                    className="border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full h-8 px-4 text-[10px]"
+                  >
+                    Close Terminal
+                  </Button>
+                  <Button
+                    onClick={startDeviceFlow}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full h-8 px-4 text-[10px] font-semibold"
+                  >
+                    Restart Flow
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
