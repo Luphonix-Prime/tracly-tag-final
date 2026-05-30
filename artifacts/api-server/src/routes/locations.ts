@@ -29,7 +29,7 @@ router.post("/locations", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const companyId = req.user!.companyId;
+  const companyId = req.user!.companyId || (req.user!.role === "master" ? (req.body.companyId || req.query.companyId) : null);
   if (!companyId) {
     res.status(400).json({ error: "User has no company" });
     return;
@@ -37,7 +37,7 @@ router.post("/locations", async (req, res): Promise<void> => {
   const [row] = await db
     .insert(locationsTable)
     .values({
-      companyId,
+      companyId: Number(companyId),
       locationType: parsed.data.locationType,
       uniqueName: parsed.data.uniqueName,
       locationName: parsed.data.locationName,

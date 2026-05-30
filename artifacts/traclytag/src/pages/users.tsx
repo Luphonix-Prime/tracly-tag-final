@@ -57,6 +57,11 @@ export default function Users() {
       values.companyId = currentUser.companyId;
     }
     
+    if (isMaster && values.role !== "master" && !values.companyId) {
+      form.setError("companyId", { type: "manual", message: "Company is required for tenant users" });
+      return;
+    }
+    
     createUser.mutate({ data: values }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });

@@ -166,6 +166,10 @@ export default function Products() {
   });
 
   const onSubmit = (values: ProductForm) => {
+    if (isMaster && !values.companyId) {
+      form.setError("companyId", { type: "manual", message: "Company context is required for Master Admin" });
+      return;
+    }
     const payload = {
       ...values,
       companyId: isMaster ? values.companyId : undefined,
