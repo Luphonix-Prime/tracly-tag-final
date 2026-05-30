@@ -35,6 +35,7 @@ export * from './markedByEntry';
 export * from './palletSummaryRow';
 export * from './product';
 export * from './productReportRow';
+export * from './registerBody';
 export * from './role';
 export * from './shipperSummaryRow';
 export * from './stockRow';

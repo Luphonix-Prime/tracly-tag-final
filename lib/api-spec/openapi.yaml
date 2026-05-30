@@ -59,6 +59,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new company and user administrator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: Registration successful and user logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "400":
+          description: Validation error or username already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /auth/logout:
     post:
       operationId: logout
@@ -539,6 +563,25 @@ components:
         password:
           type: string
       required: [username, password]
+
+    RegisterBody:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        phone:
+          type: ["string", "null"]
+        companyName:
+          type: string
+        companyEmail:
+          type: string
+        companyWebsiteUrl:
+          type: string
+      required: [username, email, password, companyName, companyEmail, companyWebsiteUrl]
 
     AuthSession:
       type: object

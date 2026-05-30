@@ -27,6 +27,17 @@ export interface LoginBody {
   password: string;
 }
 
+export interface RegisterBody {
+  username: string;
+  email: string;
+  password: string;
+  /** @nullable */
+  phone?: string | null;
+  companyName: string;
+  companyEmail: string;
+  companyWebsiteUrl: string;
+}
+
 export interface AuthSession {
   id: number;
   username: string;
