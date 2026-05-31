@@ -625,495 +625,525 @@ export default function Login() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col md:flex-row bg-background">
+    <div className="relative min-h-screen w-full flex flex-col bg-midnight-navy text-white selection:bg-safety-blue selection:text-white overflow-x-hidden">
+      {/* Technical Background Canvas */}
+      <div className="fixed inset-0 industrial-grid pointer-events-none z-0"></div>
+      <div className="fixed inset-0 bg-gradient-to-tr from-midnight-navy via-transparent to-midnight-navy opacity-60 pointer-events-none z-0"></div>
+
       <div className="absolute top-4 right-4 z-20 flex gap-2">
         <ThemeToggle />
       </div>
 
-      {/* Left Panel: Form */}
-      <div className="flex w-full flex-col items-center justify-center p-6 sm:p-8 md:p-12 md:w-1/2 overflow-y-auto">
-        <div className="w-full max-w-md">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="flex flex-col gap-5"
-          >
-            {/* Logo branding block & Device Simulator button */}
-            <motion.div variants={itemVariants} className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center justify-center p-2.5 bg-indigo-500/10 rounded-full">
-                  <QrCode className="h-6 w-6 text-indigo-600 animate-pulse" />
-                </div>
-                <span className="text-xl font-bold tracking-wider text-indigo-600">TraclyTag</span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsDeviceSimulatorOpen(true);
-                  startDeviceFlow();
-                }}
-                className="h-8 text-[10px] rounded-full border-indigo-500/30 text-indigo-600 hover:bg-indigo-500/10 cursor-pointer"
+      {/* Main Content Area */}
+      <main className="flex-grow flex flex-col items-center justify-center relative z-10 px-6 py-12">
+        <div className="w-full max-w-[460px] flex flex-col items-center">
+          {/* Card */}
+          <div className="bg-slate-900 border border-slate-800 shadow-2xl rounded-xl w-full overflow-hidden transition-all duration-300">
+            <div className="p-8 md:p-10">
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="flex flex-col gap-6"
               >
-                <Laptop className="h-3.5 w-3.5 mr-1" />
-                Device Simulator
-              </Button>
-            </motion.div>
+                {/* Logo branding block & Device Simulator button */}
+                <motion.div variants={itemVariants} className="flex flex-col items-center mb-4 w-full relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <QrCode className="h-8 w-8 text-safety-blue animate-pulse" />
+                    <span className="text-2xl font-bold tracking-tight text-white">TracelyTag</span>
+                  </div>
+                  <div className="h-0.5 w-12 bg-safety-blue mb-4"></div>
+                  <h1 className="text-sm font-bold text-white uppercase tracking-widest">Terminal Access</h1>
+                  <p className="text-xs text-slate-400 mt-1 text-center">Enter your credentials to access the security layer.</p>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsDeviceSimulatorOpen(true);
+                      startDeviceFlow();
+                    }}
+                    className="absolute right-0 top-0 h-8 text-[9px] rounded-full border-safety-blue/30 text-safety-blue hover:bg-safety-blue/10 bg-transparent cursor-pointer"
+                  >
+                    <Laptop className="h-3 w-3 mr-1" />
+                    Device Sim
+                  </Button>
+                </motion.div>
 
-            {/* Header title */}
-            <motion.div variants={itemVariants} className="text-left">
-              <h1 className="text-3xl font-bold tracking-tight animate-fade-in">Welcome Back!</h1>
-              <p className="text-sm text-muted-foreground mt-1">Manage serial tracking & DataMatrix code generation</p>
-            </motion.div>
+                {/* Forms Tabs Container */}
+                <motion.div variants={itemVariants} className="w-full">
+                  <Tabs defaultValue="login" className="w-full">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auth Mode</span>
+                      <TabsList className="grid grid-cols-2 w-[160px] h-8 p-0.5 bg-slate-800 border border-slate-700">
+                        <TabsTrigger value="login" className="text-xs py-1 data-[state=active]:bg-safety-blue data-[state=active]:text-white">Sign In</TabsTrigger>
+                        <TabsTrigger value="signup" className="text-xs py-1 data-[state=active]:bg-safety-blue data-[state=active]:text-white">Sign Up</TabsTrigger>
+                      </TabsList>
+                    </div>
+                    
+                    {/* Sign In form tab */}
+                    <TabsContent value="login" className="space-y-5">
+                      <Form {...loginForm}>
+                        <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                          <FormField
+                            control={loginForm.control}
+                            name="username"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Username</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <User className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="sys_admin_01" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 font-mono text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={loginForm.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Password</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <Lock className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      type="password" 
+                                      placeholder="••••••••••••" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 font-mono text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={loginForm.control}
+                            name="location"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Location</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="Start location (optional)" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => fetchLocationAutomatically("login")}
+                                    disabled={isFetchingLocation}
+                                    title="Fetch Location Automatically"
+                                    className="shrink-0 h-8 w-8 rounded-lg hover:bg-slate-800"
+                                  >
+                                    {isFetchingLocation ? (
+                                      <Loader2 className="h-4 w-4 animate-spin text-safety-blue" />
+                                    ) : (
+                                      <MapPin className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <div className="flex flex-col gap-2.5 mt-4">
+                            <Button 
+                              type="submit" 
+                              className="w-full h-11 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-sm font-semibold cursor-pointer active:scale-[0.98]"
+                              disabled={loginMutation.isPending}
+                            >
+                              {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              Sign In
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handlePasskeyLogin(loginForm.getValues("username"))}
+                              className="w-full h-11 rounded-lg flex items-center justify-center gap-2 border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white font-medium text-xs cursor-pointer transition-colors"
+                            >
+                              <Fingerprint className="h-4.5 w-4.5 text-safety-blue" />
+                              <span>Sign In with Passkey</span>
+                            </Button>
+                          </div>
 
-            {/* Forms Tabs Container */}
-            <motion.div variants={itemVariants} className="w-full">
-              <Tabs defaultValue="login" className="w-full">
-                <div className="flex items-center justify-between border-b pb-3.5 mb-4">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Authentication Mode</span>
-                  <TabsList className="grid grid-cols-2 w-[160px] h-8 p-0.5">
-                    <TabsTrigger value="login" className="text-xs py-1">Sign In</TabsTrigger>
-                    <TabsTrigger value="signup" className="text-xs py-1">Sign Up</TabsTrigger>
-                  </TabsList>
+                          <div className="relative my-3">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-slate-800" />
+                            </div>
+                            <div className="relative flex justify-center text-[9px] uppercase tracking-wider">
+                              <span className="bg-slate-900 px-2 text-slate-500 font-bold">
+                                Or continue with
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleSsoLogin("Google")}
+                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
+                            >
+                              <FcGoogle className="h-4 w-4" />
+                              <span>Google</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleSsoLogin("Microsoft")}
+                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
+                            >
+                              <FaMicrosoft className="h-3.5 w-3.5 text-[#00a4ef]" />
+                              <span>Microsoft</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleSsoLogin("GitHub")}
+                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
+                            >
+                              <FaGithub className="h-4 w-4" />
+                              <span>GitHub</span>
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </TabsContent>
+
+                    {/* Sign Up form tab */}
+                    <TabsContent value="signup" className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                      <Form {...signUpForm}>
+                        <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-4">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-safety-blue border-b border-slate-800 pb-1 mb-2 mt-2">User Credentials</div>
+                          
+                          <FormField
+                            control={signUpForm.control}
+                            name="username"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Username</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <User className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="Choose username" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={signUpForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Email</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      type="email" 
+                                      placeholder="user@corp.com" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={signUpForm.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Password</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <Lock className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      type="password" 
+                                      placeholder="Minimum 6 characters" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={signUpForm.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Phone</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="Phone number (optional)" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-safety-blue border-b border-slate-800 pb-1 mb-2 mt-4">Company Details</div>
+
+                          <FormField
+                            control={signUpForm.control}
+                            name="companyName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Company Name</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="Acme Corporation" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={signUpForm.control}
+                            name="companyEmail"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Company Email</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      type="email" 
+                                      placeholder="info@corp.com" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={signUpForm.control}
+                            name="companyWebsiteUrl"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Website URL</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <Globe className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="https://www.company.com" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={signUpForm.control}
+                            name="location"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Session Location</FormLabel>
+                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
+                                  <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="Start location (optional)" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => fetchLocationAutomatically("signUp")}
+                                    disabled={isFetchingLocation}
+                                    title="Fetch Location Automatically"
+                                    className="shrink-0 h-8 w-8 rounded-lg hover:bg-slate-800"
+                                  >
+                                    {isFetchingLocation ? (
+                                      <Loader2 className="h-4 w-4 animate-spin text-safety-blue" />
+                                    ) : (
+                                      <MapPin className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                                <FormMessage className="ml-1 text-[10px]" />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-3 mt-4">
+                            <Button 
+                              type="submit" 
+                              className="w-full h-11 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-xs font-semibold cursor-pointer"
+                              disabled={registerMutation.isPending}
+                            >
+                              {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              Register Company
+                            </Button>
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                const values = signUpForm.getValues();
+                                if (!values.username || !values.email || !values.companyName) {
+                                  toast.error("Please fill in Username, Email, and Company Name to register with a Passkey.");
+                                  return;
+                                }
+                                handlePasskeyRegister(values);
+                              }}
+                              className="w-full h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white font-medium text-xs cursor-pointer transition-colors"
+                            >
+                              <Fingerprint className="h-4.5 w-4.5 text-safety-blue" />
+                              <span>Use Passkey</span>
+                            </Button>
+                          </div>
+
+                          <div className="relative my-3">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-slate-800" />
+                            </div>
+                            <div className="relative flex justify-center text-[9px] uppercase tracking-wider">
+                              <span className="bg-slate-900 px-2 text-slate-500 font-bold">
+                                Or register with
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleSsoLogin("Google")}
+                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
+                            >
+                              <FcGoogle className="h-4 w-4" />
+                              <span>Google</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleSsoLogin("Microsoft")}
+                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
+                            >
+                              <FaMicrosoft className="h-3.5 w-3.5 text-[#00a4ef]" />
+                              <span>Microsoft</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleSsoLogin("GitHub")}
+                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
+                            >
+                              <FaGithub className="h-4 w-4" />
+                              <span>GitHub</span>
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </TabsContent>
+                  </Tabs>
+                </motion.div>
+
+                {/* Demo Credentials Footer */}
+                <motion.div 
+                  variants={itemVariants}
+                  className="bg-slate-950 text-[9px] text-slate-400 flex flex-col items-start gap-1 p-3 rounded-lg border border-slate-850 mt-2"
+                >
+                  <div className="font-semibold text-slate-300">Demo Credentials:</div>
+                  <div className="grid grid-cols-3 gap-x-3 gap-y-1 w-full text-[9px] font-mono">
+                    <div>Master: <code className="bg-slate-900 px-1 rounded text-white font-medium">master</code> / <code className="bg-slate-900 px-1 rounded text-slate-300">master123</code></div>
+                    <div>Admin: <code className="bg-slate-900 px-1 rounded text-white font-medium">demo_admin</code> / <code className="bg-slate-900 px-1 rounded text-slate-300">admin123</code></div>
+                    <div>Op: <code className="bg-slate-900 px-1 rounded text-white font-medium">demo_op</code> / <code className="bg-slate-900 px-1 rounded text-slate-300">op123</code></div>
+                  </div>
+                </motion.div>
+
+                {/* Security Validation Pills */}
+                <div className="mt-4 pt-6 border-t border-slate-800 flex justify-center gap-4">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-850 rounded-full border border-slate-800">
+                    <span className="h-1.5 w-1.5 rounded-full bg-success-emerald" />
+                    <span className="text-[9px] font-bold text-slate-300">AES-256 ENCRYPTED</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-850 rounded-full border border-slate-800">
+                    <span className="h-1.5 w-1.5 rounded-full bg-warning-amber" />
+                    <span className="text-[9px] font-bold text-slate-300">GS1 COMPLIANT</span>
+                  </div>
                 </div>
-                
-                {/* Sign In form tab */}
-                <TabsContent value="login" className="space-y-5">
-                  <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5">
-                      <FormField
-                        control={loginForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Username</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <User className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  placeholder="Enter username" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Password</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <Lock className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  type="password" 
-                                  placeholder="Enter password" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={loginForm.control}
-                        name="location"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Location</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-1.5 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <MapPin className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  placeholder="Enter starting location (optional)" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => fetchLocationAutomatically("login")}
-                                disabled={isFetchingLocation}
-                                title="Fetch Location Automatically"
-                                className="shrink-0 h-9 w-9 rounded-full hover:bg-muted"
-                              >
-                                {isFetchingLocation ? (
-                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                ) : (
-                                  <MapPin className="h-4.5 w-4.5" />
-                                )}
-                              </Button>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="flex flex-col gap-2.5 mt-3">
-                        <Button 
-                          type="submit" 
-                          className="w-full h-12 rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold cursor-pointer"
-                          disabled={loginMutation.isPending}
-                        >
-                          {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Continue
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handlePasskeyLogin(loginForm.getValues("username"))}
-                          className="w-full h-11 rounded-full flex items-center justify-center gap-2 border-gray-300/60 dark:border-gray-800 hover:bg-indigo-500/5 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-xs cursor-pointer transition-colors"
-                        >
-                          <Fingerprint className="h-4.5 w-4.5" />
-                          <span>Sign In with Passkey</span>
-                        </Button>
-                      </div>
 
-                      <div className="relative my-3">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-[10px] uppercase">
-                          <span className="bg-background px-2 text-muted-foreground font-medium">
-                            Or continue with
-                          </span>
-                        </div>
-                      </div>
+              </motion.div>
+            </div>
+          </div>
 
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleSsoLogin("Google")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
-                        >
-                          <FcGoogle className="h-4 w-4" />
-                          <span>Google</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleSsoLogin("Microsoft")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
-                        >
-                          <FaMicrosoft className="h-3.5 w-3.5 text-[#00a4ef]" />
-                          <span>Microsoft</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleSsoLogin("GitHub")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
-                        >
-                          <FaGithub className="h-4 w-4" />
-                          <span>GitHub</span>
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </TabsContent>
-
-                {/* Sign Up form tab */}
-                <TabsContent value="signup">
-                  <Form {...signUpForm}>
-                    <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-5">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 border-b pb-1 mb-2 mt-2">User Credentials</div>
-                      
-                      <FormField
-                        control={signUpForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Username</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <User className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  placeholder="Enter username" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={signUpForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Email</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <Mail className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  type="email" 
-                                  placeholder="user@corp.com" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={signUpForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Password</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <Lock className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  type="password" 
-                                  placeholder="Minimum 6 characters" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={signUpForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Phone</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <Phone className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  placeholder="Phone number (optional)" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 border-b pb-1 mb-2 mt-4">Company Details</div>
-
-                      <FormField
-                        control={signUpForm.control}
-                        name="companyName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Company Name</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <Building2 className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  placeholder="Acme Corporation" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={signUpForm.control}
-                        name="companyEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Company Email</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <Mail className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  type="email" 
-                                  placeholder="info@corp.com" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={signUpForm.control}
-                        name="companyWebsiteUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Company Website URL</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-2 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <Globe className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  placeholder="https://www.company.com" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={signUpForm.control}
-                        name="location"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs ml-3 text-muted-foreground font-medium">Active Session Location</FormLabel>
-                            <div className="flex items-center w-full bg-background border border-gray-300/60 dark:border-gray-800 h-12 rounded-full overflow-hidden pl-5 pr-1.5 gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
-                              <MapPin className="h-4.5 w-4.5 text-gray-500/80 shrink-0" />
-                              <FormControl>
-                                <Input 
-                                  placeholder="Start location (optional)" 
-                                  className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => fetchLocationAutomatically("signUp")}
-                                disabled={isFetchingLocation}
-                                title="Fetch Location Automatically"
-                                className="shrink-0 h-9 w-9 rounded-full hover:bg-muted"
-                              >
-                                {isFetchingLocation ? (
-                                  <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
-                                ) : (
-                                  <MapPin className="h-4.5 w-4.5" />
-                                )}
-                              </Button>
-                            </div>
-                            <FormMessage className="ml-3 text-[10px]" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="grid grid-cols-2 gap-3 mt-4">
-                        <Button 
-                          type="submit" 
-                          className="w-full h-12 rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm text-xs font-semibold cursor-pointer"
-                          disabled={registerMutation.isPending}
-                        >
-                          {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Register Company
-                        </Button>
-                        <Button 
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            const values = signUpForm.getValues();
-                            if (!values.username || !values.email || !values.companyName) {
-                              toast.error("Please fill in Username, Email, and Company Name to register with a Passkey.");
-                              return;
-                            }
-                            handlePasskeyRegister(values);
-                          }}
-                          className="w-full h-12 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-indigo-500/5 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-xs cursor-pointer transition-colors"
-                        >
-                          <Fingerprint className="h-4.5 w-4.5" />
-                          <span>Use Passkey</span>
-                        </Button>
-                      </div>
-
-                      <div className="relative my-3">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-[10px] uppercase">
-                          <span className="bg-background px-2 text-muted-foreground font-medium">
-                            Or register with
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleSsoLogin("Google")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
-                        >
-                          <FcGoogle className="h-4 w-4" />
-                          <span>Google</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleSsoLogin("Microsoft")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
-                        >
-                          <FaMicrosoft className="h-3.5 w-3.5 text-[#00a4ef]" />
-                          <span>Microsoft</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleSsoLogin("GitHub")}
-                          className="w-full text-xs py-1 h-10 rounded-full flex items-center justify-center gap-1.5 border-gray-300/60 dark:border-gray-800 hover:bg-muted font-medium cursor-pointer"
-                        >
-                          <FaGithub className="h-4 w-4" />
-                          <span>GitHub</span>
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </TabsContent>
-              </Tabs>
-            </motion.div>
-
-            {/* Demo Credentials Footer */}
-            <motion.div 
-              variants={itemVariants}
-              className="bg-muted/50 text-[9px] text-muted-foreground flex flex-col items-start gap-1 p-3 rounded-2xl border mt-3"
-            >
-              <div className="font-semibold text-foreground">Demo Credentials:</div>
-              <div className="grid grid-cols-3 gap-x-3 gap-y-1 w-full text-[9px]">
-                <div>Master: <code className="bg-background px-1 rounded text-foreground font-medium">master</code> / <code className="bg-background px-1 rounded text-foreground">master123</code></div>
-                <div>Admin: <code className="bg-background px-1 rounded text-foreground font-medium">demo_admin</code> / <code className="bg-background px-1 rounded text-foreground">admin123</code></div>
-                <div>Op: <code className="bg-background px-1 rounded text-foreground font-medium">demo_op</code> / <code className="bg-background px-1 rounded text-foreground">op123</code></div>
-              </div>
-            </motion.div>
-
-          </motion.div>
+          {/* Global Status Indicator */}
+          <div className="mt-6 flex justify-between items-center px-4 w-full max-w-[460px] text-white/50 text-[9px] font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-emerald opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-success-emerald"></span>
+              </span>
+              <span>GLOBAL SYSTEM STATUS: NOMINAL</span>
+            </div>
+            <div>TZ: UTC+00:00</div>
+          </div>
         </div>
-      </div>
+      </main>
 
-      {/* Right Panel: Image */}
-      <div className="relative hidden w-1/2 md:block">
-        <img
-          src="https://images.unsplash.com/photo-1714715350295-5f00e902f0d7?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8d2FsbHBhZXJ8ZW58MHwxfDB8fHww&auto=format&fit=crop&q=60&w=900"
-          alt="A beautiful landscape with rolling hills and a road."
-          className="h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
-      </div>
+      {/* Footer */}
+      <footer className="w-full mt-auto py-6 px-8 bg-slate-950 border-t border-slate-900 text-slate-400 text-[11px] flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
+        <div className="flex items-center gap-4">
+          <span className="font-bold text-white">TracelyTag</span>
+          <span>© 2026 TracelyTag Industrial Intelligence. Secured by AES-256.</span>
+        </div>
+        <div className="flex gap-6 text-[10px] font-bold uppercase tracking-wider">
+          <a href="#" className="hover:text-white transition-colors">Security Protocol</a>
+          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-white transition-colors">System Status</a>
+        </div>
+      </footer>
+
 
       {/* --- SSO Identity Provider Modal --- */}
       <AnimatePresence>

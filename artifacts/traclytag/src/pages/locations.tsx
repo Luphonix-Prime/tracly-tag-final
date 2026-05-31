@@ -123,200 +123,226 @@ export default function Locations() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Locations Master"
-        description="Warehouses, distributors, and retail outlets"
-        action={
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Add Location
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-xl">
-              <DialogHeader>
-                <DialogTitle>Create New Location</DialogTitle>
-              </DialogHeader>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="locationType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Type</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Warehouse, Distributor, Retailer…"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="uniqueName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Unique Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="WH-PUNE-01" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="locationName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Location Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="contactNo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contact Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>State</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <DialogFooter className="pt-4">
-                    <Button
-                      type="submit"
-                      disabled={createLocation.isPending}
-                    >
-                      Save Location
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        }
-      />
+      <div className="mb-4 flex items-center gap-2 text-slate-500">
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" href="#">Admin Terminal</a>
+        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">Facilities</span>
+      </div>
+      <div className="flex justify-between items-end mb-8">
+        <div>
+          <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Factory Listing</h2>
+          <p className="text-[16px] text-slate-600 mt-1">Manage physical company nodes, warehouses, and assembly lines.</p>
+        </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto">
+              <Plus className="mr-2 h-4 w-4" /> Add Factory
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Create New Location</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="locationType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Warehouse, Distributor, Retailer…"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="uniqueName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unique Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="WH-PUNE-01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="locationName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Location Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="contactNo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button
+                    type="submit"
+                    disabled={createLocation.isPending}
+                  >
+                    Save Location
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Main Table Container */}
+      <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
+        <div className="px-6 border-b border-[#E2E8F0] bg-[#faf8ff] flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[18px] font-semibold text-[#0F172A]">Registered Facilities</span>
+            <span className="bg-[#ededf9] text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Active</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-500">
+              <span className="material-symbols-outlined">filter_list</span>
+            </button>
+            <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-500">
+              <span className="material-symbols-outlined">download</span>
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <Table className="w-full text-left table-fixed">
             <TableHeader>
-              <TableRow>
-                <TableHead>Unique Code</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Location Name</TableHead>
-                <TableHead>City / State</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="border-b border-[#E2E8F0] bg-slate-50/50 hover:bg-slate-50/50">
+                <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">LOCATION NAME</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">TYPE</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">UNIQUE ID</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">CONTACT NO.</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">ADDRESS</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[10%] text-[11px] font-bold px-6 py-4 uppercase text-right">ACTION</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="divide-y divide-[#E2E8F0]">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    Loading…
+                  <TableCell colSpan={6} className="text-center py-8 text-xs text-slate-400">
+                    Loading facility registry...
                   </TableCell>
                 </TableRow>
               ) : locations.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    className="text-center py-12 text-muted-foreground"
+                    className="text-center py-12 text-slate-400"
                   >
                     <div className="flex flex-col items-center gap-2">
-                      <MapPin className="h-8 w-8 text-muted-foreground/50" />
-                      <p>No locations yet</p>
+                      <MapPin className="h-8 w-8 text-slate-300" />
+                      <p className="text-[14px] font-semibold text-slate-500">No active manufacturing or distribution locations registered yet</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 locations.map((location) => (
-                  <TableRow key={location.id}>
-                    <TableCell className="font-mono font-medium">
-                      {location.uniqueName}
+                  <TableRow key={location.id} className="hover:bg-slate-50 transition-colors group border-0">
+                    <TableCell className="align-middle px-6 py-5">
+                      <span className="text-[#0F172A] font-bold text-[14px]">
+                        {location.locationName}
+                      </span>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
+                    <TableCell className="align-middle px-6 py-5">
+                      <Badge className="text-[10px] font-bold tracking-widest uppercase bg-[#E2E8F0] text-[#0F172A] hover:bg-[#cbd5e1] border-none shadow-none h-5 px-1.5">
                         {location.locationType}
                       </Badge>
                     </TableCell>
-                    <TableCell>{location.locationName}</TableCell>
-                    <TableCell>
-                      {[location.city, location.state]
-                        .filter(Boolean)
-                        .join(", ") || "-"}
+                    <TableCell className="align-middle px-6 py-5 text-[14px]">
+                      <span className="font-semibold tracking-wide text-slate-600">
+                        {location.uniqueName}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {location.contactNo}
+                    <TableCell className="align-middle px-6 py-5 text-[14px]">
+                      <span className="text-slate-600 block">
+                        {location.contactNo}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="align-middle px-6 py-5 text-[14px]">
+                      <span className="text-slate-600 truncate block max-w-[180px]" title={location.address}>
+                        {location.address}
+                      </span>
+                      <span className="text-[12px] font-semibold text-slate-500 tracking-wide mt-0.5 block">{location.city}, {location.state}</span>
+                    </TableCell>
+                    <TableCell className="align-middle px-6 py-5 text-right">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                            <Trash2 className="h-5 w-5" />
+                          </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
@@ -329,7 +355,7 @@ export default function Locations() {
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(location.id)}
-                              className="bg-destructive text-destructive-foreground"
+                              className="bg-red-600 hover:bg-red-700 text-white font-bold"
                             >
                               Delete
                             </AlertDialogAction>
@@ -342,8 +368,9 @@ export default function Locations() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
+
   );
 }

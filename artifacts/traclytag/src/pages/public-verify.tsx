@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { ShieldCheck, Loader2, AlertCircle, Landmark, QrCode } from "lucide-react";
+import { ShieldCheck, Loader2, AlertCircle, Landmark, QrCode, Lock } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
 
 interface VerificationDetails {
   id: number;
@@ -38,13 +40,19 @@ export default function PublicVerify() {
   const [, setLocation] = useLocation();
   
   const [data, setData] = useState<VerificationDetails | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Form states matching mockup
+  const [step, setStep] = useState<"form" | "result">("form");
+  const [fullName, setFullName] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [locationAccess, setLocationAccess] = useState(true);
+
+  const handleVerify = () => {
     if (!serial) {
       setError("No serial number provided.");
-      setLoading(false);
       return;
     }
 
@@ -63,18 +71,18 @@ export default function PublicVerify() {
       })
       .then((json) => {
         setData(json);
+        setStep("result");
         setLoading(false);
       })
       .catch((err) => {
         setError(err.message || "An unexpected error occurred.");
         setLoading(false);
       });
-  }, [serial]);
+  };
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "N/A";
     try {
-      // Formats as Oct-2025, Sep-2027 etc. to match the user's screenshot
       return format(new Date(dateStr), "MMM-yyyy");
     } catch (e) {
       return dateStr;
@@ -82,69 +90,175 @@ export default function PublicVerify() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100 flex items-start justify-center p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white min-h-screen sm:min-h-0 sm:my-4 sm:rounded-xl shadow-md border-0 sm:border overflow-hidden">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 flex flex-col">
+      {/* TopAppBar */}
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center px-6 h-14 w-full z-50 sticky top-0 shadow-sm">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-safety-blue" />
+          <h1 className="text-md font-bold text-midnight-navy dark:text-white">TracelyTag</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setLocation("/login")}
+            className="text-xs font-bold text-safety-blue hover:underline uppercase tracking-wider bg-transparent border-0 cursor-pointer"
+          >
+            Terminal Login
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-grow px-6 py-10 max-w-md mx-auto w-full flex flex-col justify-center">
         
         {/* Loading State */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-32 space-y-4 px-6">
-            <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
-            <p className="text-sm text-neutral-500 font-medium animate-pulse">
-              Verifying authentic package details...
+          <div className="flex flex-col items-center justify-center py-20 space-y-4 px-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg">
+            <Loader2 className="h-10 w-10 animate-spin text-safety-blue" />
+            <p className="text-sm text-slate-500 font-medium animate-pulse text-center">
+              Running cryptographic authenticity checks...
             </p>
           </div>
         )}
 
-        {/* Error / Failed State */}
-        {!loading && (error || !data) && (
-          <div className="p-6 space-y-6">
-            {/* Header Brand */}
-            <div className="text-center py-2 border-b border-neutral-100">
-              <div className="flex items-center justify-center gap-1.5 text-neutral-800">
-                <QrCode className="h-5 w-5 text-neutral-600" />
-                <span className="font-bold text-xs tracking-wider uppercase">TraclyTag Verification</span>
-              </div>
-            </div>
-
-            {/* Error Card */}
-            <Card className="border-red-200 bg-red-50/50 shadow-sm overflow-hidden">
+        {/* Error State */}
+        {!loading && error && (
+          <div className="space-y-6">
+            <Card className="border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/30 overflow-hidden rounded-xl shadow-lg">
               <div className="h-1.5 bg-red-500" />
               <CardContent className="flex flex-col items-center justify-center py-10 space-y-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 border border-red-200 shadow-inner">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 border border-red-200 dark:border-red-800 shadow-inner">
                   <AlertCircle className="h-8 w-8" />
                 </div>
-                <h3 className="text-lg font-bold text-red-800">Verification Failed</h3>
-                <p className="text-xs text-neutral-500 text-center leading-relaxed max-w-xs px-2">
-                  {error || "This unique serial number is unregistered, invalid, or has not been activated. Please proceed with caution as this product may be counterfeit."}
+                <h3 className="text-lg font-bold text-red-800 dark:text-red-400">Verification Failed</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-center leading-relaxed max-w-xs px-2">
+                  {error}
                 </p>
-                <div className="text-[10px] text-neutral-400 font-mono bg-white px-3 py-1 rounded border border-neutral-200">
-                  Serial ID: <span className="font-bold text-neutral-700">{serial}</span>
+                <div className="text-[10px] text-slate-400 font-mono bg-white dark:bg-slate-900 px-3 py-1 rounded border border-slate-200 dark:border-slate-800">
+                  Serial ID: <span className="font-bold text-slate-700 dark:text-slate-300">{serial}</span>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" className="flex-1 text-xs h-10" onClick={() => window.location.reload()}>
-                Scan Again
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 text-xs h-10 rounded-lg cursor-pointer" onClick={() => setError(null)}>
+                Try Again
               </Button>
-              <Button className="flex-1 text-xs h-10 bg-neutral-900 hover:bg-neutral-800 text-white" onClick={() => setLocation("/login")}>
+              <Button className="flex-1 text-xs h-10 bg-safety-blue hover:bg-primary text-white rounded-lg cursor-pointer" onClick={() => setLocation("/login")}>
                 Admin Sign In
               </Button>
             </div>
-
-            {/* Footer */}
-            <p className="text-center text-[10px] text-neutral-400 font-medium pt-8">
-              Powered by TraclyTag Authenticator®
-            </p>
           </div>
         )}
 
-        {/* Success State - Styled EXACTLY like the Sun Pharma validation screenshot */}
-        {!loading && !error && data && (
-          <div className="p-4 space-y-5">
+        {/* Step 1: User Verification Inputs Form */}
+        {!loading && !error && step === "form" && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <div className="scan-viewfinder-corners absolute inset-0 pulse-animation"></div>
+                <QrCode className="h-12 w-12 text-safety-blue animate-pulse" />
+              </div>
+              <h2 className="text-xl font-bold text-midnight-navy dark:text-white mb-2">Final Verification</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 px-4">
+                Complete the secure form below to authenticate your product with TracelyTag Industrial Security.
+              </p>
+            </div>
+
+            <section className="space-y-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-lg">
+              {/* Full Name */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Full Name</label>
+                <div className="relative">
+                  <Input 
+                    className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm" 
+                    placeholder="Alexander Vance" 
+                    value={fullName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFullName(e.target.value)}
+                    type="text"
+                  />
+                </div>
+              </div>
+
+              {/* Mobile Number */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Mobile Number</label>
+                <div className="relative">
+                  <Input 
+                    className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm" 
+                    placeholder="+1 (555) 000-0000" 
+                    value={mobileNumber}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMobileNumber(e.target.value)}
+                    type="tel"
+                  />
+                </div>
+              </div>
+
+              {/* Zip Code */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Zip Code</label>
+                <div className="relative">
+                  <Input 
+                    className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm" 
+                    placeholder="10001" 
+                    value={zipCode}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setZipCode(e.target.value)}
+                    type="text"
+                  />
+                </div>
+              </div>
+
+
+              {/* Location Toggle */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-midnight-navy dark:text-white">Location Access</span>
+                  <span className="text-[10px] text-slate-400">Verify scanning location for audit trail</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLocationAccess(!locationAccess)}
+                  className={`w-11 h-6 rounded-full relative transition-colors duration-200 focus:outline-none ${locationAccess ? "bg-safety-blue" : "bg-slate-300 dark:bg-slate-800"}`}
+                >
+                  <div className={`absolute top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${locationAccess ? "right-1" : "left-1"}`} />
+                </button>
+              </div>
+
+              {/* Encryption Banner */}
+              <div className="flex gap-2.5 p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg">
+                <Lock className="h-4 w-4 text-safety-blue flex-shrink-0" />
+                <span className="text-[10px] text-slate-400 font-mono leading-relaxed">
+                  Your verification data is encrypted and used only for product authenticity audit.
+                </span>
+              </div>
+
+              <Button 
+                onClick={handleVerify}
+                className="w-full h-11 bg-safety-blue hover:bg-primary text-white font-bold rounded-lg shadow-sm transition-all duration-100 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <span>Verify Product</span>
+                <ShieldCheck className="h-4 w-4" />
+              </Button>
+            </section>
+
+            {/* Session Metadata */}
+            <div className="space-y-2 opacity-60 px-2 text-[10px] font-mono text-slate-400">
+              <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-800 pt-4">
+                <span>SCAN SESSION</span>
+                <span>#TT-{serial?.substring(0, 6).toUpperCase() || "NEW"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>ENCRYPTION</span>
+                <span>AES-256 BIT</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Verification Details Success Details */}
+        {!loading && !error && step === "result" && data && (
+          <div className="space-y-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-lg">
             
             {/* Header Brand Logo */}
-            <div className="text-center py-2 border-b border-neutral-200">
+            <div className="text-center py-2 border-b border-slate-200 dark:border-slate-800">
               {data.productLogoUrl ? (
                 <img 
                   src={data.productLogoUrl} 
@@ -153,8 +267,8 @@ export default function PublicVerify() {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center py-1">
-                  <Landmark className="h-6 w-6 text-amber-500 mb-1" />
-                  <span className="font-extrabold text-neutral-800 text-xs tracking-widest uppercase">
+                  <Landmark className="h-6 w-6 text-safety-blue mb-1" />
+                  <span className="font-extrabold text-midnight-navy dark:text-white text-xs tracking-widest uppercase">
                     {data.companyName || "REGISTERED PRODUCER"}
                   </span>
                 </div>
@@ -162,98 +276,104 @@ export default function PublicVerify() {
             </div>
 
             {/* Light Green Authenticity Banner */}
-            <div className="border border-green-200 bg-green-50/70 rounded-md py-2.5 px-4 text-center">
-              <div className="flex items-center justify-center gap-1.5 text-green-700 font-semibold text-xs sm:text-sm">
+            <div className="border border-green-200 bg-green-50/70 rounded-lg py-2.5 px-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-green-700 font-bold text-xs sm:text-sm">
                 <ShieldCheck className="h-4.5 w-4.5 text-green-600 flex-shrink-0" />
                 <span>This is a Genuine Pack</span>
               </div>
             </div>
 
             {/* Uppercase Product Name Title */}
-            <div className="border-b pb-2">
-              <h2 className="text-neutral-800 font-extrabold text-sm sm:text-base leading-tight tracking-normal">
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-2">
+              <h2 className="text-midnight-navy dark:text-white font-extrabold text-sm sm:text-base leading-tight tracking-normal">
                 {data.productName.toUpperCase()}
               </h2>
             </div>
 
             {/* Product Verification Specifications Table */}
-            <div className="space-y-3.5 text-xs text-neutral-700">
+            <div className="space-y-3.5 text-xs text-slate-700 dark:text-slate-300">
               
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Serial Number</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-mono font-bold text-neutral-900 break-all select-all">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Serial Number</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-mono font-bold text-slate-800 dark:text-white break-all select-all">
                   {data.serialNumber || data.ssccCode || "N/A"}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Generic Name</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-semibold text-neutral-800">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Generic Name</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-bold text-slate-800 dark:text-white">
                   {data.sapDescription || data.productName.toUpperCase()}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Brand Name</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-bold text-neutral-800">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Brand Name</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-bold text-slate-800 dark:text-white">
                   {data.productName.toUpperCase()}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Name and address of the manufacturer</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-medium text-neutral-800 leading-relaxed">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Manufacturer</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-medium text-slate-800 dark:text-white leading-relaxed">
                   {data.companyName}<br />
-                  <span className="text-[11px] text-neutral-500 leading-normal block mt-0.5">
+                  <span className="text-[10px] text-slate-400 leading-normal block mt-0.5">
                     {data.companyAddress || "N/A"}
                   </span>
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Batch Number</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-mono font-bold text-neutral-800 select-all">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Batch Number</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-mono font-bold text-slate-800 dark:text-white select-all">
                   {data.batchNumber || "N/A"}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Date of Manufacturing</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-medium text-neutral-800">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Mfg Date</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-medium text-slate-800 dark:text-white">
                   {formatDate(data.mfgDate)}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-semibold text-neutral-600">Date of Expiry</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-medium text-neutral-800">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Expiry Date</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-medium text-slate-800 dark:text-white">
                   {formatDate(data.expiryDate)}
                 </span>
               </div>
 
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5 border-b pb-4">
-                <span className="col-span-5 font-semibold text-neutral-600">Manufacturing license number</span>
-                <span className="col-span-1 text-center text-neutral-400">:</span>
-                <span className="col-span-6 font-mono font-semibold text-neutral-800">
+              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5 border-b border-slate-200 dark:border-slate-800 pb-4">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">License Number</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-mono font-bold text-slate-800 dark:text-white">
                   {data.registrationNo || "N/A"}
                 </span>
               </div>
 
             </div>
 
+            <div className="text-center pt-2">
+              <Button variant="outline" className="w-full text-xs h-10 rounded-lg cursor-pointer" onClick={() => setStep("form")}>
+                Verify Another Package
+              </Button>
+            </div>
+
             {/* Small subtle footer branding */}
-            <div className="text-center pt-4">
-              <p className="text-[10px] text-neutral-400 font-medium">
+            <div className="text-center pt-2">
+              <p className="text-[10px] text-slate-400 font-medium">
                 Verified dynamically via TraclyTag GS1 Registry.
               </p>
-              <p className="text-[9px] text-neutral-300 font-mono mt-0.5">
+              <p className="text-[9px] text-slate-400 font-mono mt-0.5">
                 Ref: TRACLY-{data.id}
               </p>
             </div>
@@ -261,7 +381,17 @@ export default function PublicVerify() {
           </div>
         )}
 
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col items-center gap-4 py-8 px-6 w-full mt-auto">
+        <div className="text-xs font-bold uppercase tracking-widest text-slate-400">TracelyTag</div>
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs">
+          <a className="text-slate-500 hover:text-safety-blue transition-colors font-medium" href="#">Contact Support</a>
+          <a className="text-slate-500 hover:text-safety-blue transition-colors font-medium" href="#">Privacy Policy</a>
+          <a className="text-slate-500 hover:text-safety-blue transition-colors font-medium" href="#">Report Issue</a>
+        </div>
+      </footer>
     </div>
   );
 }

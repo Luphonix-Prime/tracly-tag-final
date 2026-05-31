@@ -56,14 +56,11 @@
   --color-sidebar-accent-border: var(--sidebar-accent-border);
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
-  --font-sans: var(--app-font-sans);
-  --font-serif: var(--app-font-serif);
-  --font-mono: var(--app-font-mono);
-
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-midnight-navy: #0F172A;
+  --color-safety-blue: #2563EB;
+  --color-success-emerald: #10B981;
+  --color-warning-amber: #F59E0B;
+  --color-alert-red: #EF4444;
 }
 
 /* LIGHT MODE */
@@ -285,4 +282,42 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+
+  .industrial-grid {
+    background-image: 
+        radial-gradient(circle, rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+        linear-gradient(to right, rgba(37, 99, 235, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(37, 99, 235, 0.02) 1px, transparent 1px);
+    background-size: 24px 24px, 120px 120px, 120px 120px;
+  }
+
+  .technical-grid {
+    background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: center;
+  }
+
+  .scan-viewfinder-corners {
+    background: 
+        linear-gradient(to right, #004ac6 4px, transparent 4px) 0 0,
+        linear-gradient(to bottom, #004ac6 4px, transparent 4px) 0 0,
+        linear-gradient(to left, #004ac6 4px, transparent 4px) 100% 0,
+        linear-gradient(to bottom, #004ac6 4px, transparent 4px) 100% 0,
+        linear-gradient(to right, #004ac6 4px, transparent 4px) 0 100%,
+        linear-gradient(to top, #004ac6 4px, transparent 4px) 0 100%,
+        linear-gradient(to left, #004ac6 4px, transparent 4px) 100% 100%,
+        linear-gradient(to top, #004ac6 4px, transparent 4px) 100% 100%;
+    background-repeat: no-repeat;
+    background-size: 24px 24px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .pulse-animation {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
 }
+
