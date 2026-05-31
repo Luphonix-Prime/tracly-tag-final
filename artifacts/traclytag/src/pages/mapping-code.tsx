@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ChevronRight, Search, Filter, Download, Eye, ChevronLeft } from "lucide-react";
+import { ChevronRight, Search, Filter, Download, Eye, ChevronLeft, QrCode, Maximize2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const MOCK_MAPPING_DATA = [
   {
@@ -59,6 +60,31 @@ const MOCK_MAPPING_DATA = [
 
 export default function MappingCode() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedQRBatch, setSelectedQRBatch] = useState<string | null>(null);
+  const [downloadingBatch, setDownloadingBatch] = useState<string | null>(null);
+
+  const handleDownloadQR = async (batchNumber: string) => {
+    setDownloadingBatch(batchNumber);
+    try {
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+        window.location.origin + "/code/" + batchNumber
+      )}`;
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `qrcode_${batchNumber}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to download QR code image", e);
+    } finally {
+      setDownloadingBatch(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -132,6 +158,7 @@ export default function MappingCode() {
                 <th className="px-6 py-4 font-bold text-[11px] text-[#737686] uppercase tracking-wider whitespace-nowrap text-right">Remaining QR</th>
                 <th className="px-6 py-4 font-bold text-[11px] text-[#737686] uppercase tracking-wider whitespace-nowrap text-center">Efficiency</th>
                 <th className="px-6 py-4 font-bold text-[11px] text-[#737686] uppercase tracking-wider whitespace-nowrap text-right">Actions</th>
+                <th className="px-6 py-4 font-bold text-[11px] text-[#737686] uppercase tracking-wider whitespace-nowrap text-center">QR Code</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E8F0] bg-white">
@@ -155,6 +182,38 @@ export default function MappingCode() {
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-[#737686] hover:text-safety-blue transition-colors">
                       <Eye className="h-4 w-4" />
                     </Button>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <div 
+                        className="relative group/qr border border-slate-200 dark:border-slate-800 rounded-lg p-1 bg-white shadow-sm overflow-hidden h-10 w-10 flex items-center justify-center cursor-zoom-in"
+                        onClick={() => setSelectedQRBatch(row.batch)}
+                        title="Click to expand/scan QR Code"
+                      >
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(window.location.origin + "/code/" + row.batch)}`}
+                          alt="QR Code"
+                          className="h-8 w-8 object-contain transition-transform duration-200 group-hover/qr:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/qr:opacity-100 transition-opacity flex items-center justify-center">
+                          <Maximize2 className="h-3.5 w-3.5 text-white" />
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-[#737686] hover:text-safety-blue transition-colors"
+                        onClick={() => handleDownloadQR(row.batch)}
+                        disabled={downloadingBatch === row.batch}
+                        title="Download QR Code image"
+                      >
+                        {downloadingBatch === row.batch ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-safety-blue" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -182,6 +241,56 @@ export default function MappingCode() {
           </div>
         </div>
       </div>
+
+      {/* Dialog for Zooming / Scanning QR Code */}
+      <Dialog open={selectedQRBatch !== null} onOpenChange={(open) => !open && setSelectedQRBatch(null)}>
+        <DialogContent className="sm:max-w-[420px] bg-white border border-[#E2E8F0] text-midnight-navy font-sans p-6 rounded-2xl shadow-2xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-safety-blue/10 border border-safety-blue/20 flex items-center justify-center text-safety-blue shadow-sm">
+              <QrCode className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-xl font-bold tracking-tight">Scan QR Code</DialogTitle>
+            <DialogDescription className="text-slate-500 text-sm">
+              Scan this code using any smartphone camera to dynamically verify authenticity and view product details online.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedQRBatch && (
+            <div className="flex flex-col items-center justify-center py-6">
+              <div className="border border-slate-200 p-4 rounded-2xl bg-white shadow-md relative overflow-hidden">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
+                    window.location.origin + "/code/" + selectedQRBatch
+                  )}`}
+                  alt={`QR Code for batch ${selectedQRBatch}`}
+                  className="w-48 h-48 object-contain"
+                />
+              </div>
+              <div className="text-center mt-4">
+                <p className="text-xs text-slate-400 font-mono">Batch Identification</p>
+                <p className="text-sm font-bold text-midnight-navy font-mono">{selectedQRBatch}</p>
+              </div>
+              
+              <div className="w-full flex gap-3 mt-6">
+                <Button
+                  className="flex-1 bg-safety-blue hover:bg-safety-blue/90 text-white font-bold h-11 rounded-xl text-sm transition-all"
+                  onClick={() => handleDownloadQR(selectedQRBatch)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Code
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedQRBatch(null)}
+                  className="flex-1 h-11 border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-xl text-sm"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
