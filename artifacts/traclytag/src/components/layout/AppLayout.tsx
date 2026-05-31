@@ -7,17 +7,20 @@ import { ThemeToggle } from "./ThemeToggle";
 import { 
   LayoutDashboard, Building2, Users, Package, MapPin, 
   Layers, QrCode, FileText, PackageCheck, BarChart3, ListOrdered, LogOut, Menu,
-  Link as LinkIcon, ScanBarcode, Settings, HelpCircle
+  Link as LinkIcon, ScanBarcode, Settings, HelpCircle, Lock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: user } = useGetCurrentUser();
   const logoutMutation = useLogout();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [requiredTier, setRequiredTier] = useState("");
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -31,6 +34,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   const isMaster = user.role === "master";
+  const currentPlan = (user as any).subscriptionPlan || "free";
+
+  const getRequiredPlan = (href: string) => {
+    if (href.startsWith("/production/codes") || href.startsWith("/production/summary") || href.startsWith("/reports")) {
+      return "enterprise";
+    }
+    if (href.startsWith("/production/batches") || href.startsWith("/mapping-code") || href.startsWith("/customer-scan")) {
+      return "standard";
+    }
+    return "free";
+  };
+
+  const isPlanSufficient = (required: string, current: string) => {
+    if (current === "enterprise") return true;
+    if (current === "standard") return required !== "enterprise";
+    return required === "free";
+  };
 
   const navigation = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -79,6 +99,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="space-y-1">
               {navigation.map((item, i) => {
                 const isActive = location === item.href || location.startsWith(item.href + "/");
+                const required = getRequiredPlan(item.href);
+                const allowed = isPlanSufficient(required, currentPlan);
+
+                if (!allowed) {
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setRequiredTier(required);
+                        setUpgradeModalOpen(true);
+                      }}
+                      className={cn(
+                        "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 text-white/40 hover:bg-white/5 cursor-pointer",
+                        isCollapsed ? "justify-center p-2.5 mx-auto w-10 h-10" : "px-4 py-2.5 gap-3 justify-between"
+                      )}
+                      title={isCollapsed ? `${item.title} (Requires ${required.toUpperCase()})` : undefined}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </div>
+                      {!isCollapsed && <Lock className="h-3.5 w-3.5 text-amber-500/80 shrink-0" />}
+                    </button>
+                  );
+                }
+
                 return (
                   <Link key={i} href={item.href} className={cn(
                     "flex items-center rounded-lg text-sm font-medium transition-all duration-200",
@@ -172,6 +218,35 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </main>
+
+      <Dialog open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen}>
+        <DialogContent className="sm:max-w-[420px] bg-slate-900 border border-slate-800 text-white font-sans p-6 rounded-2xl shadow-2xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-md">
+              <Lock className="w-6 h-6 animate-pulse" />
+            </div>
+            <DialogTitle className="text-xl font-bold tracking-tight">Feature Locked</DialogTitle>
+            <DialogDescription className="text-slate-400 text-sm">
+              This module requires an active <strong className="text-amber-400 capitalize">{requiredTier} Plan</strong> subscription or higher. Upgrade your plan on the TracelyTag website to unlock access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-6">
+            <a
+              href="http://localhost:5000/pricing"
+              className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-lg hover:shadow-teal-500/20 active:scale-[0.98] text-center"
+            >
+              View Pricing & Upgrade
+            </a>
+            <Button
+              variant="ghost"
+              onClick={() => setUpgradeModalOpen(false)}
+              className="w-full h-11 border border-slate-800 bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl text-sm"
+            >
+              Dismiss
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
