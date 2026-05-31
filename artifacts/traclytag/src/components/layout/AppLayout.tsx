@@ -31,6 +31,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem("traclytag_sidebar_collapsed") === "true";
+  });
+
   if (!user) return null;
 
   const isMaster = user.role === "master";
@@ -71,9 +75,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { title: "Support", href: "/support", icon: HelpCircle },
   ];
 
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    return localStorage.getItem("traclytag_sidebar_collapsed") === "true";
-  });
 
   const toggleSidebar = () => {
     const nextState = !isCollapsed;
