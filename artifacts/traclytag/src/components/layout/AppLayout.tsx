@@ -38,7 +38,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   const isMaster = user.role === "master";
-  const currentPlan = (user as any).subscriptionPlan || "free";
+  const currentPlan = isMaster ? "enterprise" : (user as any).subscriptionPlan || "free";
 
   const getRequiredPlan = (href: string) => {
     if (href.startsWith("/production/codes") || href.startsWith("/production/summary") || href.startsWith("/reports")) {
