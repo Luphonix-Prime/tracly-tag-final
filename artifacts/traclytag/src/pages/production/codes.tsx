@@ -20,7 +20,8 @@ import {
   Plus, 
   ChevronLeft, 
   RotateCcw,
-  Barcode
+  Barcode,
+  Eye
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -42,6 +43,29 @@ export default function Codes() {
   const queryClient = useQueryClient();
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [downloadingBatchId, setDownloadingBatchId] = useState<number | null>(null);
+  const [viewCodesDialogOpen, setViewCodesDialogOpen] = useState(false);
+  const [viewBatchId, setViewBatchId] = useState<number | null>(null);
+  const [viewBatchNumber, setViewBatchNumber] = useState<string>("");
+  const [viewCodesList, setViewCodesList] = useState<any[]>([]);
+  const [loadingViewCodes, setLoadingViewCodes] = useState(false);
+
+  const handleViewBatch = async (batchId: number, batchNumber: string) => {
+    setViewBatchId(batchId);
+    setViewBatchNumber(batchNumber);
+    setViewCodesDialogOpen(true);
+    setLoadingViewCodes(true);
+    try {
+      const response = await fetch(`/api/codes?batchId=${batchId}&limit=5000`);
+      if (!response.ok) throw new Error("Failed to fetch codes");
+      const codesList = await response.json();
+      setViewCodesList(codesList || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load codes for batch");
+    } finally {
+      setLoadingViewCodes(false);
+    }
+  };
 
   // Filters State
   const [search, setSearch] = useState("");
@@ -343,7 +367,16 @@ export default function Codes() {
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 text-sm text-[#434655]">{getBatchCreatedAt(row.batchId)}</TableCell>
-                    <TableCell className="px-6 py-4 text-right">
+                    <TableCell className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleViewBatch(row.batchId, row.batchNumber)}
+                        className="h-8 w-8 text-[#2563EB] hover:bg-[#2563EB]/10 rounded-lg transition-all cursor-pointer"
+                        title="View batch QR codes"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -583,6 +616,73 @@ export default function Codes() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* dialog modal for View Batch QR Codes */}
+      <Dialog open={viewCodesDialogOpen} onOpenChange={setViewCodesDialogOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto bg-white border border-[#E2E8F0] rounded-xl shadow-lg flex flex-col p-6 font-sans">
+          <DialogHeader className="border-b border-[#E2E8F0] pb-3 shrink-0">
+            <DialogTitle className="text-lg font-bold text-midnight-navy">
+              Batch QR Codes: {viewBatchNumber}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-[#434655]">
+              Showing generated secure verification QR codes for this production batch.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto min-h-[300px] py-4">
+            {loadingViewCodes ? (
+              <div className="flex flex-col items-center justify-center h-[300px] gap-2">
+                <Loader2 className="h-8 w-8 animate-spin text-safety-blue" />
+                <span className="text-sm text-[#434655] font-medium animate-pulse">Loading QR codes...</span>
+              </div>
+            ) : viewCodesList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[300px] text-[#737686] text-sm">
+                No codes found in this batch.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {viewCodesList.map((code) => {
+                  const displayCode = code.serialNumber || code.ssccCode || "";
+                  const verificationUrl = `${window.location.origin}/code/${displayCode}`;
+                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
+                  
+                  return (
+                    <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200">
+                        <img 
+                          src={qrUrl} 
+                          alt="QR Code" 
+                          className="w-[120px] h-[120px]"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="text-center w-full">
+                        <div className="text-xs font-bold text-midnight-navy font-mono truncate px-1" title={displayCode}>
+                          {displayCode}
+                        </div>
+                        <div className="text-[9px] text-[#737686] font-semibold uppercase tracking-wider mt-0.5">
+                          {code.level}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="pt-4 border-t border-[#E2E8F0] shrink-0">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setViewCodesDialogOpen(false)} 
+              className="cursor-pointer"
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
