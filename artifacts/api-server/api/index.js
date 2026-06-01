@@ -59744,10 +59744,14 @@ router11.post("/subscription/create-order", async (req, res) => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  const { plan } = req.body;
+  const { plan, companyId } = req.body;
   if (plan !== "standard" && plan !== "enterprise") {
     res.status(400).json({ error: "Invalid plan" });
     return;
+  }
+  let targetCompanyId = req.user.companyId;
+  if (req.user.role === "master" && companyId) {
+    targetCompanyId = parseInt(companyId, 10);
   }
   const amount = plan === "standard" ? 199900 : 999900;
   try {
@@ -59762,7 +59766,7 @@ router11.post("/subscription/create-order", async (req, res) => {
         body: JSON.stringify({
           amount,
           currency: "INR",
-          receipt: `receipt_co_${req.user.companyId || 0}_${Date.now()}`
+          receipt: `receipt_co_${targetCompanyId || 0}_${Date.now()}`
         })
       });
       if (response.ok) {
@@ -59799,7 +59803,11 @@ router11.post("/subscription/verify-payment", async (req, res) => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  if (!req.user.companyId) {
+  let targetCompanyId = req.user.companyId;
+  if (req.user.role === "master" && req.body.companyId) {
+    targetCompanyId = parseInt(req.body.companyId, 10);
+  }
+  if (!targetCompanyId) {
     res.status(400).json({ error: "User is not associated with any company" });
     return;
   }
@@ -59825,7 +59833,7 @@ router11.post("/subscription/verify-payment", async (req, res) => {
       subscriptionExpiresAt: expiresAtDate.toISOString(),
       razorpayOrderId: razorpay_order_id || null,
       razorpayPaymentId: razorpay_payment_id || null
-    }).where(eq(companiesTable.id, req.user.companyId));
+    }).where(eq(companiesTable.id, targetCompanyId));
     res.json({ success: true, plan });
   } catch (err) {
     req.log.error({ err }, "Failed to update company subscription");

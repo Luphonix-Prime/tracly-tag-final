@@ -4,6 +4,7 @@ import { useGetCurrentUser, useLogout, getGetCurrentUserQueryKey } from "@worksp
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
 import { 
   LayoutDashboard, Building2, Users, Package, MapPin, 
   Layers, QrCode, FileText, PackageCheck, BarChart3, ListOrdered, LogOut, Menu,
@@ -21,6 +22,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [requiredTier, setRequiredTier] = useState("");
+  const { hideMappingCode } = useMappingCodeVisibility();
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -64,7 +66,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { title: "Locations", href: "/locations", icon: MapPin },
     { title: "Batches", href: "/production/batches", icon: Layers },
     { title: "Generate Codes", href: "/production/codes", icon: QrCode },
-    { title: "Mapping Code", href: "/mapping-code", icon: LinkIcon },
+    ...(!hideMappingCode ? [{ title: "Mapping Code", href: "/mapping-code", icon: LinkIcon }] : []),
     { title: "Customer Scan", href: "/customer-scan", icon: ScanBarcode },
     { title: "Summary", href: "/production/summary", icon: PackageCheck },
     { title: "Reports", href: "/reports/stock", icon: BarChart3 },
