@@ -58069,6 +58069,7 @@ __export(schema_exports, {
   batchesTable: () => batchesTable,
   codesTable: () => codesTable,
   companiesTable: () => companiesTable,
+  customerScansTable: () => customerScansTable,
   deviceCodesTable: () => deviceCodesTable,
   locationsTable: () => locationsTable,
   passkeysTable: () => passkeysTable,
@@ -58187,9 +58188,23 @@ var deviceCodesTable = sqliteTable("device_codes", {
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
+// ../../lib/db/src/schema/customerScans.ts
+var customerScansTable = sqliteTable("customer_scans", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  codeId: integer("code_id").notNull().references(() => codesTable.id, { onDelete: "cascade" }),
+  customerName: text("customer_name").notNull(),
+  mobileNumber: text("mobile_number").notNull(),
+  zipCode: text("zip_code").notNull(),
+  city: text("city").notNull(),
+  scanTime: text("scan_time").notNull(),
+  scanDate: text("scan_date").notNull(),
+  createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
+});
+
 // ../../lib/db/src/index.ts
 import path from "path";
-var dbUrl = process.env.DATABASE_URL || `file:${path.resolve(process.cwd(), "traclytag.db")}`;
+var dbFile = path.resolve(import.meta.dirname, "..", "traclytag.db");
+var dbUrl = process.env.DATABASE_URL || `file:${dbFile}`;
 var dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
 var client = createClient2({
   url: dbUrl,
@@ -59273,6 +59288,51 @@ router8.get("/codes/debug/recent", async (_req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+var getCityFromZip = (zip) => {
+  const cleanZip = zip.trim().toLowerCase();
+  if (cleanZip.startsWith("400") || cleanZip === "mumbai") return "Mumbai";
+  if (cleanZip.startsWith("110") || cleanZip === "delhi" || cleanZip === "new delhi") return "New Delhi";
+  if (cleanZip.startsWith("600") || cleanZip === "chennai") return "Chennai";
+  if (cleanZip.startsWith("500") || cleanZip === "hyderabad") return "Hyderabad";
+  if (cleanZip.startsWith("560") || cleanZip === "bangalore") return "Bengaluru";
+  if (cleanZip.startsWith("100") || cleanZip === "ny" || cleanZip === "new york") return "New York";
+  if (cleanZip === "singapore" || cleanZip.length === 6 && !isNaN(Number(cleanZip))) return "Singapore";
+  if (cleanZip === "dubai" || cleanZip.startsWith("dxb")) return "Dubai";
+  const defaultCities = ["Mumbai", "Singapore", "Dubai", "New Delhi", "Mumbai"];
+  let hash2 = 0;
+  for (let i = 0; i < cleanZip.length; i++) {
+    hash2 = cleanZip.charCodeAt(i) + ((hash2 << 5) - hash2);
+  }
+  const idx = Math.abs(hash2) % defaultCities.length;
+  return defaultCities[idx] || "Mumbai";
+};
+var logCustomerScan = async (codeId, query) => {
+  try {
+    const customerName = String(query.customerName || "Anonymous Customer");
+    const mobileNumber = String(query.mobileNumber || "N/A");
+    const zipCode = String(query.zipCode || "N/A");
+    const city = getCityFromZip(zipCode);
+    const now = /* @__PURE__ */ new Date();
+    const scanTime = now.toTimeString().split(" ")[0];
+    const day = String(now.getDate()).padStart(2, "0");
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[now.getMonth()];
+    const year = now.getFullYear();
+    const scanDate = `${day} ${month} ${year}`;
+    await db.insert(customerScansTable).values({
+      codeId,
+      customerName,
+      mobileNumber,
+      zipCode,
+      city,
+      scanTime,
+      scanDate
+    });
+    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city})`);
+  } catch (err) {
+    console.error("Failed to log customer scan:", err);
+  }
+};
 router8.get("/codes/public/:serial", async (req, res) => {
   let serial = req.params.serial;
   if (!serial) {
@@ -59305,6 +59365,7 @@ router8.get("/codes/public/:serial", async (req, res) => {
         registrationNo: productsTable.registrationNo,
         companyName: companiesTable.name,
         companyAddress: companiesTable.address,
+        companyGstin: companiesTable.gstin,
         // Keep public verification resilient even when optional product
         // branding columns are absent in an older deployed database.
         productLogoUrl: sql`null`,
@@ -59324,12 +59385,14 @@ router8.get("/codes/public/:serial", async (req, res) => {
     );
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by serialNumber/ssccCode`);
+      await logCustomerScan(rows[0].id, req.query);
       res.json(rows[0]);
       return;
     }
     rows = await buildQuery(eq(codesTable.rawString, searchSerial));
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by rawString (barcode match)`);
+      await logCustomerScan(rows[0].id, req.query);
       res.json(rows[0]);
       return;
     }
@@ -59348,6 +59411,7 @@ router8.get("/codes/public/:serial", async (req, res) => {
         rows = await buildQuery(or(...searchConditions));
         if (rows.length > 0) {
           console.log(`[Public Verify] Found by GS1 parsing`);
+          await logCustomerScan(rows[0].id, req.query);
           res.json(rows[0]);
           return;
         }
@@ -59396,7 +59460,8 @@ async function fetchEnrichedCodes(ids) {
     marketedBy: productsTable.marketedBy,
     registrationNo: productsTable.registrationNo,
     companyName: companiesTable.name,
-    companyAddress: companiesTable.address
+    companyAddress: companiesTable.address,
+    companyGstin: companiesTable.gstin
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(
     ids.length === 1 ? eq(codesTable.id, ids[0]) : inArray(codesTable.id, ids)
   ).orderBy(desc(codesTable.createdAt));
@@ -59439,7 +59504,8 @@ router8.get("/codes", requireAuth, async (req, res) => {
     marketedBy: productsTable.marketedBy,
     registrationNo: productsTable.registrationNo,
     companyName: companiesTable.name,
-    companyAddress: companiesTable.address
+    companyAddress: companiesTable.address,
+    companyGstin: companiesTable.gstin
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(where).orderBy(desc(codesTable.createdAt)).limit(Math.min(Math.max(limit, 1), 5e3));
   res.json(rows);
 });
@@ -59523,6 +59589,72 @@ router8.post("/codes/:id/map", requireAuth, async (req, res) => {
     return;
   }
   res.json(row);
+});
+router8.get("/codes/scans", async (req, res) => {
+  try {
+    const scans = await db.select({
+      id: customerScansTable.id,
+      codeId: customerScansTable.codeId,
+      customerName: customerScansTable.customerName,
+      mobileNumber: customerScansTable.mobileNumber,
+      zipCode: customerScansTable.zipCode,
+      city: customerScansTable.city,
+      scanTime: customerScansTable.scanTime,
+      scanDate: customerScansTable.scanDate,
+      createdAt: customerScansTable.createdAt,
+      qr: codesTable.serialNumber,
+      sscc: codesTable.ssccCode,
+      level: codesTable.level,
+      productName: productsTable.name,
+      batchNumber: batchesTable.batchNumber,
+      batchCreatedAt: batchesTable.createdAt
+    }).from(customerScansTable).innerJoin(codesTable, eq(customerScansTable.codeId, codesTable.id)).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).orderBy(desc(customerScansTable.id));
+    const groupedMap = /* @__PURE__ */ new Map();
+    for (const scan of scans) {
+      if (!groupedMap.has(scan.codeId)) {
+        groupedMap.set(scan.codeId, {
+          product: scan.productName,
+          batch: scan.batchNumber || "N/A",
+          batchDate: scan.batchCreatedAt ? new Date(scan.batchCreatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "N/A",
+          qr: scan.qr ? `...${scan.qr.slice(-6)}` : scan.sscc ? `...${scan.sscc.slice(-6)}` : "N/A",
+          customer: scan.customerName,
+          city: scan.city,
+          mobile: scan.mobileNumber,
+          scanTime: scan.scanTime,
+          scanDate: scan.scanDate,
+          count: 0,
+          type: "normal",
+          codeId: scan.codeId,
+          level: scan.level,
+          events: []
+        });
+      }
+      const entry = groupedMap.get(scan.codeId);
+      entry.count += 1;
+      entry.events.push({
+        customer: scan.customerName,
+        city: scan.city,
+        mobile: scan.mobileNumber,
+        time: scan.scanTime,
+        date: scan.scanDate,
+        id: scan.id
+      });
+    }
+    const result = Array.from(groupedMap.values()).map((entry) => {
+      if (entry.count > 5) {
+        entry.type = "anomaly";
+      } else if (entry.count > 1) {
+        entry.type = "error";
+      } else {
+        entry.type = "normal";
+      }
+      return entry;
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching scans:", error);
+    res.status(500).json({ error: "Internal server error", details: error.message });
+  }
 });
 var codes_default = router8;
 

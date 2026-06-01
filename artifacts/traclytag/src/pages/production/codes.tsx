@@ -21,11 +21,16 @@ import {
   ChevronLeft, 
   RotateCcw,
   Barcode,
-  Eye
+  Eye,
+  Copy,
+  Grid,
+  List,
+  Link as LinkIcon
 } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -48,6 +53,8 @@ export default function Codes() {
   const [viewBatchNumber, setViewBatchNumber] = useState<string>("");
   const [viewCodesList, setViewCodesList] = useState<any[]>([]);
   const [loadingViewCodes, setLoadingViewCodes] = useState(false);
+  const [gridCols, setGridCols] = useState(3);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const handleViewBatch = async (batchId: number, batchNumber: string) => {
     setViewBatchId(batchId);
@@ -621,15 +628,67 @@ export default function Codes() {
 
       {/* dialog modal for View Batch QR Codes */}
       <Dialog open={viewCodesDialogOpen} onOpenChange={setViewCodesDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto bg-white border border-[#E2E8F0] rounded-xl shadow-lg flex flex-col p-6 font-sans">
-          <DialogHeader className="border-b border-[#E2E8F0] pb-3 shrink-0">
-            <DialogTitle className="text-lg font-bold text-midnight-navy">
-              Batch QR Codes: {viewBatchNumber}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-[#434655]">
-              Showing generated secure verification QR codes for this production batch.
-            </DialogDescription>
+        <DialogContent className="sm:max-w-[850px] max-h-[85vh] overflow-y-auto bg-white border border-[#E2E8F0] rounded-xl shadow-lg flex flex-col p-6 font-sans">
+          <DialogHeader className="border-b border-[#E2E8F0] pb-3 shrink-0 flex flex-row items-center justify-between gap-4">
+            <div>
+              <DialogTitle className="text-lg font-bold text-midnight-navy">
+                Batch QR Codes: {viewBatchNumber}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-[#434655]">
+                Showing generated secure verification QR codes for this production batch.
+              </DialogDescription>
+            </div>
           </DialogHeader>
+
+          {/* Controls Toolbar */}
+          {!loadingViewCodes && viewCodesList.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-4 p-3 border border-[#E2E8F0] rounded-xl bg-slate-50/50 mt-3 shrink-0">
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-1.5 border border-[#E2E8F0] rounded-lg p-1 bg-white">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className={`h-8 px-3 rounded-md font-bold text-xs gap-1.5 cursor-pointer ${
+                    viewMode === "grid" ? "bg-slate-100 text-[#2563EB]" : "text-[#434655] hover:bg-slate-50"
+                  }`}
+                >
+                  <Grid className="h-3.5 w-3.5" />
+                  Grid
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className={`h-8 px-3 rounded-md font-bold text-xs gap-1.5 cursor-pointer ${
+                    viewMode === "list" ? "bg-slate-100 text-[#2563EB]" : "text-[#434655] hover:bg-slate-50"
+                  }`}
+                >
+                  <List className="h-3.5 w-3.5" />
+                  List
+                </Button>
+              </div>
+
+              {/* Grid Columns Slider */}
+              {viewMode === "grid" && (
+                <div className="flex items-center gap-3 min-w-[220px]">
+                  <span className="text-[10px] font-bold text-[#737686] uppercase tracking-wider shrink-0">
+                    Columns: {gridCols}
+                  </span>
+                  <Slider
+                    value={[gridCols]}
+                    onValueChange={(val) => setGridCols(val[0] || 3)}
+                    min={1}
+                    max={6}
+                    step={1}
+                    className="w-32 cursor-pointer"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto min-h-[300px] py-4">
             {loadingViewCodes ? (
@@ -641,11 +700,31 @@ export default function Codes() {
               <div className="flex flex-col items-center justify-center h-[300px] text-[#737686] text-sm">
                 No codes found in this batch.
               </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            ) : viewMode === "grid" ? (
+              <div className={`grid gap-4 ${
+                gridCols === 1 ? "grid-cols-1" :
+                gridCols === 2 ? "grid-cols-2" :
+                gridCols === 3 ? "grid-cols-3" :
+                gridCols === 4 ? "grid-cols-4" :
+                gridCols === 5 ? "grid-cols-5" :
+                "grid-cols-6"
+              }`}>
                 {viewCodesList.map((code) => {
                   const displayCode = code.serialNumber || code.ssccCode || "";
-                  const verificationUrl = `${window.location.origin}/code/${displayCode}`;
+                  let prefix = "";
+                  try {
+                    if (code.createdAt) {
+                      const cDate = new Date(code.createdAt);
+                      const dateStr = format(cDate, "yyyyMMdd");
+                      const timeStr = format(cDate, "HHmmss");
+                      const gstin = code.companyGstin || "";
+                      prefix = `${dateStr}_${timeStr}_${gstin}`;
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
+                  const verificationUrl = `${window.location.origin}/code/${qrCodeString}`;
                   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
                   
                   return (
@@ -658,12 +737,105 @@ export default function Codes() {
                           loading="lazy"
                         />
                       </div>
-                      <div className="text-center w-full">
-                        <div className="text-xs font-bold text-midnight-navy font-mono truncate px-1" title={displayCode}>
+                      <div className="text-center w-full flex items-center justify-between gap-1 px-1">
+                        <div className="text-xs font-bold text-midnight-navy font-mono truncate max-w-[120px]" title={displayCode}>
                           {displayCode}
                         </div>
-                        <div className="text-[9px] text-[#737686] font-semibold uppercase tracking-wider mt-0.5">
-                          {code.level}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-slate-400 hover:text-[#2563EB] hover:bg-slate-100 rounded-md shrink-0 cursor-pointer"
+                          title="Copy raw DataMatrix code"
+                          onClick={() => {
+                            navigator.clipboard.writeText(code.rawString);
+                            toast.success("Raw DataMatrix code copied!");
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="text-[9px] text-[#737686] font-semibold uppercase tracking-wider -mt-1.5 text-center w-full">
+                        {code.level}
+                      </div>
+
+                      {/* Clickable verification link under the QR code */}
+                      <a
+                        href={verificationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[9px] font-semibold text-[#2563EB] hover:underline font-mono break-all flex items-center gap-1 justify-center py-1 px-2 rounded bg-[#2563EB]/5 border border-[#2563EB]/10 transition-colors w-full mt-1.5"
+                        title={verificationUrl}
+                      >
+                        <LinkIcon className="h-2.5 w-2.5 shrink-0" />
+                        <span className="truncate">{verificationUrl.replace(/^https?:\/\//, "")}</span>
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* List View Mode */
+              <div className="space-y-3">
+                {viewCodesList.map((code) => {
+                  const displayCode = code.serialNumber || code.ssccCode || "";
+                  let prefix = "";
+                  try {
+                    if (code.createdAt) {
+                      const cDate = new Date(code.createdAt);
+                      const dateStr = format(cDate, "yyyyMMdd");
+                      const timeStr = format(cDate, "HHmmss");
+                      const gstin = code.companyGstin || "";
+                      prefix = `${dateStr}_${timeStr}_${gstin}`;
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
+                  const verificationUrl = `${window.location.origin}/code/${qrCodeString}`;
+                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
+
+                  return (
+                    <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200 shrink-0">
+                        <img 
+                          src={qrUrl} 
+                          alt="QR Code" 
+                          className="w-[90px] h-[90px]"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-midnight-navy font-mono truncate">{displayCode}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#dae2fd] text-[#131b2e] uppercase shrink-0">
+                            {code.level}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-slate-400 hover:text-[#2563EB] hover:bg-slate-100 rounded-md shrink-0 cursor-pointer"
+                            title="Copy raw DataMatrix code"
+                            onClick={() => {
+                              navigator.clipboard.writeText(code.rawString);
+                              toast.success("Raw DataMatrix code copied!");
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-[#737686] font-bold uppercase tracking-wider block">Verification Link:</span>
+                          <a
+                            href={verificationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-semibold text-[#2563EB] hover:underline font-mono break-all flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#2563EB]/5 border border-[#2563EB]/10 transition-colors inline-flex max-w-full"
+                            title={verificationUrl}
+                          >
+                            <LinkIcon className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{verificationUrl}</span>
+                          </a>
                         </div>
                       </div>
                     </div>

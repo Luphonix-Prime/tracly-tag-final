@@ -59,7 +59,13 @@ export default function PublicVerify() {
     setLoading(true);
     setError(null);
 
-    fetch(`/api/codes/public/${encodeURIComponent(serial)}`)
+    const params = new URLSearchParams({
+      customerName: fullName || "Anonymous Customer",
+      mobileNumber: mobileNumber || "N/A",
+      zipCode: zipCode || "N/A",
+    });
+
+    fetch(`/api/codes/public/${encodeURIComponent(serial)}?${params.toString()}`)
       .then((res) => {
         if (!res.ok) {
           if (res.status === 404) {
