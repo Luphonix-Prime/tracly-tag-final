@@ -10,7 +10,8 @@
     "dev": "cross-env NODE_ENV=development DATABASE_URL=file:../../lib/db/traclytag.db pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "cross-env DATABASE_URL=file:../../lib/db/traclytag.db node --enable-source-maps ./dist/index.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:seed": "cross-env DATABASE_URL=file:../../lib/db/traclytag.db pnpm exec tsx scratch/check_db.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
