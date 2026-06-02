@@ -407,7 +407,7 @@ export default function CustomerScan() {
             {/* Timeline wrapper */}
             <div className="relative border-l-2 border-slate-200 pl-6 ml-3 space-y-6">
               {/* Dynamic Scan Events */}
-              {selectedScan && getTimelineEvents(selectedScan).map((event, idx) => (
+              {selectedScan && getTimelineEvents(selectedScan).map((event: any, idx: number) => (
                 <div key={idx} className="relative">
                   {/* Timeline icon */}
                   <div className="absolute -left-[35px] top-1 bg-[#F8FAFC] p-1 rounded-full">

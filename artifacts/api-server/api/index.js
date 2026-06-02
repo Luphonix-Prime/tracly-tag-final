@@ -59375,6 +59375,9 @@ router8.get("/codes/public/:serial", async (req, res) => {
     let searchSerial = serial.trim();
     if (searchSerial.includes("::")) {
       searchSerial = searchSerial.split("::")[1] || searchSerial;
+    } else if (searchSerial.includes(":")) {
+      const parts = searchSerial.split(":");
+      searchSerial = parts[parts.length - 1] || searchSerial;
     }
     console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);
     let rows = await buildQuery(
