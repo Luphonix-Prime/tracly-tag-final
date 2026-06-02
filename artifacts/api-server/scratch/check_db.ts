@@ -7,17 +7,22 @@ import {
   locationsTable,
   batchesTable,
   codesTable,
+  customerScansTable
 } from "@workspace/db";
-import { generateUnitCode, generateSsccCode } from "./lib/gs1";
+import { generateUnitCode, generateSsccCode } from "../src/lib/gs1";
 
-async function main() {
-  console.log("Seeding TraclyTag database…");
+async function run() {
+  console.log("Truncating existing tables...");
+  await db.delete(customerScansTable);
+  await db.delete(codesTable);
+  await db.delete(batchesTable);
+  await db.delete(locationsTable);
+  await db.delete(productsTable);
+  await db.delete(usersTable);
+  await db.delete(companiesTable);
+  console.log("Truncation complete.");
 
-  const existing = await db.select().from(usersTable);
-  if (existing.length > 0) {
-    console.log(`Already seeded (${existing.length} users). Skipping.`);
-    process.exit(0);
-  }
+  console.log("Seeding TraclyTag database...");
 
   // Company
   const [demoCo] = await db
@@ -36,7 +41,7 @@ async function main() {
   const adminHash = await bcrypt.hash("admin123", 10);
   const opHash = await bcrypt.hash("op123", 10);
 
-  await db.insert(usersTable).values([
+  const [master, admin, op] = await db.insert(usersTable).values([
     {
       username: "master",
       email: "master@traclytag.com",
@@ -61,7 +66,7 @@ async function main() {
       role: "operator",
       companyId: demoCo!.id,
     },
-  ]);
+  ]).returning();
   console.log("Users: master, demo_admin, demo_op");
 
   // Locations
@@ -102,8 +107,7 @@ async function main() {
     .returning();
   console.log("Locations seeded");
 
-  // Products (use real-format GTINs - check digit pre-calculated)
-  // GTIN-14: 08901234567896 (cd 6); 08907654321094 (cd 4)
+  // Products
   const [paracet, vitaminC] = await db
     .insert(productsTable)
     .values([
@@ -167,15 +171,8 @@ async function main() {
     .returning();
   console.log("Batches seeded");
 
-  // Sample codes — 30 unit codes for Paracet, 20 for VitC, 5 shippers, 2 pallets
-  const codeRows: Array<{
-    productId: number;
-    batchId: number | null;
-    level: string;
-    rawString: string;
-    serialNumber: string | null;
-    ssccCode: string | null;
-  }> = [];
+  // Sample codes
+  const codeRows = [];
 
   for (let i = 0; i < 30; i++) {
     const { raw, serial } = generateUnitCode({
@@ -241,7 +238,7 @@ async function main() {
       .set({
         mapped: true,
         mappedAt: new Date().toISOString(),
-        mappedByUserId: 3, // demo_op
+        mappedByUserId: op!.id, // demo_op
         locationId: warehouse!.id,
       })
       .where((await import("drizzle-orm")).eq(codesTable.id, c.id));
@@ -249,9 +246,7 @@ async function main() {
   console.log(`Mapped ${toMap.length} codes to warehouse`);
 
   // Seeding Customer Scans
-  const { customerScansTable } = await import("@workspace/db");
   const customerScans = [
-    // Code 1: normal scan
     {
       codeId: insertedCodes[0]!.id,
       customerName: "Aravind Sharma",
@@ -261,7 +256,6 @@ async function main() {
       scanTime: "14:22:10",
       scanDate: "15 Jun 2024",
     },
-    // Code 2: anomaly (multiple scans by same/different customers)
     ...Array.from({ length: 12 }).map((_, idx) => ({
       codeId: insertedCodes[1]!.id,
       customerName: "Michael Chang",
@@ -271,7 +265,6 @@ async function main() {
       scanTime: `13:${10 + idx}:45`,
       scanDate: "15 Jun 2024",
     })),
-    // Code 3: normal scan
     {
       codeId: insertedCodes[2]!.id,
       customerName: "Elena Petrova",
@@ -281,7 +274,6 @@ async function main() {
       scanTime: "11:40:02",
       scanDate: "14 Jun 2024",
     },
-    // Code 4: error/repeated scans
     ...Array.from({ length: 4 }).map((_, idx) => ({
       codeId: insertedCodes[3]!.id,
       customerName: "Rajesh Kumar",
@@ -297,10 +289,5 @@ async function main() {
   console.log(`Customer scans: ${customerScans.length} seeded`);
 
   console.log("Seed complete.");
-  process.exit(0);
 }
-
-main().catch((err) => {
-  console.error("Seed failed:", err);
-  process.exit(1);
-});
+run().catch(console.error);

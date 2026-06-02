@@ -14,5 +14,8 @@
     "prettier": "^3.8.1",
     "typescript": "~5.9.2",
     "vercel": "^54.1.0"
+  },
+  "dependencies": {
+    "drizzle-orm": "catalog:"
   }
 }
