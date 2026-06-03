@@ -89,154 +89,187 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Users" 
-        description="Manage system access and roles" 
-        action={
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" /> Add User</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Create New User</DialogTitle>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField control={form.control} name="username" render={({ field }) => (
-                    <FormItem><FormLabel>Username</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+      <div className="mb-4 flex items-center gap-2 text-slate-500">
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" href="#">Master Data</a>
+        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">Users</span>
+      </div>
+      <div className="flex justify-between items-end mb-8">
+        <div>
+          <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Users</h2>
+          <p className="text-[16px] text-slate-600 mt-1">Manage system access and roles.</p>
+        </div>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto">
+              <Plus className="h-5 w-5" />
+              Add User
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Create New User</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField control={form.control} name="username" render={({ field }) => (
+                  <FormItem><FormLabel>Username</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="password" render={({ field }) => (
+                  <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-                  <FormField control={form.control} name="password" render={({ field }) => (
-                    <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormField control={form.control} name="phone" render={({ field }) => (
+                    <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="email" render={({ field }) => (
-                      <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="phone" render={({ field }) => (
-                      <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                  </div>
-                  
-                  <FormField control={form.control} name="role" render={({ field }) => (
+                </div>
+                
+                <FormField control={form.control} name="role" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isMaster && <SelectItem value="master">Master Admin</SelectItem>}
+                        <SelectItem value="client_admin">Client Admin</SelectItem>
+                        <SelectItem value="operator">Operator</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                
+                {isMaster && form.watch("role") !== "master" && (
+                  <FormField control={form.control} name="companyId" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormLabel>Company</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value?.toString() || ""}>
                         <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Select a company" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {isMaster && <SelectItem value="master">Master Admin</SelectItem>}
-                          <SelectItem value="client_admin">Client Admin</SelectItem>
-                          <SelectItem value="operator">Operator</SelectItem>
+                          {companies.map(c => (
+                            <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )} />
-                  
-                  {isMaster && form.watch("role") !== "master" && (
-                    <FormField control={form.control} name="companyId" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Company</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value?.toString() || ""}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Select a company" /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {companies.map(c => (
-                              <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  )}
-                  
-                  <DialogFooter className="pt-4">
-                    <Button type="submit" disabled={createUser.isPending}>Save User</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        }
-      />
+                )}
+                
+                <DialogFooter className="pt-4">
+                  <Button type="submit" disabled={createUser.isPending}>Save User</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
+      <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
+        <div className="px-6 border-b border-[#E2E8F0] bg-[#faf8ff] flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[18px] font-semibold text-[#0F172A]">System Users</span>
+            <span className="bg-[#ededf9] text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Active</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-500">
+              <span className="material-symbols-outlined">filter_list</span>
+            </button>
+            <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-500">
+              <span className="material-symbols-outlined">download</span>
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <Table className="w-full text-left table-fixed">
             <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Contact</TableHead>
-                {isMaster && <TableHead>Company</TableHead>}
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="border-b border-[#E2E8F0] bg-slate-50/50 hover:bg-slate-50/50">
+                <TableHead className="text-slate-500 tracking-wider w-[25%] text-[11px] font-bold px-6 py-4 uppercase">USERNAME</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">ROLE</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[25%] text-[11px] font-bold px-6 py-4 uppercase">CONTACT</TableHead>
+                {isMaster && <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">COMPANY</TableHead>}
+                <TableHead className="text-slate-500 tracking-wider w-[10%] text-[11px] font-bold px-6 py-4 uppercase text-right">ACTIONS</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="divide-y divide-[#E2E8F0]">
               {isLoading ? (
                 <TableRow><TableCell colSpan={isMaster ? 5 : 4} className="text-center py-8">Loading...</TableCell></TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isMaster ? 5 : 4} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={isMaster ? 5 : 4} className="text-center py-12 text-slate-500">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <UsersIcon className="h-8 w-8 text-muted-foreground/50" />
+                      <UsersIcon className="h-8 w-8 opacity-50" />
                       <p>No users found</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 users.map((userRow) => (
-                  <TableRow key={userRow.id}>
-                    <TableCell className="font-medium">
-                      {userRow.username}
-                      {userRow.id === currentUser?.id && <Badge variant="outline" className="ml-2 text-[10px]">YOU</Badge>}
+                  <TableRow key={userRow.id} className="hover:bg-slate-50 transition-colors group border-0">
+                    <TableCell className="align-middle px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-[#0F172A] truncate font-bold text-[14px]">
+                          {userRow.username}
+                          {userRow.id === currentUser?.id && <Badge variant="outline" className="ml-2 text-[10px] font-bold bg-[#faf8ff] text-[#0F172A]">YOU</Badge>}
+                        </span>
+                        <span className="text-[11px] text-slate-500 opacity-70 font-semibold tracking-wide">UID: {userRow.id}</span>
+                      </div>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={userRow.role === 'master' ? 'default' : userRow.role === 'client_admin' ? 'secondary' : 'outline'}>
+                    <TableCell className="align-middle px-6 py-5">
+                      <Badge className="text-[11px] font-bold tracking-widest uppercase bg-[#E2E8F0] text-[#0F172A] hover:bg-[#cbd5e1] border-none shadow-none">
                         {userRow.role.replace('_', ' ')}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{userRow.email || '-'}</div>
-                      <div className="text-xs text-muted-foreground">{userRow.phone || '-'}</div>
+                    <TableCell className="align-middle px-6 py-5 text-[14px]">
+                      <span className="text-slate-600 block">{userRow.email || '—'}</span>
+                      <span className="text-[12px] text-slate-500 mt-0.5 block font-semibold">{userRow.phone || '—'}</span>
                     </TableCell>
-                    {isMaster && <TableCell>{(userRow as any).companyName || '-'}</TableCell>}
-                    <TableCell className="text-right">
-                      {userRow.id !== currentUser?.id && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete User</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete {userRow.username}? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(userRow.id)} className="bg-destructive text-destructive-foreground">
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
+                    {isMaster && (
+                      <TableCell className="align-middle px-6 py-5 text-[14px]">
+                        <span className="text-[#0F172A] font-semibold">{(userRow as any).companyName || '—'}</span>
+                      </TableCell>
+                    )}
+                    <TableCell className="align-middle px-6 py-5">
+                      <div className="flex items-center justify-end gap-1">
+                        {userRow.id !== currentUser?.id && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                <Trash2 className="h-5 w-5" />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete {userRow.username}? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(userRow.id)} className="bg-red-500 text-white hover:bg-red-600">
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

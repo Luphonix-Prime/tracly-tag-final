@@ -12,10 +12,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Trash2, Plus, Package, CalendarIcon, Upload, Loader2 } from "lucide-react";
+import { Trash2, Plus, Package, CalendarIcon, Upload, Loader2, ChevronRight, Search, Filter, Download } from "lucide-react";
 import { format } from "date-fns";
 
-import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -101,6 +100,20 @@ export default function Products() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
 
+  // Search and filter states
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All Categories");
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      !search ||
+      product.skuId.toLowerCase().includes(search.toLowerCase()) ||
+      product.name.toLowerCase().includes(search.toLowerCase()) ||
+      product.gtin.toLowerCase().includes(search.toLowerCase()) ||
+      (product.marketedBy && product.marketedBy.toLowerCase().includes(search.toLowerCase()));
+    return matchesSearch;
+  });
+
   const handleUpload = (fieldName: "cautionLogoUrl" | "productLogoUrl" | "labelPdfUrl") => {
     const input = document.createElement("input");
     input.type = "file";
@@ -130,7 +143,6 @@ export default function Products() {
         }
 
         const data = await response.json();
-        // Construct standard URL to satisfy Zod .url() validation in frontend
         const absoluteUrl = window.location.origin + data.url;
         form.setValue(fieldName, absoluteUrl);
         toast.success("File uploaded successfully");
@@ -215,466 +227,529 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Products Master"
-        description="Define SKUs, GTINs, and packaging hierarchies"
-        action={
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Add Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create New Product</DialogTitle>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <ScrollArea className="h-[60vh] pr-4">
-                    <div className="space-y-4 pb-4">
-                      {isMaster && (
-                        <FormField
-                          control={form.control}
-                          name="companyId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Company Context</FormLabel>
-                              <Select
-                                onValueChange={(val) => field.onChange(Number(val))}
-                                value={field.value?.toString() || ""}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a company context" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {companies.map((c) => (
-                                    <SelectItem key={c.id} value={c.id.toString()}>
-                                      {c.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="skuId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>SKU ID</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="gtin"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>GTIN (13–14 digits)</FormLabel>
-                              <FormControl>
-                                <Input className="font-mono" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+      {/* Page Header (Breadcrumbs + Title) */}
+      <div className="mb-4 flex items-center gap-2 text-slate-500">
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" href="#">Master Data</a>
+        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">Products</span>
+      </div>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div>
+          <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Products</h2>
+          <p className="text-[16px] text-slate-600 mt-1">Manage product master data and GS1 compliance parameters.</p>
+        </div>
+
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white px-6 py-3 h-11 rounded-lg font-semibold hover:shadow-lg hover:shadow-safety-blue/20 transition-all transform active:scale-95 cursor-pointer">
+              <Plus className="h-4 w-4" /> ADD PRODUCT
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl bg-white border border-[#E2E8F0] shadow-xl rounded-xl">
+            <DialogHeader className="border-b border-[#E2E8F0] pb-4">
+              <DialogTitle className="text-lg font-bold text-[#0F172A] uppercase tracking-wider">Create New Product</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                <ScrollArea className="h-[60vh] pr-4">
+                  <div className="space-y-4 pb-4">
+                    {isMaster && (
                       <FormField
                         control={form.control}
-                        name="name"
+                        name="companyId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Product Name</FormLabel>
+                            <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Company Context</FormLabel>
+                            <Select
+                              onValueChange={(val) => field.onChange(Number(val))}
+                              value={field.value?.toString() || ""}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:ring-1 focus:ring-[#2563EB]">
+                                  <SelectValue placeholder="Select a company context" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {companies.map((c) => (
+                                  <SelectItem key={c.id} value={c.id.toString()}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="skuId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">SKU ID</FormLabel>
                             <FormControl>
-                              <Input {...field} />
+                              <Input className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:border-[#2563EB] focus:ring-0" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="skuSize"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>SKU Size</FormLabel>
+                      <FormField
+                        control={form.control}
+                        name="gtin"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">GTIN (13–14 digits)</FormLabel>
+                            <FormControl>
+                              <Input className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 font-mono focus:border-[#2563EB] focus:ring-0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Product Name</FormLabel>
+                          <FormControl>
+                            <Input className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:border-[#2563EB] focus:ring-0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="skuSize"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">SKU Size</FormLabel>
+                            <FormControl>
+                              <Input
+                                className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:border-[#2563EB] focus:ring-0"
+                                placeholder="10x10 Tablets"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="mrp"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">MRP (₹)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:border-[#2563EB] focus:ring-0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="marketedBy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Marketed By</FormLabel>
+                          <FormControl>
+                            <Input className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:border-[#2563EB] focus:ring-0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="expiryDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Expiry Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal bg-[#F8FAFC] border border-[#E2E8F0] h-10",
+                                    !field.value && "text-muted-foreground",
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="sapDescription"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">SAP Description (optional)</FormLabel>
+                          <FormControl>
+                            <Input className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:border-[#2563EB] focus:ring-0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="registrationNo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Registration No (optional)</FormLabel>
+                          <FormControl>
+                            <Input className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:border-[#2563EB] focus:ring-0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-3 gap-4 border border-[#E2E8F0] p-4 rounded-lg bg-[#F8FAFC]">
+                      <div className="col-span-3 text-[10px] font-bold text-[#737686] uppercase tracking-widest mb-1">
+                        Packaging Hierarchy (units per pack)
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="l1Size"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500">L1 Size</FormLabel>
+                            <FormControl>
+                              <Input type="number" className="w-full bg-white border border-[#E2E8F0] rounded-lg py-1.5 focus:border-[#2563EB] focus:ring-0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="l2Size"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500">L2 Size</FormLabel>
+                            <FormControl>
+                              <Input type="number" className="w-full bg-white border border-[#E2E8F0] rounded-lg py-1.5 focus:border-[#2563EB] focus:ring-0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="shipperSize"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500">Shipper Size</FormLabel>
+                            <FormControl>
+                              <Input type="number" className="w-full bg-white border border-[#E2E8F0] rounded-lg py-1.5 focus:border-[#2563EB] focus:ring-0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="space-y-4 border border-[#E2E8F0] p-4 rounded-lg bg-[#F8FAFC]">
+                      <div className="text-[10px] font-bold text-[#737686] uppercase tracking-widest mb-1">
+                        Asset URLs (optional)
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="cautionLogoUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500">Caution Logo URL</FormLabel>
+                            <div className="flex gap-2">
                               <FormControl>
                                 <Input
-                                  placeholder="10x10 Tablets"
+                                  placeholder="https://…"
+                                  className="w-full bg-white border border-[#E2E8F0] rounded-lg py-1.5 focus:border-[#2563EB] focus:ring-0"
                                   {...field}
                                 />
                               </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="mrp"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>MRP (₹)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.01" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name="marketedBy"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Marketed By</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="expiryDate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>Expiry Date</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                      "w-full pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground",
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, "PPP")
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start"
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="shrink-0 flex gap-2 items-center h-10 px-3 cursor-pointer"
+                                onClick={() => handleUpload("cautionLogoUrl")}
+                                disabled={uploadingField === "cautionLogoUrl"}
                               >
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  initialFocus
+                                {uploadingField === "cautionLogoUrl" ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Uploading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="h-4 w-4" />
+                                    <span>Upload</span>
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="productLogoUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500">Product Logo URL</FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input
+                                  placeholder="https://…"
+                                  className="w-full bg-white border border-[#E2E8F0] rounded-lg py-1.5 focus:border-[#2563EB] focus:ring-0"
+                                  {...field}
                                 />
-                              </PopoverContent>
-                            </Popover>
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="shrink-0 flex gap-2 items-center h-10 px-3 cursor-pointer"
+                                onClick={() => handleUpload("productLogoUrl")}
+                                disabled={uploadingField === "productLogoUrl"}
+                              >
+                                {uploadingField === "productLogoUrl" ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Uploading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="h-4 w-4" />
+                                    <span>Upload</span>
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                       <FormField
                         control={form.control}
-                        name="sapDescription"
+                        name="labelPdfUrl"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>SAP Description (optional)</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
+                            <FormLabel className="text-xs font-semibold text-slate-500">Label PDF URL</FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input
+                                  placeholder="https://…"
+                                  className="w-full bg-white border border-[#E2E8F0] rounded-lg py-1.5 focus:border-[#2563EB] focus:ring-0"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="shrink-0 flex gap-2 items-center h-10 px-3 cursor-pointer"
+                                onClick={() => handleUpload("labelPdfUrl")}
+                                disabled={uploadingField === "labelPdfUrl"}
+                              >
+                                {uploadingField === "labelPdfUrl" ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Uploading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="h-4 w-4" />
+                                    <span>Upload</span>
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="registrationNo"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Registration No (optional)</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="grid grid-cols-3 gap-4 border p-4 rounded-md">
-                        <div className="col-span-3 text-sm font-medium text-muted-foreground">
-                          Packaging Hierarchy (units per pack)
-                        </div>
-                        <FormField
-                          control={form.control}
-                          name="l1Size"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>L1 Size</FormLabel>
-                              <FormControl>
-                                <Input type="number" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="l2Size"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>L2 Size</FormLabel>
-                              <FormControl>
-                                <Input type="number" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="shipperSize"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Shipper Size</FormLabel>
-                              <FormControl>
-                                <Input type="number" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="space-y-4 border p-4 rounded-md">
-                        <div className="text-sm font-medium text-muted-foreground">
-                          Asset URLs (optional)
-                        </div>
-                        <FormField
-                          control={form.control}
-                          name="cautionLogoUrl"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Caution Logo URL</FormLabel>
-                              <div className="flex gap-2">
-                                <FormControl>
-                                  <Input
-                                    placeholder="https://…"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className="shrink-0 flex gap-2 items-center"
-                                  onClick={() => handleUpload("cautionLogoUrl")}
-                                  disabled={uploadingField === "cautionLogoUrl"}
-                                >
-                                  {uploadingField === "cautionLogoUrl" ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      <span>Uploading...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="h-4 w-4" />
-                                      <span>Upload</span>
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="productLogoUrl"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Product Logo URL</FormLabel>
-                              <div className="flex gap-2">
-                                <FormControl>
-                                  <Input
-                                    placeholder="https://…"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className="shrink-0 flex gap-2 items-center"
-                                  onClick={() => handleUpload("productLogoUrl")}
-                                  disabled={uploadingField === "productLogoUrl"}
-                                >
-                                  {uploadingField === "productLogoUrl" ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      <span>Uploading...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="h-4 w-4" />
-                                      <span>Upload</span>
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="labelPdfUrl"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Label PDF URL</FormLabel>
-                              <div className="flex gap-2">
-                                <FormControl>
-                                  <Input
-                                    placeholder="https://…"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className="shrink-0 flex gap-2 items-center"
-                                  onClick={() => handleUpload("labelPdfUrl")}
-                                  disabled={uploadingField === "labelPdfUrl"}
-                                >
-                                  {uploadingField === "labelPdfUrl" ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      <span>Uploading...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="h-4 w-4" />
-                                      <span>Upload</span>
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
                     </div>
-                  </ScrollArea>
-                  <DialogFooter className="pt-4 mt-2 border-t">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsCreateOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={createProduct.isPending}>
-                      Save Product
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        }
-      />
+                  </div>
+                </ScrollArea>
+                <DialogFooter className="pt-4 border-t border-[#E2E8F0]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="bg-[#2563EB] hover:bg-[#2563EB]/90 text-white cursor-pointer" disabled={createProduct.isPending}>
+                    Save Product
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
+      {/* Filters Section */}
+      <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4 shadow-sm">
+        <div className="flex-1 min-w-[240px]">
+          <label className="text-[10px] font-bold text-[#737686] mb-1.5 block uppercase tracking-widest">Search Product</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#737686]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 pl-10 pr-4 text-sm text-[#0F172A] focus:border-[#2563EB] focus:ring-0 outline-none transition-all"
+              placeholder="Search by SKU, Name or GTIN..."
+            />
+          </div>
+        </div>
+        <div className="flex-1 min-w-[240px]">
+          <label className="text-[10px] font-bold text-[#737686] mb-1.5 block uppercase tracking-widest">Category</label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 h-10 focus:ring-0 focus:ring-offset-0 text-sm text-[#0F172A]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All Categories">All Categories</SelectItem>
+              <SelectItem value="Pharmaceuticals">Pharmaceuticals</SelectItem>
+              <SelectItem value="Medical Devices">Medical Devices</SelectItem>
+              <SelectItem value="Safety Equipment">Safety Equipment</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-end h-full">
+          <Button variant="outline" className="p-2.5 h-10 border border-[#E2E8F0] bg-white hover:bg-slate-50 cursor-pointer">
+            <Filter className="h-4 w-4 text-[#434655]" />
+          </Button>
+        </div>
+        <div className="flex items-end h-full ml-auto">
+          <Button variant="outline" className="flex items-center gap-2 h-10 border border-[#E2E8F0] bg-white hover:bg-slate-50 font-bold text-[#0F172A] px-4 cursor-pointer">
+            <Download className="h-4 w-4" /> Export XLSX
+          </Button>
+        </div>
+      </div>
+
+      {/* Data Table Card */}
+      {/* Data Table Container */}
+      <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
+        <div className="px-6 border-b border-[#E2E8F0] bg-[#faf8ff] flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[18px] font-semibold text-[#0F172A]">Product Master</span>
+            <span className="bg-[#ededf9] text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Active</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-500">
+              <span className="material-symbols-outlined">filter_list</span>
+            </button>
+            <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-500">
+              <span className="material-symbols-outlined">download</span>
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <Table className="w-full text-left table-fixed">
             <TableHeader>
-              <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>GTIN</TableHead>
-                <TableHead className="text-right">MRP</TableHead>
-                <TableHead>Pack (L1/L2/Shipper)</TableHead>
-                <TableHead>Expiry</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="border-b border-[#E2E8F0] bg-slate-50/50 hover:bg-slate-50/50">
+                <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">SKU</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">NAME</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">GTIN</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[10%] text-[11px] font-bold px-6 py-4 uppercase text-right">MRP</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">PACK (L1/L2/SHIPPER)</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[10%] text-[11px] font-bold px-6 py-4 uppercase">EXPIRY</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[10%] text-[11px] font-bold px-6 py-4 uppercase text-right">ACTIONS</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="divide-y divide-[#E2E8F0]">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    Loading…
+                  <TableCell colSpan={7} className="text-center py-8 text-[#434655]">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#2563EB] mb-2" />
+                    <span>Loading products master...</span>
                   </TableCell>
                 </TableRow>
-              ) : products.length === 0 ? (
+              ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-12 text-muted-foreground"
-                  >
+                  <TableCell colSpan={7} className="text-center py-12 text-slate-400">
                     <div className="flex flex-col items-center gap-2">
-                      <Package className="h-8 w-8 text-muted-foreground/50" />
-                      <p>No products yet</p>
+                      <Package className="h-8 w-8 text-slate-300" />
+                      <p className="text-[14px] font-semibold text-slate-500">No products found matching criteria</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.skuId}</TableCell>
-                    <TableCell>
-                      <div>{product.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {product.skuSize}
-                      </div>
+                filteredProducts.map((product) => (
+                  <TableRow key={product.id} className="hover:bg-slate-50 transition-colors group border-0">
+                    <TableCell className="align-middle px-6 py-5">
+                      <span className="font-semibold text-[#2563EB] text-[14px]">{product.skuId}</span>
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {product.gtin}
+                    <TableCell className="align-middle px-6 py-5">
+                      <span className="font-bold text-[#0F172A] text-[14px] block">{product.name}</span>
+                      <span className="text-[12px] font-semibold text-slate-500 block mt-0.5">{product.skuSize}</span>
                     </TableCell>
-                    <TableCell className="text-right">
-                      ₹{product.mrp.toFixed(2)}
+                    <TableCell className="align-middle px-6 py-5">
+                      <span className="font-mono text-[13px] font-semibold tracking-wider text-slate-600">{product.gtin}</span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {product.l1Size} / {product.l2Size} / {product.shipperSize}
+                    <TableCell className="align-middle px-6 py-5 text-right">
+                      <span className="font-bold text-[#0F172A] text-[14px]">₹{product.mrp.toFixed(2)}</span>
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {product.expiryDate
-                        ? format(new Date(product.expiryDate), "MMM d, yyyy")
-                        : "-"}
+                    <TableCell className="align-middle px-6 py-5">
+                      <span className="text-[14px] font-medium text-slate-600">{product.l1Size} / {product.l2Size} / {product.shipperSize}</span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="align-middle px-6 py-5">
+                      <span className="text-[13px] font-medium text-slate-600">
+                        {product.expiryDate ? format(new Date(product.expiryDate), "MMM d, yyyy") : "-"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="align-middle px-6 py-5 text-right">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                            <Trash2 className="h-5 w-5" />
+                          </button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="bg-white border border-[#E2E8F0]">
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete product</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Permanently remove {product.name}.
+                            <AlertDialogTitle className="text-lg font-bold text-[#0F172A]">Delete product</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm text-[#434655]">
+                              Permanently remove {product.name}. This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(product.id)}
-                              className="bg-destructive text-destructive-foreground"
+                              className="bg-red-600 hover:bg-red-700 text-white cursor-pointer"
                             >
                               Delete
                             </AlertDialogAction>
@@ -687,8 +762,23 @@ export default function Products() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+      
+      {/* Technical Footnote */}
+      <div className="mt-8 flex items-center justify-between border-t border-[#E2E8F0] pt-6 text-[10px] text-[#737686] uppercase tracking-widest font-semibold">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] inline-block animate-pulse"></span>
+            <span>System Status: Optimal</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span>Last Sync: 2m ago</span>
+          </div>
+        </div>
+        <div>© 2026 TracelyTag Systems Inc. Confidential Industrial Interface</div>
+      </div>
     </div>
   );
 }
+

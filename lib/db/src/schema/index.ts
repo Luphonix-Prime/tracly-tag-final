@@ -6,3 +6,5 @@ export * from "./batches";
 export * from "./codes";
 export * from "./passkeys";
 export * from "./deviceCodes";
+export * from "./customerScans";
+

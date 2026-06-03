@@ -8,10 +8,11 @@ import {
   locationsTable,
   usersTable,
   companiesTable,
+  customerScansTable,
 } from "@workspace/db";
 import { GenerateCodesBody, MapCodeBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/session";
-  import { generateUnitCode, generateSsccCode, parseGs1Code } from "../lib/gs1";
+import { generateUnitCode, generateSsccCode, parseGs1Code } from "../lib/gs1";
 
 const router: IRouter = Router();
 
@@ -47,6 +48,56 @@ router.get("/codes/debug/recent", async (_req, res): Promise<void> => {
     res.status(500).json({ error: error.message });
   }
 });
+
+const getCityFromZip = (zip: string) => {
+  const cleanZip = zip.trim().toLowerCase();
+  if (cleanZip.startsWith("400") || cleanZip === "mumbai") return "Mumbai";
+  if (cleanZip.startsWith("110") || cleanZip === "delhi" || cleanZip === "new delhi") return "New Delhi";
+  if (cleanZip.startsWith("600") || cleanZip === "chennai") return "Chennai";
+  if (cleanZip.startsWith("500") || cleanZip === "hyderabad") return "Hyderabad";
+  if (cleanZip.startsWith("560") || cleanZip === "bangalore") return "Bengaluru";
+  if (cleanZip.startsWith("100") || cleanZip === "ny" || cleanZip === "new york") return "New York";
+  if (cleanZip === "singapore" || (cleanZip.length === 6 && !isNaN(Number(cleanZip)))) return "Singapore";
+  if (cleanZip === "dubai" || cleanZip.startsWith("dxb")) return "Dubai";
+  
+  const defaultCities = ["Mumbai", "Singapore", "Dubai", "New Delhi", "Mumbai"];
+  let hash = 0;
+  for (let i = 0; i < cleanZip.length; i++) {
+    hash = cleanZip.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const idx = Math.abs(hash) % defaultCities.length;
+  return defaultCities[idx] || "Mumbai";
+};
+
+const logCustomerScan = async (codeId: number, query: any) => {
+  try {
+    const customerName = String(query.customerName || "Anonymous Customer");
+    const mobileNumber = String(query.mobileNumber || "N/A");
+    const zipCode = String(query.zipCode || "N/A");
+    const city = getCityFromZip(zipCode);
+    
+    const now = new Date();
+    const scanTime = now.toTimeString().split(" ")[0];
+    const day = String(now.getDate()).padStart(2, "0");
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[now.getMonth()];
+    const year = now.getFullYear();
+    const scanDate = `${day} ${month} ${year}`;
+    
+    await db.insert(customerScansTable).values({
+      codeId,
+      customerName,
+      mobileNumber,
+      zipCode,
+      city,
+      scanTime,
+      scanDate,
+    });
+    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city})`);
+  } catch (err) {
+    console.error("Failed to log customer scan:", err);
+  }
+};
 
 router.get("/codes/public/:serial", async (req, res): Promise<void> => {
   let serial = req.params.serial;
@@ -84,6 +135,7 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
           registrationNo: productsTable.registrationNo,
           companyName: companiesTable.name,
           companyAddress: companiesTable.address,
+          companyGstin: companiesTable.gstin,
           // Keep public verification resilient even when optional product
           // branding columns are absent in an older deployed database.
           productLogoUrl: sql<string | null>`null`,
@@ -103,6 +155,9 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
     let searchSerial = serial.trim();
     if (searchSerial.includes("::")) {
       searchSerial = searchSerial.split("::")[1] || searchSerial;
+    } else if (searchSerial.includes(":")) {
+      const parts = searchSerial.split(":");
+      searchSerial = parts[parts.length - 1] || searchSerial;
     }
     
     console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);
@@ -117,6 +172,7 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
     
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by serialNumber/ssccCode`);
+      await logCustomerScan(rows[0].id, req.query);
       res.json(rows[0]);
       return;
     }
@@ -125,6 +181,7 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
     rows = await buildQuery(eq(codesTable.rawString, searchSerial));
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by rawString (barcode match)`);
+      await logCustomerScan(rows[0].id, req.query);
       res.json(rows[0]);
       return;
     }
@@ -146,6 +203,7 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
         rows = await buildQuery(or(...searchConditions));
         if (rows.length > 0) {
           console.log(`[Public Verify] Found by GS1 parsing`);
+          await logCustomerScan(rows[0].id, req.query);
           res.json(rows[0]);
           return;
         }
@@ -205,6 +263,7 @@ async function fetchEnrichedCodes(ids: number[]) {
       registrationNo: productsTable.registrationNo,
       companyName: companiesTable.name,
       companyAddress: companiesTable.address,
+      companyGstin: companiesTable.gstin,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
@@ -270,6 +329,7 @@ router.get("/codes", requireAuth, async (req, res): Promise<void> => {
       registrationNo: productsTable.registrationNo,
       companyName: companiesTable.name,
       companyAddress: companiesTable.address,
+      companyGstin: companiesTable.gstin,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
@@ -385,4 +445,85 @@ router.post("/codes/:id/map", requireAuth, async (req, res): Promise<void> => {
   res.json(row);
 });
 
+router.get("/codes/scans", async (req, res): Promise<void> => {
+  try {
+    const scans = await db
+      .select({
+        id: customerScansTable.id,
+        codeId: customerScansTable.codeId,
+        customerName: customerScansTable.customerName,
+        mobileNumber: customerScansTable.mobileNumber,
+        zipCode: customerScansTable.zipCode,
+        city: customerScansTable.city,
+        scanTime: customerScansTable.scanTime,
+        scanDate: customerScansTable.scanDate,
+        createdAt: customerScansTable.createdAt,
+        qr: codesTable.serialNumber,
+        sscc: codesTable.ssccCode,
+        level: codesTable.level,
+        productName: productsTable.name,
+        batchNumber: batchesTable.batchNumber,
+        batchCreatedAt: batchesTable.createdAt,
+      })
+      .from(customerScansTable)
+      .innerJoin(codesTable, eq(customerScansTable.codeId, codesTable.id))
+      .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
+      .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
+      .orderBy(desc(customerScansTable.id));
+
+    // Group scans by codeId to get counts and the latest scan
+    const groupedMap = new Map<number, any>();
+    
+    for (const scan of scans) {
+      if (!groupedMap.has(scan.codeId)) {
+        groupedMap.set(scan.codeId, {
+          product: scan.productName,
+          batch: scan.batchNumber || "N/A",
+          batchDate: scan.batchCreatedAt ? new Date(scan.batchCreatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A",
+          qr: scan.qr ? `...${scan.qr.slice(-6)}` : (scan.sscc ? `...${scan.sscc.slice(-6)}` : "N/A"),
+          customer: scan.customerName,
+          city: scan.city,
+          mobile: scan.mobileNumber,
+          scanTime: scan.scanTime,
+          scanDate: scan.scanDate,
+          count: 0,
+          type: "normal",
+          codeId: scan.codeId,
+          level: scan.level,
+          events: []
+        });
+      }
+      
+      const entry = groupedMap.get(scan.codeId);
+      entry.count += 1;
+      
+      entry.events.push({
+        customer: scan.customerName,
+        city: scan.city,
+        mobile: scan.mobileNumber,
+        time: scan.scanTime,
+        date: scan.scanDate,
+        id: scan.id
+      });
+    }
+
+    const result = Array.from(groupedMap.values()).map(entry => {
+      if (entry.count > 5) {
+        entry.type = "anomaly";
+      } else if (entry.count > 1) {
+        entry.type = "error";
+      } else {
+        entry.type = "normal";
+      }
+      return entry;
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("Error fetching scans:", error);
+    res.status(500).json({ error: "Internal server error", details: error.message });
+  }
+});
+
 export default router;
+

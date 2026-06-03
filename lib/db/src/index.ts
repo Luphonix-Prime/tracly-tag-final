@@ -3,7 +3,8 @@ import { createClient } from "@libsql/client";
 import * as schema from "./schema/index";
 import path from "path";
 
-const dbUrl = process.env.DATABASE_URL || `file:${path.resolve(process.cwd(), "traclytag.db")}`;
+const dbFile = path.resolve(import.meta.dirname, "..", "traclytag.db");
+const dbUrl = process.env.DATABASE_URL || `file:${dbFile}`;
 const dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
 
 const client = createClient({ 
