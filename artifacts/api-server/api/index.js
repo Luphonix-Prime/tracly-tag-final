@@ -18768,14 +18768,14 @@ var require_etag = __commonJS({
   "../../node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports, module) {
     "use strict";
     module.exports = etag;
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     var Stats = __require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash2 = crypto3.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash2 = crypto4.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash2 + '"';
     }
@@ -20498,27 +20498,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router12;
+    module.exports = Router13;
     module.exports.Route = Route;
-    function Router12(options) {
-      if (!(this instanceof Router12)) {
-        return new Router12(options);
+    function Router13(options) {
+      if (!(this instanceof Router13)) {
+        return new Router13(options);
       }
       const opts = options || {};
-      function router12(req, res, next) {
-        router12.handle(req, res, next);
+      function router13(req, res, next) {
+        router13.handle(req, res, next);
       }
-      Object.setPrototypeOf(router12, this);
-      router12.caseSensitive = opts.caseSensitive;
-      router12.mergeParams = opts.mergeParams;
-      router12.params = {};
-      router12.strict = opts.strict;
-      router12.stack = [];
-      return router12;
+      Object.setPrototypeOf(router13, this);
+      router13.caseSensitive = opts.caseSensitive;
+      router13.mergeParams = opts.mergeParams;
+      router13.params = {};
+      router13.strict = opts.strict;
+      router13.stack = [];
+      return router13;
     }
-    Router12.prototype = function() {
+    Router13.prototype = function() {
     };
-    Router12.prototype.param = function param(name, fn) {
+    Router13.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20538,7 +20538,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router12.prototype.handle = function handle(req, res, callback) {
+    Router13.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20665,7 +20665,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router12.prototype.use = function use(handler) {
+    Router13.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20698,7 +20698,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router12.prototype.route = function route(path4) {
+    Router13.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20713,7 +20713,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router12.prototype[method] = function(path4) {
+      Router13.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20896,13 +20896,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router12 = require_router();
+    var Router13 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router12 = null;
+      var router13 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20911,13 +20911,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router12 === null) {
-            router12 = new Router12({
+          if (router13 === null) {
+            router13 = new Router13({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router12;
+          return router13;
         }
       });
     };
@@ -20988,15 +20988,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router12 = this.router;
+      var router13 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router12.use(path4, fn2);
+          return router13.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router12.use(path4, function mounted_app(req, res, next) {
+        router13.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -22250,17 +22250,17 @@ var require_content_disposition = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js"(exports) {
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(input, secret2) {
       if ("string" != typeof input) throw new TypeError("Signed cookie string must be provided.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
       var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret2), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
-      return expectedBuffer.length === inputBuffer.length && crypto3.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
+      return expectedBuffer.length === inputBuffer.length && crypto4.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
     };
   }
 });
@@ -23569,7 +23569,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router12 = require_router();
+    var Router13 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23591,8 +23591,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router12.Route;
-    exports.Router = Router12;
+    exports.Route = Router13.Route;
+    exports.Router = Router13;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -27988,7 +27988,7 @@ var require_pino = __commonJS({
     function pinoBundlerAbsolutePath(p) {
       try {
         const path4 = __require("path");
-        const outputDir = "C:\\Users\\Keval\\Documents\\tracelytag\\tracly-tag-final\\artifacts\\api-server\\api";
+        const outputDir = "C:\\Users\\Keval\\Documents\\tracelytag\\my-merger\\tracly-tag-final\\artifacts\\api-server\\api";
         return path4.resolve(outputDir, p.replace(/^\.\//, ""));
       } catch (e) {
         const f = new Function("p", "return new URL(p, import.meta.url).pathname");
@@ -28453,11 +28453,11 @@ var require_logger = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js
 var require_cookie_signature2 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js"(exports) {
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if ("string" != typeof secret2) throw new TypeError("Secret string must be provided.");
-      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -28466,7 +28466,7 @@ var require_cookie_signature2 = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto3.createHash("sha1").update(str).digest("hex");
+      return crypto4.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -29146,11 +29146,11 @@ var require_on_headers = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js
 var require_cookie_signature3 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js"(exports) {
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" !== typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(val, secret2) {
       if ("string" !== typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -29159,7 +29159,7 @@ var require_cookie_signature3 = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto3.createHash("sha1").update(str).digest("hex");
+      return crypto4.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -29168,8 +29168,8 @@ var require_cookie_signature3 = __commonJS({
 var require_random_bytes = __commonJS({
   "../../node_modules/.pnpm/random-bytes@1.0.0/node_modules/random-bytes/index.js"(exports, module) {
     "use strict";
-    var crypto3 = __require("crypto");
-    var generateAttempts = crypto3.randomBytes === crypto3.pseudoRandomBytes ? 1 : 3;
+    var crypto4 = __require("crypto");
+    var generateAttempts = crypto4.randomBytes === crypto4.pseudoRandomBytes ? 1 : 3;
     module.exports = randomBytes3;
     module.exports.sync = randomBytesSync;
     function randomBytes3(size, callback) {
@@ -29193,7 +29193,7 @@ var require_random_bytes = __commonJS({
       var err = null;
       for (var i = 0; i < generateAttempts; i++) {
         try {
-          return crypto3.randomBytes(size);
+          return crypto4.randomBytes(size);
         } catch (e) {
           err = e;
         }
@@ -29201,7 +29201,7 @@ var require_random_bytes = __commonJS({
       throw err;
     }
     function generateRandomBytes(size, attempts, callback) {
-      crypto3.randomBytes(size, function onRandomBytes(err, buf) {
+      crypto4.randomBytes(size, function onRandomBytes(err, buf) {
         if (!err) return callback(null, buf);
         if (!--attempts) return callback(err);
         setTimeout(generateRandomBytes.bind(null, size, attempts, callback), 10);
@@ -29543,7 +29543,7 @@ var require_express_session = __commonJS({
     "use strict";
     var Buffer2 = require_safe_buffer().Buffer;
     var cookie = require_cookie();
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     var debug = require_src2()("express-session");
     var deprecate = require_depd()("express-session");
     var onHeaders = require_on_headers();
@@ -29916,7 +29916,7 @@ var require_express_session = __commonJS({
         }
         return val;
       });
-      return crypto3.createHash("sha1").update(str, "utf8").digest("hex");
+      return crypto4.createHash("sha1").update(str, "utf8").digest("hex");
     }
     function issecure(req, trustProxy) {
       if (req.connection && req.connection.encrypted) {
@@ -43035,9 +43035,9 @@ var require_disk = __commonJS({
     var fs3 = __require("fs");
     var os = __require("os");
     var path4 = __require("path");
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     function getFilename(req, file, cb) {
-      crypto3.randomBytes(16, function(err, raw) {
+      crypto4.randomBytes(16, function(err, raw) {
         cb(err, err ? void 0 : raw.toString("hex"));
       });
     }
@@ -46541,13 +46541,13 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express12 = __toESM(require_express2(), 1);
+var import_express13 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 var import_cookie_parser = __toESM(require_cookie_parser(), 1);
 
 // src/routes/index.ts
-var import_express11 = __toESM(require_express2(), 1);
+var import_express12 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -50452,7 +50452,10 @@ var LoginResponse = objectType({
   "email": stringType(),
   "role": enumType(["master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
-  "companyName": stringType().nullable()
+  "companyName": stringType().nullable(),
+  "subscriptionPlan": stringType().nullable().optional(),
+  "subscriptionStatus": stringType().nullable().optional(),
+  "subscriptionExpiresAt": stringType().nullable().optional()
 });
 var RegisterBody = objectType({
   "username": stringType(),
@@ -50469,7 +50472,10 @@ var GetCurrentUserResponse = objectType({
   "email": stringType(),
   "role": enumType(["master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
-  "companyName": stringType().nullable()
+  "companyName": stringType().nullable(),
+  "subscriptionPlan": stringType().nullable().optional(),
+  "subscriptionStatus": stringType().nullable().optional(),
+  "subscriptionExpiresAt": stringType().nullable().optional()
 });
 var ListCompaniesResponseItem = objectType({
   "id": numberType(),
@@ -58063,6 +58069,7 @@ __export(schema_exports, {
   batchesTable: () => batchesTable,
   codesTable: () => codesTable,
   companiesTable: () => companiesTable,
+  customerScansTable: () => customerScansTable,
   deviceCodesTable: () => deviceCodesTable,
   locationsTable: () => locationsTable,
   passkeysTable: () => passkeysTable,
@@ -58077,6 +58084,11 @@ var companiesTable = sqliteTable("companies", {
   email: text("email").notNull(),
   address: text("address").notNull(),
   gstin: text("gstin"),
+  subscriptionPlan: text("subscription_plan").notNull().$defaultFn(() => "free"),
+  subscriptionStatus: text("subscription_status").notNull().$defaultFn(() => "active"),
+  subscriptionExpiresAt: text("subscription_expires_at"),
+  razorpayOrderId: text("razorpay_order_id"),
+  razorpayPaymentId: text("razorpay_payment_id"),
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
@@ -58176,9 +58188,23 @@ var deviceCodesTable = sqliteTable("device_codes", {
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
+// ../../lib/db/src/schema/customerScans.ts
+var customerScansTable = sqliteTable("customer_scans", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  codeId: integer("code_id").notNull().references(() => codesTable.id, { onDelete: "cascade" }),
+  customerName: text("customer_name").notNull(),
+  mobileNumber: text("mobile_number").notNull(),
+  zipCode: text("zip_code").notNull(),
+  city: text("city").notNull(),
+  scanTime: text("scan_time").notNull(),
+  scanDate: text("scan_date").notNull(),
+  createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
+});
+
 // ../../lib/db/src/index.ts
 import path from "path";
-var dbUrl = process.env.DATABASE_URL || `file:${path.resolve(process.cwd(), "traclytag.db")}`;
+var dbFile = path.resolve(import.meta.dirname, "..", "traclytag.db");
+var dbUrl = process.env.DATABASE_URL || `file:${dbFile}`;
 var dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
 var client = createClient2({
   url: dbUrl,
@@ -58239,7 +58265,10 @@ router2.post("/auth/register", async (req, res) => {
         email: user.email,
         role: user.role,
         companyId: user.companyId,
-        companyName: company.name
+        companyName: company.name,
+        subscriptionPlan: company.subscriptionPlan,
+        subscriptionStatus: company.subscriptionStatus,
+        subscriptionExpiresAt: company.subscriptionExpiresAt
       })
     );
   } catch (err) {
@@ -58264,9 +58293,20 @@ router2.post("/auth/login", async (req, res) => {
     return;
   }
   let companyName = null;
+  let subscriptionPlan = null;
+  let subscriptionStatus = null;
+  let subscriptionExpiresAt = null;
   if (user.companyId) {
-    const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
+    const [c] = await db.select({
+      name: companiesTable.name,
+      subscriptionPlan: companiesTable.subscriptionPlan,
+      subscriptionStatus: companiesTable.subscriptionStatus,
+      subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
+    }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
     companyName = c?.name ?? null;
+    subscriptionPlan = c?.subscriptionPlan ?? null;
+    subscriptionStatus = c?.subscriptionStatus ?? null;
+    subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
   }
   const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
   res.cookie("connect.sid", user.id.toString(), {
@@ -58284,7 +58324,10 @@ router2.post("/auth/login", async (req, res) => {
       email: user.email,
       role: user.role,
       companyId: user.companyId,
-      companyName
+      companyName,
+      subscriptionPlan,
+      subscriptionStatus,
+      subscriptionExpiresAt
     })
   );
 });
@@ -58298,9 +58341,20 @@ router2.get("/auth/me", async (req, res) => {
     return;
   }
   let companyName = null;
+  let subscriptionPlan = null;
+  let subscriptionStatus = null;
+  let subscriptionExpiresAt = null;
   if (req.user.companyId) {
-    const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, req.user.companyId));
+    const [c] = await db.select({
+      name: companiesTable.name,
+      subscriptionPlan: companiesTable.subscriptionPlan,
+      subscriptionStatus: companiesTable.subscriptionStatus,
+      subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
+    }).from(companiesTable).where(eq(companiesTable.id, req.user.companyId));
     companyName = c?.name ?? null;
+    subscriptionPlan = c?.subscriptionPlan ?? null;
+    subscriptionStatus = c?.subscriptionStatus ?? null;
+    subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
   }
   res.json({
     id: req.user.id,
@@ -58308,7 +58362,10 @@ router2.get("/auth/me", async (req, res) => {
     email: req.user.email,
     role: req.user.role,
     companyId: req.user.companyId,
-    companyName
+    companyName,
+    subscriptionPlan,
+    subscriptionStatus,
+    subscriptionExpiresAt
   });
 });
 router2.post("/auth/sso", async (req, res) => {
@@ -58327,6 +58384,9 @@ router2.post("/auth/sso", async (req, res) => {
     }
     let resolvedCompanyId = user?.companyId ?? null;
     let resolvedCompanyName = null;
+    let subscriptionPlan = null;
+    let subscriptionStatus = null;
+    let subscriptionExpiresAt = null;
     if (!user) {
       const targetCompanyName = companyName || `${name || username}'s Organization`;
       const targetWebsite = companyWebsiteUrl || `https://${username.toLowerCase()}.traclytag.com`;
@@ -58341,6 +58401,9 @@ router2.post("/auth/sso", async (req, res) => {
       }
       resolvedCompanyId = company.id;
       resolvedCompanyName = company.name;
+      subscriptionPlan = company.subscriptionPlan;
+      subscriptionStatus = company.subscriptionStatus;
+      subscriptionExpiresAt = company.subscriptionExpiresAt;
       const randomPassword = crypto2.randomBytes(16).toString("hex");
       const passwordHash = await bcryptjs_default.hash(randomPassword, 10);
       const [newUser] = await db.insert(usersTable).values({
@@ -58357,8 +58420,16 @@ router2.post("/auth/sso", async (req, res) => {
       user = newUser;
     } else {
       if (user.companyId) {
-        const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
+        const [c] = await db.select({
+          name: companiesTable.name,
+          subscriptionPlan: companiesTable.subscriptionPlan,
+          subscriptionStatus: companiesTable.subscriptionStatus,
+          subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
+        }).from(companiesTable).where(eq(companiesTable.id, user.companyId));
         resolvedCompanyName = c?.name ?? null;
+        subscriptionPlan = c?.subscriptionPlan ?? null;
+        subscriptionStatus = c?.subscriptionStatus ?? null;
+        subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
       }
     }
     const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
@@ -58375,7 +58446,10 @@ router2.post("/auth/sso", async (req, res) => {
       email: user.email,
       role: user.role,
       companyId: user.companyId,
-      companyName: resolvedCompanyName
+      companyName: resolvedCompanyName,
+      subscriptionPlan,
+      subscriptionStatus,
+      subscriptionExpiresAt
     });
   } catch (err) {
     req.log.error({ err }, "SSO Authentication failed");
@@ -59214,6 +59288,51 @@ router8.get("/codes/debug/recent", async (_req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+var getCityFromZip = (zip) => {
+  const cleanZip = zip.trim().toLowerCase();
+  if (cleanZip.startsWith("400") || cleanZip === "mumbai") return "Mumbai";
+  if (cleanZip.startsWith("110") || cleanZip === "delhi" || cleanZip === "new delhi") return "New Delhi";
+  if (cleanZip.startsWith("600") || cleanZip === "chennai") return "Chennai";
+  if (cleanZip.startsWith("500") || cleanZip === "hyderabad") return "Hyderabad";
+  if (cleanZip.startsWith("560") || cleanZip === "bangalore") return "Bengaluru";
+  if (cleanZip.startsWith("100") || cleanZip === "ny" || cleanZip === "new york") return "New York";
+  if (cleanZip === "singapore" || cleanZip.length === 6 && !isNaN(Number(cleanZip))) return "Singapore";
+  if (cleanZip === "dubai" || cleanZip.startsWith("dxb")) return "Dubai";
+  const defaultCities = ["Mumbai", "Singapore", "Dubai", "New Delhi", "Mumbai"];
+  let hash2 = 0;
+  for (let i = 0; i < cleanZip.length; i++) {
+    hash2 = cleanZip.charCodeAt(i) + ((hash2 << 5) - hash2);
+  }
+  const idx = Math.abs(hash2) % defaultCities.length;
+  return defaultCities[idx] || "Mumbai";
+};
+var logCustomerScan = async (codeId, query) => {
+  try {
+    const customerName = String(query.customerName || "Anonymous Customer");
+    const mobileNumber = String(query.mobileNumber || "N/A");
+    const zipCode = String(query.zipCode || "N/A");
+    const city = getCityFromZip(zipCode);
+    const now = /* @__PURE__ */ new Date();
+    const scanTime = now.toTimeString().split(" ")[0];
+    const day = String(now.getDate()).padStart(2, "0");
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[now.getMonth()];
+    const year = now.getFullYear();
+    const scanDate = `${day} ${month} ${year}`;
+    await db.insert(customerScansTable).values({
+      codeId,
+      customerName,
+      mobileNumber,
+      zipCode,
+      city,
+      scanTime,
+      scanDate
+    });
+    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city})`);
+  } catch (err) {
+    console.error("Failed to log customer scan:", err);
+  }
+};
 router8.get("/codes/public/:serial", async (req, res) => {
   let serial = req.params.serial;
   if (!serial) {
@@ -59246,6 +59365,7 @@ router8.get("/codes/public/:serial", async (req, res) => {
         registrationNo: productsTable.registrationNo,
         companyName: companiesTable.name,
         companyAddress: companiesTable.address,
+        companyGstin: companiesTable.gstin,
         // Keep public verification resilient even when optional product
         // branding columns are absent in an older deployed database.
         productLogoUrl: sql`null`,
@@ -59255,6 +59375,9 @@ router8.get("/codes/public/:serial", async (req, res) => {
     let searchSerial = serial.trim();
     if (searchSerial.includes("::")) {
       searchSerial = searchSerial.split("::")[1] || searchSerial;
+    } else if (searchSerial.includes(":")) {
+      const parts = searchSerial.split(":");
+      searchSerial = parts[parts.length - 1] || searchSerial;
     }
     console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);
     let rows = await buildQuery(
@@ -59265,12 +59388,14 @@ router8.get("/codes/public/:serial", async (req, res) => {
     );
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by serialNumber/ssccCode`);
+      await logCustomerScan(rows[0].id, req.query);
       res.json(rows[0]);
       return;
     }
     rows = await buildQuery(eq(codesTable.rawString, searchSerial));
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by rawString (barcode match)`);
+      await logCustomerScan(rows[0].id, req.query);
       res.json(rows[0]);
       return;
     }
@@ -59289,6 +59414,7 @@ router8.get("/codes/public/:serial", async (req, res) => {
         rows = await buildQuery(or(...searchConditions));
         if (rows.length > 0) {
           console.log(`[Public Verify] Found by GS1 parsing`);
+          await logCustomerScan(rows[0].id, req.query);
           res.json(rows[0]);
           return;
         }
@@ -59337,7 +59463,8 @@ async function fetchEnrichedCodes(ids) {
     marketedBy: productsTable.marketedBy,
     registrationNo: productsTable.registrationNo,
     companyName: companiesTable.name,
-    companyAddress: companiesTable.address
+    companyAddress: companiesTable.address,
+    companyGstin: companiesTable.gstin
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(
     ids.length === 1 ? eq(codesTable.id, ids[0]) : inArray(codesTable.id, ids)
   ).orderBy(desc(codesTable.createdAt));
@@ -59380,7 +59507,8 @@ router8.get("/codes", requireAuth, async (req, res) => {
     marketedBy: productsTable.marketedBy,
     registrationNo: productsTable.registrationNo,
     companyName: companiesTable.name,
-    companyAddress: companiesTable.address
+    companyAddress: companiesTable.address,
+    companyGstin: companiesTable.gstin
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(where).orderBy(desc(codesTable.createdAt)).limit(Math.min(Math.max(limit, 1), 5e3));
   res.json(rows);
 });
@@ -59464,6 +59592,72 @@ router8.post("/codes/:id/map", requireAuth, async (req, res) => {
     return;
   }
   res.json(row);
+});
+router8.get("/codes/scans", async (req, res) => {
+  try {
+    const scans = await db.select({
+      id: customerScansTable.id,
+      codeId: customerScansTable.codeId,
+      customerName: customerScansTable.customerName,
+      mobileNumber: customerScansTable.mobileNumber,
+      zipCode: customerScansTable.zipCode,
+      city: customerScansTable.city,
+      scanTime: customerScansTable.scanTime,
+      scanDate: customerScansTable.scanDate,
+      createdAt: customerScansTable.createdAt,
+      qr: codesTable.serialNumber,
+      sscc: codesTable.ssccCode,
+      level: codesTable.level,
+      productName: productsTable.name,
+      batchNumber: batchesTable.batchNumber,
+      batchCreatedAt: batchesTable.createdAt
+    }).from(customerScansTable).innerJoin(codesTable, eq(customerScansTable.codeId, codesTable.id)).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).orderBy(desc(customerScansTable.id));
+    const groupedMap = /* @__PURE__ */ new Map();
+    for (const scan of scans) {
+      if (!groupedMap.has(scan.codeId)) {
+        groupedMap.set(scan.codeId, {
+          product: scan.productName,
+          batch: scan.batchNumber || "N/A",
+          batchDate: scan.batchCreatedAt ? new Date(scan.batchCreatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "N/A",
+          qr: scan.qr ? `...${scan.qr.slice(-6)}` : scan.sscc ? `...${scan.sscc.slice(-6)}` : "N/A",
+          customer: scan.customerName,
+          city: scan.city,
+          mobile: scan.mobileNumber,
+          scanTime: scan.scanTime,
+          scanDate: scan.scanDate,
+          count: 0,
+          type: "normal",
+          codeId: scan.codeId,
+          level: scan.level,
+          events: []
+        });
+      }
+      const entry = groupedMap.get(scan.codeId);
+      entry.count += 1;
+      entry.events.push({
+        customer: scan.customerName,
+        city: scan.city,
+        mobile: scan.mobileNumber,
+        time: scan.scanTime,
+        date: scan.scanDate,
+        id: scan.id
+      });
+    }
+    const result = Array.from(groupedMap.values()).map((entry) => {
+      if (entry.count > 5) {
+        entry.type = "anomaly";
+      } else if (entry.count > 1) {
+        entry.type = "error";
+      } else {
+        entry.type = "normal";
+      }
+      return entry;
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching scans:", error);
+    res.status(500).json({ error: "Internal server error", details: error.message });
+  }
 });
 var codes_default = router8;
 
@@ -59674,19 +59868,129 @@ router10.post("/upload", requireAuth, upload.single("file"), (req, res) => {
 });
 var upload_default = router10;
 
-// src/routes/index.ts
+// src/routes/subscription.ts
+var import_express11 = __toESM(require_express2(), 1);
+import crypto3 from "crypto";
 var router11 = (0, import_express11.Router)();
-router11.use(health_default);
-router11.use(auth_default);
-router11.use(companies_default);
-router11.use(users_default);
-router11.use(products_default);
-router11.use(locations_default);
-router11.use(batches_default);
-router11.use(codes_default);
-router11.use(reports_default);
-router11.use(upload_default);
-var routes_default = router11;
+var KEY_ID = process.env.RAZORPAY_KEY_ID || "rzp_test_DUMMY_KEY_ID";
+var KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "DUMMY_KEY_SECRET";
+router11.post("/subscription/create-order", async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const { plan, companyId } = req.body;
+  if (plan !== "standard" && plan !== "enterprise") {
+    res.status(400).json({ error: "Invalid plan" });
+    return;
+  }
+  let targetCompanyId = req.user.companyId;
+  if (req.user.role === "master" && companyId) {
+    targetCompanyId = parseInt(companyId, 10);
+  }
+  const amount = plan === "standard" ? 199900 : 999900;
+  try {
+    if (KEY_ID !== "rzp_test_DUMMY_KEY_ID") {
+      const authString = Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString("base64");
+      const response = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${authString}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          amount,
+          currency: "INR",
+          receipt: `receipt_co_${targetCompanyId || 0}_${Date.now()}`
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        res.json({
+          success: true,
+          key: KEY_ID,
+          orderId: data.id,
+          amount: data.amount,
+          currency: data.currency,
+          isMock: false
+        });
+        return;
+      } else {
+        const errText = await response.text();
+        req.log.warn({ err: errText }, "Razorpay API error, falling back to mock mode");
+      }
+    }
+  } catch (e) {
+    req.log.warn({ err: e }, "Failed to connect to Razorpay, falling back to mock mode");
+  }
+  const mockOrderId = `order_mock_${crypto3.randomBytes(8).toString("hex")}`;
+  res.json({
+    success: true,
+    key: "rzp_test_DUMMY_KEY_ID",
+    orderId: mockOrderId,
+    amount,
+    currency: "INR",
+    isMock: true
+  });
+});
+router11.post("/subscription/verify-payment", async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  let targetCompanyId = req.user.companyId;
+  if (req.user.role === "master" && req.body.companyId) {
+    targetCompanyId = parseInt(req.body.companyId, 10);
+  }
+  if (!targetCompanyId) {
+    res.status(400).json({ error: "User is not associated with any company" });
+    return;
+  }
+  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, plan } = req.body;
+  if (plan !== "standard" && plan !== "enterprise" && plan !== "free") {
+    res.status(400).json({ error: "Invalid plan" });
+    return;
+  }
+  const isMock = !razorpay_order_id || razorpay_order_id.startsWith("order_mock_") || KEY_ID === "rzp_test_DUMMY_KEY_ID";
+  if (!isMock) {
+    const generated_signature = crypto3.createHmac("sha256", KEY_SECRET).update(`${razorpay_order_id}|${razorpay_payment_id}`).digest("hex");
+    if (generated_signature !== razorpay_signature) {
+      res.status(400).json({ error: "Payment verification failed" });
+      return;
+    }
+  }
+  try {
+    const expiresAtDate = /* @__PURE__ */ new Date();
+    expiresAtDate.setDate(expiresAtDate.getDate() + 30);
+    await db.update(companiesTable).set({
+      subscriptionPlan: plan,
+      subscriptionStatus: "active",
+      subscriptionExpiresAt: expiresAtDate.toISOString(),
+      razorpayOrderId: razorpay_order_id || null,
+      razorpayPaymentId: razorpay_payment_id || null
+    }).where(eq(companiesTable.id, targetCompanyId));
+    res.json({ success: true, plan });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update company subscription");
+    res.status(500).json({ error: "Failed to update subscription in database" });
+  }
+});
+var subscription_default = router11;
+
+// src/routes/index.ts
+var router12 = (0, import_express12.Router)();
+router12.use(health_default);
+router12.use(auth_default);
+router12.use(companies_default);
+router12.use(users_default);
+router12.use(products_default);
+router12.use(locations_default);
+router12.use(batches_default);
+router12.use(codes_default);
+router12.use(reports_default);
+router12.use(upload_default);
+router12.use(subscription_default);
+var routes_default = router12;
 
 // src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
@@ -59730,7 +60034,7 @@ var loadUser = async (req, _res, next) => {
 // src/app.ts
 import path3 from "path";
 import fs2 from "fs";
-var app = (0, import_express12.default)();
+var app = (0, import_express13.default)();
 app.set("trust proxy", 1);
 app.use(
   (0, import_pino_http.pinoHttp)({
@@ -59757,8 +60061,8 @@ app.use(
     credentials: true
   })
 );
-app.use(import_express12.default.json({ limit: "1mb" }));
-app.use(import_express12.default.urlencoded({ extended: true }));
+app.use(import_express13.default.json({ limit: "1mb" }));
+app.use(import_express13.default.urlencoded({ extended: true }));
 app.use((0, import_cookie_parser.default)(process.env["SESSION_SECRET"] ?? "dev-insecure-secret"));
 app.use(loadUser);
 app.use("/api", routes_default);
@@ -59766,7 +60070,7 @@ var uploadDir2 = process.env.VERCEL ? "/tmp" : path3.resolve(__dirname, "../uplo
 if (!fs2.existsSync(uploadDir2)) {
   fs2.mkdirSync(uploadDir2, { recursive: true });
 }
-app.use("/api/uploads", import_express12.default.static(uploadDir2));
+app.use("/api/uploads", import_express13.default.static(uploadDir2));
 var app_default = app;
 export {
   app_default as default

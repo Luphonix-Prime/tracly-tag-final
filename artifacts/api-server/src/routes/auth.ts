@@ -80,6 +80,9 @@ router.post("/auth/register", async (req, res): Promise<void> => {
         role: user.role,
         companyId: user.companyId,
         companyName: company.name,
+        subscriptionPlan: company.subscriptionPlan,
+        subscriptionStatus: company.subscriptionStatus,
+        subscriptionExpiresAt: company.subscriptionExpiresAt,
       }),
     );
   } catch (err) {
@@ -112,12 +115,23 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   let companyName: string | null = null;
+  let subscriptionPlan: string | null = null;
+  let subscriptionStatus: string | null = null;
+  let subscriptionExpiresAt: string | null = null;
   if (user.companyId) {
     const [c] = await db
-      .select({ name: companiesTable.name })
+      .select({ 
+        name: companiesTable.name,
+        subscriptionPlan: companiesTable.subscriptionPlan,
+        subscriptionStatus: companiesTable.subscriptionStatus,
+        subscriptionExpiresAt: companiesTable.subscriptionExpiresAt,
+      })
       .from(companiesTable)
       .where(eq(companiesTable.id, user.companyId));
     companyName = c?.name ?? null;
+    subscriptionPlan = c?.subscriptionPlan ?? null;
+    subscriptionStatus = c?.subscriptionStatus ?? null;
+    subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
   }
 
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
@@ -137,6 +151,9 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       role: user.role,
       companyId: user.companyId,
       companyName,
+      subscriptionPlan,
+      subscriptionStatus,
+      subscriptionExpiresAt,
     }),
   );
 });
@@ -152,12 +169,23 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     return;
   }
   let companyName: string | null = null;
+  let subscriptionPlan: string | null = null;
+  let subscriptionStatus: string | null = null;
+  let subscriptionExpiresAt: string | null = null;
   if (req.user.companyId) {
     const [c] = await db
-      .select({ name: companiesTable.name })
+      .select({ 
+        name: companiesTable.name,
+        subscriptionPlan: companiesTable.subscriptionPlan,
+        subscriptionStatus: companiesTable.subscriptionStatus,
+        subscriptionExpiresAt: companiesTable.subscriptionExpiresAt,
+      })
       .from(companiesTable)
       .where(eq(companiesTable.id, req.user.companyId));
     companyName = c?.name ?? null;
+    subscriptionPlan = c?.subscriptionPlan ?? null;
+    subscriptionStatus = c?.subscriptionStatus ?? null;
+    subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
   }
   res.json({
     id: req.user.id,
@@ -166,6 +194,9 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     role: req.user.role,
     companyId: req.user.companyId,
     companyName,
+    subscriptionPlan,
+    subscriptionStatus,
+    subscriptionExpiresAt,
   });
 });
 
@@ -195,6 +226,9 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
 
     let resolvedCompanyId = user?.companyId ?? null;
     let resolvedCompanyName: string | null = null;
+    let subscriptionPlan: string | null = null;
+    let subscriptionStatus: string | null = null;
+    let subscriptionExpiresAt: string | null = null;
 
     if (!user) {
       const targetCompanyName = companyName || `${name || username}'s Organization`;
@@ -216,6 +250,9 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
 
       resolvedCompanyId = company.id;
       resolvedCompanyName = company.name;
+      subscriptionPlan = company.subscriptionPlan;
+      subscriptionStatus = company.subscriptionStatus;
+      subscriptionExpiresAt = company.subscriptionExpiresAt;
 
       const randomPassword = crypto.randomBytes(16).toString("hex");
       const passwordHash = await bcrypt.hash(randomPassword, 10);
@@ -239,10 +276,18 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
     } else {
       if (user.companyId) {
         const [c] = await db
-          .select({ name: companiesTable.name })
+          .select({ 
+            name: companiesTable.name,
+            subscriptionPlan: companiesTable.subscriptionPlan,
+            subscriptionStatus: companiesTable.subscriptionStatus,
+            subscriptionExpiresAt: companiesTable.subscriptionExpiresAt,
+          })
           .from(companiesTable)
           .where(eq(companiesTable.id, user.companyId));
         resolvedCompanyName = c?.name ?? null;
+        subscriptionPlan = c?.subscriptionPlan ?? null;
+        subscriptionStatus = c?.subscriptionStatus ?? null;
+        subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
       }
     }
 
@@ -262,6 +307,9 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
       role: user.role,
       companyId: user.companyId,
       companyName: resolvedCompanyName,
+      subscriptionPlan,
+      subscriptionStatus,
+      subscriptionExpiresAt,
     });
   } catch (err) {
     req.log.error({ err }, "SSO Authentication failed");

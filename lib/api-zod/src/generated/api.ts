@@ -30,7 +30,10 @@ export const LoginResponse = zod.object({
   "email": zod.string(),
   "role": zod.enum(['master', 'client_admin', 'operator']),
   "companyId": zod.number().nullable(),
-  "companyName": zod.string().nullable()
+  "companyName": zod.string().nullable(),
+  "subscriptionPlan": zod.string().nullable().optional(),
+  "subscriptionStatus": zod.string().nullable().optional(),
+  "subscriptionExpiresAt": zod.string().nullable().optional()
 })
 
 
@@ -57,7 +60,10 @@ export const GetCurrentUserResponse = zod.object({
   "email": zod.string(),
   "role": zod.enum(['master', 'client_admin', 'operator']),
   "companyId": zod.number().nullable(),
-  "companyName": zod.string().nullable()
+  "companyName": zod.string().nullable(),
+  "subscriptionPlan": zod.string().nullable().optional(),
+  "subscriptionStatus": zod.string().nullable().optional(),
+  "subscriptionExpiresAt": zod.string().nullable().optional()
 })
 
 
