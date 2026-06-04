@@ -127,36 +127,68 @@ export default function MappingCode() {
     }
   }, [isWizardOpen]);
 
-  // Handle active video stream
+  // Handle active camera scanning with Html5Qrcode
   useEffect(() => {
-    let activeStream: MediaStream | null = null;
+    let html5QrCode: any = null;
+    const scannerId = "camera-viewfinder-element";
 
-    if (isWizardOpen && wizardStep === "scan" && inputMode === "camera") {
-      const constraints: MediaStreamConstraints = {
-        video: selectedCameraId ? { deviceId: { exact: selectedCameraId } } : true
-      };
+    if (isWizardOpen && wizardStep === "scan" && inputMode === "camera" && selectedCameraId) {
+      import("html5-qrcode").then(({ Html5Qrcode }) => {
+        // Ensure element exists in DOM first
+        const element = document.getElementById(scannerId);
+        if (!element) return;
 
-      navigator.mediaDevices.getUserMedia(constraints)
-        .then(stream => {
-          activeStream = stream;
-          setCameraStream(stream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
+        html5QrCode = new Html5Qrcode(scannerId);
+        const config = {
+          fps: 10,
+          qrbox: (width: number, height: number) => {
+            const size = Math.min(width, height) * 0.7;
+            return { width: size, height: size };
           }
-        })
-        .catch(err => {
-          console.warn("Could not start device camera stream: ", err);
-          setCameraStream(null);
+        };
+
+        const onScanSuccess = (decodedText: string) => {
+          if (isScanning || scanProgress >= 10) return;
+          setIsScanning(true);
+          playBeep();
+          
+          // API call / logic to map code can go here. For now, increment mock scan list.
+          setTimeout(() => {
+            setIsScanning(false);
+            setScanProgress(prev => {
+              const next = prev + 1;
+              if (next >= 10) {
+                setIsAutoScanning(false);
+                setTimeout(() => {
+                  setWizardStep("status");
+                }, 600);
+              }
+              return next;
+            });
+          }, 500);
+        };
+
+        const onScanFailure = (error: any) => {
+          // Ignore failures since they occur on every frame where no QR code is found
+        };
+
+        html5QrCode.start(
+          selectedCameraId,
+          config,
+          onScanSuccess,
+          onScanFailure
+        ).catch((err: any) => {
+          console.warn("Html5Qrcode start failed: ", err);
         });
+      });
     }
 
     return () => {
-      if (activeStream) {
-        activeStream.getTracks().forEach(track => track.stop());
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch((err: any) => console.error("Failed to stop scanner", err));
       }
-      setCameraStream(null);
     };
-  }, [isWizardOpen, wizardStep, inputMode, selectedCameraId]);
+  }, [isWizardOpen, wizardStep, inputMode, selectedCameraId, scanProgress, isScanning]);
 
   useEffect(() => {
     let timer: any;
@@ -699,21 +731,11 @@ export default function MappingCode() {
               {/* Scanning Viewport / Scanner Area */}
               {inputMode === "camera" ? (
                 <div className="bg-slate-950 border-2 border-slate-800 rounded-2xl overflow-hidden aspect-[4/3] flex flex-col items-center justify-center relative shadow-inner group">
-                  {/* Real video feed or simulated fallback */}
-                  {cameraStream ? (
-                    <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      playsInline 
-                      muted 
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-slate-500 select-none">
-                      <QrCode className="w-16 h-16 opacity-35" />
-                      <p className="text-[10px] font-mono tracking-widest uppercase opacity-70">Simulated Viewfinder Active</p>
-                    </div>
-                  )}
+                  {/* html5-qrcode target container element */}
+                  <div 
+                    id="camera-viewfinder-element" 
+                    className="absolute inset-0 w-full h-full object-cover [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
+                  />
 
                   {/* Viewfinder crosshairs */}
                   <div className="border-t-2 border-l-2 border-emerald-500 w-6 h-6 absolute top-4 left-4 z-10" />
