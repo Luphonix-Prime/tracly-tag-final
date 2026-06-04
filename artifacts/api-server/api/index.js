@@ -59420,14 +59420,25 @@ router8.get("/codes/public/:serial", async (req, res) => {
         }
       }
     }
-    console.log(`[Public Verify] NOT FOUND. Checking for similar codes...`);
-    const debugCodes = await db.select({
-      serialNumber: codesTable.serialNumber,
-      ssccCode: codesTable.ssccCode,
-      rawString: codesTable.rawString,
-      level: codesTable.level
-    }).from(codesTable).limit(5);
-    console.log(`[Public Verify] Sample codes in DB:`, JSON.stringify(debugCodes, null, 2));
+    console.log(`[Public Verify] NOT FOUND. Creating placeholder code to log scan details.`);
+    try {
+      const isSscc = searchSerial.length === 18 && /^\d+$/.test(searchSerial);
+      const [fallbackProduct] = await db.select({ id: productsTable.id }).from(productsTable).limit(1);
+      const fallbackProductId = fallbackProduct ? fallbackProduct.id : 1;
+      const inserted = await db.insert(codesTable).values({
+        productId: fallbackProductId,
+        level: isSscc ? "shipper" : "unit",
+        rawString: `INVALID_${searchSerial}_${Date.now()}`,
+        serialNumber: isSscc ? null : searchSerial,
+        ssccCode: isSscc ? searchSerial : null,
+        mapped: false
+      }).returning();
+      if (inserted && inserted[0]) {
+        await logCustomerScan(inserted[0].id, req.query);
+      }
+    } catch (dbErr) {
+      console.error("Failed to insert placeholder code for failed scan logging:", dbErr);
+    }
     res.status(404).json({
       error: "Product serial verification code not found or invalid",
       searched: searchSerial,

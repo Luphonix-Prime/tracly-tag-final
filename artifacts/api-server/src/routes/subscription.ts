@@ -1,131 +1,59 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, companiesTable } from "@workspace/db";
-import crypto from "crypto";
 
 const router = Router();
 
-const KEY_ID = process.env.RAZORPAY_KEY_ID || "rzp_test_DUMMY_KEY_ID";
-const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "DUMMY_KEY_SECRET";
-
-router.post("/subscription/create-order", async (req, res): Promise<void> => {
+/**
+ * POST /subscription/set
+ * Master-only endpoint to manually assign a subscription plan to a company.
+ * Body: { companyId: number, plan: "free" | "standard" | "enterprise", durationDays?: number }
+ */
+router.post("/subscription/set", async (req, res): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  const { plan, companyId } = req.body;
-  if (plan !== "standard" && plan !== "enterprise") {
-    res.status(400).json({ error: "Invalid plan" });
+
+  if (req.user.role !== "master") {
+    res.status(403).json({ error: "Only the master account can manage subscriptions" });
     return;
   }
 
-  let targetCompanyId = req.user.companyId;
-  if (req.user.role === "master" && companyId) {
-    targetCompanyId = parseInt(companyId, 10);
-  }
+  const { companyId, plan, durationDays } = req.body;
 
-  const amount = plan === "standard" ? 199900 : 999900; // in paise
-
-  try {
-    if (KEY_ID !== "rzp_test_DUMMY_KEY_ID") {
-      const authString = Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString("base64");
-      const response = await fetch("https://api.razorpay.com/v1/orders", {
-        method: "POST",
-        headers: {
-          "Authorization": `Basic ${authString}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount,
-          currency: "INR",
-          receipt: `receipt_co_${targetCompanyId || 0}_${Date.now()}`,
-        }),
-      });
-
-      if (response.ok) {
-        const data = (await response.json()) as any;
-        res.json({
-          success: true,
-          key: KEY_ID,
-          orderId: data.id,
-          amount: data.amount,
-          currency: data.currency,
-          isMock: false,
-        });
-        return;
-      } else {
-        const errText = await response.text();
-        req.log.warn({ err: errText }, "Razorpay API error, falling back to mock mode");
-      }
-    }
-  } catch (e) {
-    req.log.warn({ err: e }, "Failed to connect to Razorpay, falling back to mock mode");
-  }
-
-  // Fallback / Mock mode
-  const mockOrderId = `order_mock_${crypto.randomBytes(8).toString("hex")}`;
-  res.json({
-    success: true,
-    key: "rzp_test_DUMMY_KEY_ID",
-    orderId: mockOrderId,
-    amount,
-    currency: "INR",
-    isMock: true,
-  });
-});
-
-router.post("/subscription/verify-payment", async (req, res): Promise<void> => {
-  if (!req.user) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
-  let targetCompanyId = req.user.companyId;
-  if (req.user.role === "master" && req.body.companyId) {
-    targetCompanyId = parseInt(req.body.companyId, 10);
-  }
-  if (!targetCompanyId) {
-    res.status(400).json({ error: "User is not associated with any company" });
+  if (!companyId) {
+    res.status(400).json({ error: "companyId is required" });
     return;
   }
 
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, plan } = req.body;
-
-  if (plan !== "standard" && plan !== "enterprise" && plan !== "free") {
-    res.status(400).json({ error: "Invalid plan" });
+  if (plan !== "free" && plan !== "standard" && plan !== "enterprise") {
+    res.status(400).json({ error: "Invalid plan. Must be 'free', 'standard', or 'enterprise'" });
     return;
   }
 
-  // If it's a mock order or using dummy keys, skip signature verification
-  const isMock = !razorpay_order_id || razorpay_order_id.startsWith("order_mock_") || KEY_ID === "rzp_test_DUMMY_KEY_ID";
-
-  if (!isMock) {
-    const generated_signature = crypto
-      .createHmac("sha256", KEY_SECRET)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest("hex");
-
-    if (generated_signature !== razorpay_signature) {
-      res.status(400).json({ error: "Payment verification failed" });
-      return;
-    }
-  }
+  const days = typeof durationDays === "number" && durationDays > 0 ? durationDays : 30;
 
   try {
     const expiresAtDate = new Date();
-    expiresAtDate.setDate(expiresAtDate.getDate() + 30); // 30 days subscription
+    expiresAtDate.setDate(expiresAtDate.getDate() + days);
 
     await db
       .update(companiesTable)
       .set({
         subscriptionPlan: plan,
-        subscriptionStatus: "active",
-        subscriptionExpiresAt: expiresAtDate.toISOString(),
-        razorpayOrderId: razorpay_order_id || null,
-        razorpayPaymentId: razorpay_payment_id || null,
+        subscriptionStatus: plan === "free" ? "inactive" : "active",
+        subscriptionExpiresAt: plan === "free" ? null : expiresAtDate.toISOString(),
       })
-      .where(eq(companiesTable.id, targetCompanyId));
+      .where(eq(companiesTable.id, parseInt(companyId, 10)));
 
-    res.json({ success: true, plan });
+    res.json({
+      success: true,
+      companyId: parseInt(companyId, 10),
+      plan,
+      subscriptionStatus: plan === "free" ? "inactive" : "active",
+      expiresAt: plan === "free" ? null : expiresAtDate.toISOString(),
+    });
   } catch (err: any) {
     req.log.error({ err }, "Failed to update company subscription");
     res.status(500).json({ error: "Failed to update subscription in database" });

@@ -7,12 +7,17 @@
     "preinstall": "node -e \"const a=process.env.npm_config_user_agent||'';if(!a.startsWith('pnpm')){process.stderr.write('Use pnpm instead\\n');process.exit(1)}\"",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "db:seed": "pnpm --filter @workspace/api-server run db:seed",
+    "db:studio": "pnpm --filter @workspace/db exec drizzle-kit studio --config ./drizzle.config.ts"
   },
   "private": true,
   "devDependencies": {
     "prettier": "^3.8.1",
     "typescript": "~5.9.2",
     "vercel": "^54.1.0"
+  },
+  "dependencies": {
+    "drizzle-orm": "catalog:"
   }
 }
