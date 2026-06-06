@@ -96,6 +96,7 @@ const logCustomerScan = async (codeId: number, query: any) => {
     console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city})`);
   } catch (err) {
     console.error("Failed to log customer scan:", err);
+    throw err;
   }
 };
 
