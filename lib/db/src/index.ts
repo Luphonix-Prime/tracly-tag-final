@@ -3,19 +3,26 @@ import { createClient } from "@libsql/client";
 import * as schema from "./schema/index";
 import path from "path";
 import fs from "fs";
+import * as dotenv from "dotenv";
+
+let resolvedDirname = "";
+try {
+  resolvedDirname = import.meta.dirname || __dirname;
+} catch (e) {
+  resolvedDirname = ".";
+}
+
+// Load env files from workspace root or package directories
+dotenv.config({ path: path.resolve(resolvedDirname, "../../../.env") });
+dotenv.config({ path: path.resolve(resolvedDirname, "../../.env") });
+dotenv.config({ path: path.resolve(resolvedDirname, "../.env") });
+dotenv.config();
 
 let dbUrl = process.env.DATABASE_URL;
 let dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
 
 if (!dbUrl) {
   // Use local SQLite database file
-  let resolvedDirname = "";
-  try {
-    resolvedDirname = import.meta.dirname || __dirname;
-  } catch (e) {
-    resolvedDirname = ".";
-  }
-
   const dbFile = path.resolve(resolvedDirname, "..", "traclytag.db");
   const isVercel = !!process.env.VERCEL || process.env.NODE_ENV === "production";
 

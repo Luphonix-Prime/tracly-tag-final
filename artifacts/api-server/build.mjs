@@ -4,11 +4,32 @@ import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
 import { rm } from "node:fs/promises";
+import * as dotenv from "dotenv";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
+
+// Load environment variables from the workspace root or local directory
+dotenv.config({ path: path.resolve(artifactDir, "../../.env") });
+dotenv.config({ path: path.resolve(artifactDir, ".env") });
+dotenv.config();
+
+const dbUrl = process.env.DATABASE_URL;
+const dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
+const sessionSecret = process.env.SESSION_SECRET;
+
+console.log("Build environment config status:");
+console.log("- DATABASE_URL:", dbUrl ? "Found (" + dbUrl.slice(0, 30) + "...)" : "Missing");
+console.log("- DATABASE_AUTH_TOKEN:", dbAuthToken ? "Found (masked)" : "Missing");
+console.log("- SESSION_SECRET:", sessionSecret ? "Found (masked)" : "Missing");
+
+const defineEnv = {
+  "process.env.DATABASE_URL": dbUrl ? JSON.stringify(dbUrl) : "undefined",
+  "process.env.DATABASE_AUTH_TOKEN": dbAuthToken ? JSON.stringify(dbAuthToken) : "undefined",
+  "process.env.SESSION_SECRET": sessionSecret ? JSON.stringify(sessionSecret) : "undefined",
+};
 
 async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
@@ -120,6 +141,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     sourcemap: "linked",
     plugins: [pinoPlugin],
     banner: bannerConfig,
+    define: defineEnv,
   });
 
   // 2. Build Vercel serverless function (api/index.js)
@@ -137,6 +159,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     sourcemap: "linked",
     plugins: [pinoPlugin],
     banner: bannerConfig,
+    define: defineEnv,
   });
 }
 
