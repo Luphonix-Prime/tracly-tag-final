@@ -51,18 +51,34 @@ export default function PublicVerify() {
   const [locationAccess, setLocationAccess] = useState(true);
 
   const handleVerify = () => {
+    setError(null);
+
     if (!serial) {
       setError("No serial number provided.");
       return;
     }
 
+    if (!fullName.trim()) {
+      setError("Full Name is required.");
+      return;
+    }
+
+    if (!mobileNumber.trim()) {
+      setError("Mobile Number is required.");
+      return;
+    }
+
+    if (!zipCode.trim()) {
+      setError("Zip Code is required.");
+      return;
+    }
+
     setLoading(true);
-    setError(null);
 
     const params = new URLSearchParams({
-      customerName: fullName || "Anonymous Customer",
-      mobileNumber: mobileNumber || "N/A",
-      zipCode: zipCode || "N/A",
+      customerName: fullName.trim(),
+      mobileNumber: mobileNumber.trim(),
+      zipCode: zipCode.trim(),
     });
 
     fetch(`/api/codes/public/${encodeURIComponent(serial)}?${params.toString()}`)
