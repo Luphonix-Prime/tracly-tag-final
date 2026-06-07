@@ -18675,7 +18675,7 @@ var require_view = __commonJS({
     "use strict";
     var debug = require_src()("express:view");
     var path4 = __require("node:path");
-    var fs3 = __require("node:fs");
+    var fs4 = __require("node:fs");
     var dirname = path4.dirname;
     var basename = path4.basename;
     var extname = path4.extname;
@@ -18755,7 +18755,7 @@ var require_view = __commonJS({
     function tryStat(path5) {
       debug('stat "%s"', path5);
       try {
-        return fs3.statSync(path5);
+        return fs4.statSync(path5);
       } catch (e) {
         return void 0;
       }
@@ -18768,14 +18768,14 @@ var require_etag = __commonJS({
   "../../node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports, module) {
     "use strict";
     module.exports = etag;
-    var crypto4 = __require("crypto");
+    var crypto3 = __require("crypto");
     var Stats = __require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash2 = crypto4.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash2 = crypto3.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash2 + '"';
     }
@@ -22250,17 +22250,17 @@ var require_content_disposition = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js"(exports) {
-    var crypto4 = __require("crypto");
+    var crypto3 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(input, secret2) {
       if ("string" != typeof input) throw new TypeError("Signed cookie string must be provided.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
       var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret2), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
-      return expectedBuffer.length === inputBuffer.length && crypto4.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
+      return expectedBuffer.length === inputBuffer.length && crypto3.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
     };
   }
 });
@@ -22441,7 +22441,7 @@ var require_send = __commonJS({
     var escapeHtml = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var mime = require_mime_types();
     var ms = require_ms();
     var onFinished = require_on_finished();
@@ -22723,7 +22723,7 @@ var require_send = __commonJS({
       var i = 0;
       var self2 = this;
       debug('stat "%s"', path5);
-      fs3.stat(path5, function onstat(err, stat) {
+      fs4.stat(path5, function onstat(err, stat) {
         var pathEndsWithSep = path5[path5.length - 1] === sep;
         if (err && err.code === "ENOENT" && !extname(path5) && !pathEndsWithSep) {
           return next(err);
@@ -22740,7 +22740,7 @@ var require_send = __commonJS({
         }
         var p = path5 + "." + self2._extensions[i++];
         debug('stat "%s"', p);
-        fs3.stat(p, function(err2, stat) {
+        fs4.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -22758,7 +22758,7 @@ var require_send = __commonJS({
         }
         var p = join(path5, self2._index[i]);
         debug('stat "%s"', p);
-        fs3.stat(p, function(err2, stat) {
+        fs4.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -22770,7 +22770,7 @@ var require_send = __commonJS({
     SendStream.prototype.stream = function stream(path5, options) {
       var self2 = this;
       var res = this.res;
-      var stream2 = fs3.createReadStream(path5, options);
+      var stream2 = fs4.createReadStream(path5, options);
       this.emit("stream", stream2);
       stream2.pipe(res);
       function cleanup() {
@@ -25062,7 +25062,7 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "../../node_modules/.pnpm/sonic-boom@4.2.1/node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
     var path4 = __require("path");
@@ -25119,20 +25119,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs3.mkdirSync(path4.dirname(file), { recursive: true });
-          const fd = fs3.openSync(file, flags, mode);
+          if (sonic.mkdir) fs4.mkdirSync(path4.dirname(file), { recursive: true });
+          const fd = fs4.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs3.mkdir(path4.dirname(file), { recursive: true }, (err) => {
+        fs4.mkdir(path4.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs3.open(file, flags, mode, fileOpened);
+          fs4.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs3.open(file, flags, mode, fileOpened);
+        fs4.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -25173,8 +25173,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs3.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs3.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs4.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs4.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -25183,15 +25183,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs3.writeSync(this.fd, this._writingBuf);
+            return fs4.writeSync(this.fd, this._writingBuf);
           }
-          return fs3.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs4.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs3.write(this.fd, this._writingBuf, this.release);
+            return fs4.write(this.fd, this._writingBuf, this.release);
           }
-          return fs3.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs4.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -25248,7 +25248,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs3.fsyncSync(this.fd);
+          fs4.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -25362,7 +25362,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs3.fsync(this.fd, (err) => {
+            fs4.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -25464,7 +25464,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs3.close(fd, (err) => {
+          fs4.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -25513,7 +25513,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs3.writeSync(this.fd, buf) : fs3.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs4.writeSync(this.fd, buf) : fs4.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -25529,7 +25529,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs3.fsyncSync(this.fd);
+        fs4.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -25550,7 +25550,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs3.writeSync(this.fd, buf);
+          const n = fs4.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -25578,13 +25578,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs3.writeSync(this.fd, this._writingBuf) : fs3.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs4.writeSync(this.fd, this._writingBuf) : fs4.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs3.write(this.fd, this._writingBuf, release);
+        fs4.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -25593,7 +25593,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs3.writeSync(this.fd, this._writingBuf);
+          const written = fs4.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -25602,7 +25602,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs3.write(this.fd, this._writingBuf, release);
+        fs4.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -25618,12 +25618,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs3.fsync(sonic.fd, closeWrapped);
+        fs4.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs3.close(sonic.fd, done);
+          fs4.close(sonic.fd, done);
         } else {
           done();
         }
@@ -28453,11 +28453,11 @@ var require_logger = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js
 var require_cookie_signature2 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js"(exports) {
-    var crypto4 = __require("crypto");
+    var crypto3 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if ("string" != typeof secret2) throw new TypeError("Secret string must be provided.");
-      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -28466,7 +28466,7 @@ var require_cookie_signature2 = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto4.createHash("sha1").update(str).digest("hex");
+      return crypto3.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -28560,6 +28560,364 @@ var require_cookie_parser = __commonJS({
       }
       return ret;
     }
+  }
+});
+
+// ../../node_modules/.pnpm/dotenv@16.6.1/node_modules/dotenv/package.json
+var require_package2 = __commonJS({
+  "../../node_modules/.pnpm/dotenv@16.6.1/node_modules/dotenv/package.json"(exports, module) {
+    module.exports = {
+      name: "dotenv",
+      version: "16.6.1",
+      description: "Loads environment variables from .env file",
+      main: "lib/main.js",
+      types: "lib/main.d.ts",
+      exports: {
+        ".": {
+          types: "./lib/main.d.ts",
+          require: "./lib/main.js",
+          default: "./lib/main.js"
+        },
+        "./config": "./config.js",
+        "./config.js": "./config.js",
+        "./lib/env-options": "./lib/env-options.js",
+        "./lib/env-options.js": "./lib/env-options.js",
+        "./lib/cli-options": "./lib/cli-options.js",
+        "./lib/cli-options.js": "./lib/cli-options.js",
+        "./package.json": "./package.json"
+      },
+      scripts: {
+        "dts-check": "tsc --project tests/types/tsconfig.json",
+        lint: "standard",
+        pretest: "npm run lint && npm run dts-check",
+        test: "tap run --allow-empty-coverage --disable-coverage --timeout=60000",
+        "test:coverage": "tap run --show-full-coverage --timeout=60000 --coverage-report=text --coverage-report=lcov",
+        prerelease: "npm test",
+        release: "standard-version"
+      },
+      repository: {
+        type: "git",
+        url: "git://github.com/motdotla/dotenv.git"
+      },
+      homepage: "https://github.com/motdotla/dotenv#readme",
+      funding: "https://dotenvx.com",
+      keywords: [
+        "dotenv",
+        "env",
+        ".env",
+        "environment",
+        "variables",
+        "config",
+        "settings"
+      ],
+      readmeFilename: "README.md",
+      license: "BSD-2-Clause",
+      devDependencies: {
+        "@types/node": "^18.11.3",
+        decache: "^4.6.2",
+        sinon: "^14.0.1",
+        standard: "^17.0.0",
+        "standard-version": "^9.5.0",
+        tap: "^19.2.0",
+        typescript: "^4.8.4"
+      },
+      engines: {
+        node: ">=12"
+      },
+      browser: {
+        fs: false
+      }
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/dotenv@16.6.1/node_modules/dotenv/lib/main.js
+var require_main = __commonJS({
+  "../../node_modules/.pnpm/dotenv@16.6.1/node_modules/dotenv/lib/main.js"(exports, module) {
+    var fs4 = __require("fs");
+    var path4 = __require("path");
+    var os = __require("os");
+    var crypto3 = __require("crypto");
+    var packageJson = require_package2();
+    var version2 = packageJson.version;
+    var LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg;
+    function parse(src) {
+      const obj = {};
+      let lines = src.toString();
+      lines = lines.replace(/\r\n?/mg, "\n");
+      let match;
+      while ((match = LINE.exec(lines)) != null) {
+        const key = match[1];
+        let value = match[2] || "";
+        value = value.trim();
+        const maybeQuote = value[0];
+        value = value.replace(/^(['"`])([\s\S]*)\1$/mg, "$2");
+        if (maybeQuote === '"') {
+          value = value.replace(/\\n/g, "\n");
+          value = value.replace(/\\r/g, "\r");
+        }
+        obj[key] = value;
+      }
+      return obj;
+    }
+    function _parseVault(options) {
+      options = options || {};
+      const vaultPath = _vaultPath(options);
+      options.path = vaultPath;
+      const result = DotenvModule.configDotenv(options);
+      if (!result.parsed) {
+        const err = new Error(`MISSING_DATA: Cannot parse ${vaultPath} for an unknown reason`);
+        err.code = "MISSING_DATA";
+        throw err;
+      }
+      const keys = _dotenvKey(options).split(",");
+      const length = keys.length;
+      let decrypted;
+      for (let i = 0; i < length; i++) {
+        try {
+          const key = keys[i].trim();
+          const attrs = _instructions(result, key);
+          decrypted = DotenvModule.decrypt(attrs.ciphertext, attrs.key);
+          break;
+        } catch (error) {
+          if (i + 1 >= length) {
+            throw error;
+          }
+        }
+      }
+      return DotenvModule.parse(decrypted);
+    }
+    function _warn(message) {
+      console.log(`[dotenv@${version2}][WARN] ${message}`);
+    }
+    function _debug(message) {
+      console.log(`[dotenv@${version2}][DEBUG] ${message}`);
+    }
+    function _log(message) {
+      console.log(`[dotenv@${version2}] ${message}`);
+    }
+    function _dotenvKey(options) {
+      if (options && options.DOTENV_KEY && options.DOTENV_KEY.length > 0) {
+        return options.DOTENV_KEY;
+      }
+      if (process.env.DOTENV_KEY && process.env.DOTENV_KEY.length > 0) {
+        return process.env.DOTENV_KEY;
+      }
+      return "";
+    }
+    function _instructions(result, dotenvKey) {
+      let uri;
+      try {
+        uri = new URL(dotenvKey);
+      } catch (error) {
+        if (error.code === "ERR_INVALID_URL") {
+          const err = new Error("INVALID_DOTENV_KEY: Wrong format. Must be in valid uri format like dotenv://:key_1234@dotenvx.com/vault/.env.vault?environment=development");
+          err.code = "INVALID_DOTENV_KEY";
+          throw err;
+        }
+        throw error;
+      }
+      const key = uri.password;
+      if (!key) {
+        const err = new Error("INVALID_DOTENV_KEY: Missing key part");
+        err.code = "INVALID_DOTENV_KEY";
+        throw err;
+      }
+      const environment = uri.searchParams.get("environment");
+      if (!environment) {
+        const err = new Error("INVALID_DOTENV_KEY: Missing environment part");
+        err.code = "INVALID_DOTENV_KEY";
+        throw err;
+      }
+      const environmentKey = `DOTENV_VAULT_${environment.toUpperCase()}`;
+      const ciphertext = result.parsed[environmentKey];
+      if (!ciphertext) {
+        const err = new Error(`NOT_FOUND_DOTENV_ENVIRONMENT: Cannot locate environment ${environmentKey} in your .env.vault file.`);
+        err.code = "NOT_FOUND_DOTENV_ENVIRONMENT";
+        throw err;
+      }
+      return { ciphertext, key };
+    }
+    function _vaultPath(options) {
+      let possibleVaultPath = null;
+      if (options && options.path && options.path.length > 0) {
+        if (Array.isArray(options.path)) {
+          for (const filepath of options.path) {
+            if (fs4.existsSync(filepath)) {
+              possibleVaultPath = filepath.endsWith(".vault") ? filepath : `${filepath}.vault`;
+            }
+          }
+        } else {
+          possibleVaultPath = options.path.endsWith(".vault") ? options.path : `${options.path}.vault`;
+        }
+      } else {
+        possibleVaultPath = path4.resolve(process.cwd(), ".env.vault");
+      }
+      if (fs4.existsSync(possibleVaultPath)) {
+        return possibleVaultPath;
+      }
+      return null;
+    }
+    function _resolveHome(envPath) {
+      return envPath[0] === "~" ? path4.join(os.homedir(), envPath.slice(1)) : envPath;
+    }
+    function _configVault(options) {
+      const debug = Boolean(options && options.debug);
+      const quiet = options && "quiet" in options ? options.quiet : true;
+      if (debug || !quiet) {
+        _log("Loading env from encrypted .env.vault");
+      }
+      const parsed = DotenvModule._parseVault(options);
+      let processEnv = process.env;
+      if (options && options.processEnv != null) {
+        processEnv = options.processEnv;
+      }
+      DotenvModule.populate(processEnv, parsed, options);
+      return { parsed };
+    }
+    function configDotenv(options) {
+      const dotenvPath = path4.resolve(process.cwd(), ".env");
+      let encoding = "utf8";
+      const debug = Boolean(options && options.debug);
+      const quiet = options && "quiet" in options ? options.quiet : true;
+      if (options && options.encoding) {
+        encoding = options.encoding;
+      } else {
+        if (debug) {
+          _debug("No encoding is specified. UTF-8 is used by default");
+        }
+      }
+      let optionPaths = [dotenvPath];
+      if (options && options.path) {
+        if (!Array.isArray(options.path)) {
+          optionPaths = [_resolveHome(options.path)];
+        } else {
+          optionPaths = [];
+          for (const filepath of options.path) {
+            optionPaths.push(_resolveHome(filepath));
+          }
+        }
+      }
+      let lastError;
+      const parsedAll = {};
+      for (const path5 of optionPaths) {
+        try {
+          const parsed = DotenvModule.parse(fs4.readFileSync(path5, { encoding }));
+          DotenvModule.populate(parsedAll, parsed, options);
+        } catch (e) {
+          if (debug) {
+            _debug(`Failed to load ${path5} ${e.message}`);
+          }
+          lastError = e;
+        }
+      }
+      let processEnv = process.env;
+      if (options && options.processEnv != null) {
+        processEnv = options.processEnv;
+      }
+      DotenvModule.populate(processEnv, parsedAll, options);
+      if (debug || !quiet) {
+        const keysCount = Object.keys(parsedAll).length;
+        const shortPaths = [];
+        for (const filePath of optionPaths) {
+          try {
+            const relative = path4.relative(process.cwd(), filePath);
+            shortPaths.push(relative);
+          } catch (e) {
+            if (debug) {
+              _debug(`Failed to load ${filePath} ${e.message}`);
+            }
+            lastError = e;
+          }
+        }
+        _log(`injecting env (${keysCount}) from ${shortPaths.join(",")}`);
+      }
+      if (lastError) {
+        return { parsed: parsedAll, error: lastError };
+      } else {
+        return { parsed: parsedAll };
+      }
+    }
+    function config2(options) {
+      if (_dotenvKey(options).length === 0) {
+        return DotenvModule.configDotenv(options);
+      }
+      const vaultPath = _vaultPath(options);
+      if (!vaultPath) {
+        _warn(`You set DOTENV_KEY but you are missing a .env.vault file at ${vaultPath}. Did you forget to build it?`);
+        return DotenvModule.configDotenv(options);
+      }
+      return DotenvModule._configVault(options);
+    }
+    function decrypt(encrypted, keyStr) {
+      const key = Buffer.from(keyStr.slice(-64), "hex");
+      let ciphertext = Buffer.from(encrypted, "base64");
+      const nonce = ciphertext.subarray(0, 12);
+      const authTag = ciphertext.subarray(-16);
+      ciphertext = ciphertext.subarray(12, -16);
+      try {
+        const aesgcm = crypto3.createDecipheriv("aes-256-gcm", key, nonce);
+        aesgcm.setAuthTag(authTag);
+        return `${aesgcm.update(ciphertext)}${aesgcm.final()}`;
+      } catch (error) {
+        const isRange = error instanceof RangeError;
+        const invalidKeyLength = error.message === "Invalid key length";
+        const decryptionFailed = error.message === "Unsupported state or unable to authenticate data";
+        if (isRange || invalidKeyLength) {
+          const err = new Error("INVALID_DOTENV_KEY: It must be 64 characters long (or more)");
+          err.code = "INVALID_DOTENV_KEY";
+          throw err;
+        } else if (decryptionFailed) {
+          const err = new Error("DECRYPTION_FAILED: Please check your DOTENV_KEY");
+          err.code = "DECRYPTION_FAILED";
+          throw err;
+        } else {
+          throw error;
+        }
+      }
+    }
+    function populate(processEnv, parsed, options = {}) {
+      const debug = Boolean(options && options.debug);
+      const override = Boolean(options && options.override);
+      if (typeof parsed !== "object") {
+        const err = new Error("OBJECT_REQUIRED: Please check the processEnv argument being passed to populate");
+        err.code = "OBJECT_REQUIRED";
+        throw err;
+      }
+      for (const key of Object.keys(parsed)) {
+        if (Object.prototype.hasOwnProperty.call(processEnv, key)) {
+          if (override === true) {
+            processEnv[key] = parsed[key];
+          }
+          if (debug) {
+            if (override === true) {
+              _debug(`"${key}" is already defined and WAS overwritten`);
+            } else {
+              _debug(`"${key}" is already defined and was NOT overwritten`);
+            }
+          }
+        } else {
+          processEnv[key] = parsed[key];
+        }
+      }
+    }
+    var DotenvModule = {
+      configDotenv,
+      _configVault,
+      _parseVault,
+      config: config2,
+      decrypt,
+      parse,
+      populate
+    };
+    module.exports.configDotenv = DotenvModule.configDotenv;
+    module.exports._configVault = DotenvModule._configVault;
+    module.exports._parseVault = DotenvModule._parseVault;
+    module.exports.config = DotenvModule.config;
+    module.exports.decrypt = DotenvModule.decrypt;
+    module.exports.parse = DotenvModule.parse;
+    module.exports.populate = DotenvModule.populate;
+    module.exports = DotenvModule;
   }
 });
 
@@ -28997,8 +29355,8 @@ var require_node2 = __commonJS({
           }
           break;
         case "FILE":
-          var fs3 = __require("fs");
-          stream2 = new fs3.SyncWriteStream(fd2, { autoClose: false });
+          var fs4 = __require("fs");
+          stream2 = new fs4.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -29146,11 +29504,11 @@ var require_on_headers = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js
 var require_cookie_signature3 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js"(exports) {
-    var crypto4 = __require("crypto");
+    var crypto3 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" !== typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(val, secret2) {
       if ("string" !== typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -29159,7 +29517,7 @@ var require_cookie_signature3 = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto4.createHash("sha1").update(str).digest("hex");
+      return crypto3.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -29168,8 +29526,8 @@ var require_cookie_signature3 = __commonJS({
 var require_random_bytes = __commonJS({
   "../../node_modules/.pnpm/random-bytes@1.0.0/node_modules/random-bytes/index.js"(exports, module) {
     "use strict";
-    var crypto4 = __require("crypto");
-    var generateAttempts = crypto4.randomBytes === crypto4.pseudoRandomBytes ? 1 : 3;
+    var crypto3 = __require("crypto");
+    var generateAttempts = crypto3.randomBytes === crypto3.pseudoRandomBytes ? 1 : 3;
     module.exports = randomBytes3;
     module.exports.sync = randomBytesSync;
     function randomBytes3(size, callback) {
@@ -29193,7 +29551,7 @@ var require_random_bytes = __commonJS({
       var err = null;
       for (var i = 0; i < generateAttempts; i++) {
         try {
-          return crypto4.randomBytes(size);
+          return crypto3.randomBytes(size);
         } catch (e) {
           err = e;
         }
@@ -29201,7 +29559,7 @@ var require_random_bytes = __commonJS({
       throw err;
     }
     function generateRandomBytes(size, attempts, callback) {
-      crypto4.randomBytes(size, function onRandomBytes(err, buf) {
+      crypto3.randomBytes(size, function onRandomBytes(err, buf) {
         if (!err) return callback(null, buf);
         if (!--attempts) return callback(err);
         setTimeout(generateRandomBytes.bind(null, size, attempts, callback), 10);
@@ -29543,7 +29901,7 @@ var require_express_session = __commonJS({
     "use strict";
     var Buffer2 = require_safe_buffer().Buffer;
     var cookie = require_cookie();
-    var crypto4 = __require("crypto");
+    var crypto3 = __require("crypto");
     var debug = require_src2()("express-session");
     var deprecate = require_depd()("express-session");
     var onHeaders = require_on_headers();
@@ -29916,7 +30274,7 @@ var require_express_session = __commonJS({
         }
         return val;
       });
-      return crypto4.createHash("sha1").update(str, "utf8").digest("hex");
+      return crypto3.createHash("sha1").update(str, "utf8").digest("hex");
     }
     function issecure(req, trustProxy) {
       if (req.connection && req.connection.encrypted) {
@@ -43032,12 +43390,12 @@ var require_make_middleware = __commonJS({
 // ../../node_modules/.pnpm/multer@2.1.1/node_modules/multer/storage/disk.js
 var require_disk = __commonJS({
   "../../node_modules/.pnpm/multer@2.1.1/node_modules/multer/storage/disk.js"(exports, module) {
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var os = __require("os");
     var path4 = __require("path");
-    var crypto4 = __require("crypto");
+    var crypto3 = __require("crypto");
     function getFilename(req, file, cb) {
-      crypto4.randomBytes(16, function(err, raw) {
+      crypto3.randomBytes(16, function(err, raw) {
         cb(err, err ? void 0 : raw.toString("hex"));
       });
     }
@@ -43047,7 +43405,7 @@ var require_disk = __commonJS({
     function DiskStorage(opts) {
       this.getFilename = opts.filename || getFilename;
       if (typeof opts.destination === "string") {
-        fs3.mkdirSync(opts.destination, { recursive: true });
+        fs4.mkdirSync(opts.destination, { recursive: true });
         this.getDestination = function($0, $1, cb) {
           cb(null, opts.destination);
         };
@@ -43062,7 +43420,7 @@ var require_disk = __commonJS({
         that.getFilename(req, file, function(err2, filename) {
           if (err2) return cb(err2);
           var finalPath = path4.join(destination, filename);
-          var outStream = fs3.createWriteStream(finalPath);
+          var outStream = fs4.createWriteStream(finalPath);
           file.stream.pipe(outStream);
           outStream.on("error", cb);
           outStream.on("finish", function() {
@@ -43081,7 +43439,7 @@ var require_disk = __commonJS({
       delete file.destination;
       delete file.filename;
       delete file.path;
-      fs3.unlink(path5, cb);
+      fs4.unlink(path5, cb);
     };
     module.exports = function(opts) {
       return new DiskStorage(opts);
@@ -52546,24 +52904,24 @@ function is(value, type) {
 
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@libsql+client@0.17.3_@types+pg@8.20.0/node_modules/drizzle-orm/column.js
 var Column = class {
-  constructor(table, config) {
+  constructor(table, config2) {
     this.table = table;
-    this.config = config;
-    this.name = config.name;
-    this.keyAsName = config.keyAsName;
-    this.notNull = config.notNull;
-    this.default = config.default;
-    this.defaultFn = config.defaultFn;
-    this.onUpdateFn = config.onUpdateFn;
-    this.hasDefault = config.hasDefault;
-    this.primary = config.primaryKey;
-    this.isUnique = config.isUnique;
-    this.uniqueName = config.uniqueName;
-    this.uniqueType = config.uniqueType;
-    this.dataType = config.dataType;
-    this.columnType = config.columnType;
-    this.generated = config.generated;
-    this.generatedIdentity = config.generatedIdentity;
+    this.config = config2;
+    this.name = config2.name;
+    this.keyAsName = config2.keyAsName;
+    this.notNull = config2.notNull;
+    this.default = config2.default;
+    this.defaultFn = config2.defaultFn;
+    this.onUpdateFn = config2.onUpdateFn;
+    this.hasDefault = config2.hasDefault;
+    this.primary = config2.primaryKey;
+    this.isUnique = config2.isUnique;
+    this.uniqueName = config2.uniqueName;
+    this.uniqueType = config2.uniqueType;
+    this.dataType = config2.dataType;
+    this.columnType = config2.columnType;
+    this.generated = config2.generated;
+    this.generatedIdentity = config2.generatedIdentity;
   }
   static [entityKind] = "Column";
   name;
@@ -52710,9 +53068,9 @@ var ForeignKeyBuilder = class {
   _onUpdate = "no action";
   /** @internal */
   _onDelete = "no action";
-  constructor(config, actions) {
+  constructor(config2, actions) {
     this.reference = () => {
-      const { name, columns, foreignColumns } = config();
+      const { name, columns, foreignColumns } = config2();
       return { name, columns, foreignTable: foreignColumns[0].table, foreignColumns };
     };
     if (actions) {
@@ -52900,10 +53258,10 @@ var PgColumnBuilder = class extends ColumnBuilder {
     this.foreignKeyConfigs.push({ ref, actions });
     return this;
   }
-  unique(name, config) {
+  unique(name, config2) {
     this.config.isUnique = true;
     this.config.uniqueName = name;
-    this.config.uniqueType = config?.nulls;
+    this.config.uniqueType = config2?.nulls;
     return this;
   }
   generatedAlwaysAs(as) {
@@ -52942,11 +53300,11 @@ var PgColumnBuilder = class extends ColumnBuilder {
   }
 };
 var PgColumn = class extends Column {
-  constructor(table, config) {
-    if (!config.uniqueName) {
-      config.uniqueName = uniqueKeyName(table, [config.name]);
+  constructor(table, config2) {
+    if (!config2.uniqueName) {
+      config2.uniqueName = uniqueKeyName(table, [config2.name]);
     }
-    super(table, config);
+    super(table, config2);
     this.table = table;
   }
   static [entityKind] = "PgColumn";
@@ -53047,11 +53405,11 @@ var PgArrayBuilder = class extends PgColumnBuilder {
   }
 };
 var PgArray = class _PgArray extends PgColumn {
-  constructor(table, config, baseColumn, range) {
-    super(table, config);
+  constructor(table, config2, baseColumn, range) {
+    super(table, config2);
     this.baseColumn = baseColumn;
     this.range = range;
-    this.size = config.size;
+    this.size = config2.size;
   }
   size;
   static [entityKind] = "PgArray";
@@ -53092,9 +53450,9 @@ var PgEnumObjectColumn = class extends PgColumn {
   static [entityKind] = "PgEnumObjectColumn";
   enum;
   enumValues = this.config.enum.enumValues;
-  constructor(table, config) {
-    super(table, config);
-    this.enum = config.enum;
+  constructor(table, config2) {
+    super(table, config2);
+    this.enum = config2.enum;
   }
   getSQLType() {
     return this.enum.enumName;
@@ -53122,9 +53480,9 @@ var PgEnumColumn = class extends PgColumn {
   static [entityKind] = "PgEnumColumn";
   enum = this.config.enum;
   enumValues = this.config.enum.enumValues;
-  constructor(table, config) {
-    super(table, config);
-    this.enum = config.enum;
+  constructor(table, config2) {
+    super(table, config2);
+    this.enum = config2.enum;
   }
   getSQLType() {
     return this.enum.enumName;
@@ -53308,9 +53666,9 @@ var SQL = class _SQL {
     this.queryChunks.push(...query.queryChunks);
     return this;
   }
-  toQuery(config) {
+  toQuery(config2) {
     return tracer.startActiveSpan("drizzle.buildSQL", (span) => {
-      const query = this.buildQueryFromSourceParams(this.queryChunks, config);
+      const query = this.buildQueryFromSourceParams(this.queryChunks, config2);
       span?.setAttributes({
         "drizzle.query.text": query.sql,
         "drizzle.query.params": JSON.stringify(query.params)
@@ -53319,7 +53677,7 @@ var SQL = class _SQL {
     });
   }
   buildQueryFromSourceParams(chunks, _config) {
-    const config = Object.assign({}, _config, {
+    const config2 = Object.assign({}, _config, {
       inlineParams: _config.inlineParams || this.shouldInlineParams,
       paramStartIndex: _config.paramStartIndex || { value: 0 }
     });
@@ -53330,7 +53688,7 @@ var SQL = class _SQL {
       prepareTyping,
       inlineParams,
       paramStartIndex
-    } = config;
+    } = config2;
     return mergeQueries(chunks.map((chunk) => {
       if (is(chunk, StringChunk)) {
         return { sql: chunk.value.join(""), params: [] };
@@ -53350,11 +53708,11 @@ var SQL = class _SQL {
           }
         }
         result.push(new StringChunk(")"));
-        return this.buildQueryFromSourceParams(result, config);
+        return this.buildQueryFromSourceParams(result, config2);
       }
       if (is(chunk, _SQL)) {
         return this.buildQueryFromSourceParams(chunk.queryChunks, {
-          ...config,
+          ...config2,
           inlineParams: inlineParams || chunk.shouldInlineParams
         });
       }
@@ -53391,10 +53749,10 @@ var SQL = class _SQL {
         }
         const mappedValue = chunk.value === null ? null : chunk.encoder.mapToDriverValue(chunk.value);
         if (is(mappedValue, _SQL)) {
-          return this.buildQueryFromSourceParams([mappedValue], config);
+          return this.buildQueryFromSourceParams([mappedValue], config2);
         }
         if (inlineParams) {
-          return { sql: this.mapInlineParam(mappedValue, config), params: [] };
+          return { sql: this.mapInlineParam(mappedValue, config2), params: [] };
         }
         let typings = ["none"];
         if (prepareTyping) {
@@ -53417,7 +53775,7 @@ var SQL = class _SQL {
           chunk._.sql,
           new StringChunk(") "),
           new Name(chunk._.alias)
-        ], config);
+        ], config2);
       }
       if (isPgEnum(chunk)) {
         if (chunk.schema) {
@@ -53427,16 +53785,16 @@ var SQL = class _SQL {
       }
       if (isSQLWrapper(chunk)) {
         if (chunk.shouldOmitSQLParens?.()) {
-          return this.buildQueryFromSourceParams([chunk.getSQL()], config);
+          return this.buildQueryFromSourceParams([chunk.getSQL()], config2);
         }
         return this.buildQueryFromSourceParams([
           new StringChunk("("),
           chunk.getSQL(),
           new StringChunk(")")
-        ], config);
+        ], config2);
       }
       if (inlineParams) {
-        return { sql: this.mapInlineParam(chunk, config), params: [] };
+        return { sql: this.mapInlineParam(chunk, config2), params: [] };
       }
       return { sql: escapeParam(paramStartIndex.value++, chunk), params: [chunk], typings: ["none"] };
     }));
@@ -53782,8 +54140,8 @@ var ConsoleLogWriter = class {
 var DefaultLogger = class {
   static [entityKind] = "DefaultLogger";
   writer;
-  constructor(config) {
-    this.writer = config?.writer ?? new ConsoleLogWriter();
+  constructor(config2) {
+    this.writer = config2?.writer ?? new ConsoleLogWriter();
   }
   logQuery(query, params) {
     const stringifiedParams = params.map((p) => {
@@ -54164,16 +54522,16 @@ var Relation = class {
   fieldName;
 };
 var Relations = class {
-  constructor(table, config) {
+  constructor(table, config2) {
     this.table = table;
-    this.config = config;
+    this.config = config2;
   }
   static [entityKind] = "Relations";
 };
 var One = class _One extends Relation {
-  constructor(sourceTable, referencedTable, config, isNullable) {
-    super(sourceTable, referencedTable, config?.relationName);
-    this.config = config;
+  constructor(sourceTable, referencedTable, config2, isNullable) {
+    super(sourceTable, referencedTable, config2?.relationName);
+    this.config = config2;
     this.isNullable = isNullable;
   }
   static [entityKind] = "One";
@@ -54189,9 +54547,9 @@ var One = class _One extends Relation {
   }
 };
 var Many = class _Many extends Relation {
-  constructor(sourceTable, referencedTable, config) {
-    super(sourceTable, referencedTable, config?.relationName);
-    this.config = config;
+  constructor(sourceTable, referencedTable, config2) {
+    super(sourceTable, referencedTable, config2?.relationName);
+    this.config = config2;
   }
   static [entityKind] = "Many";
   withFieldName(fieldName) {
@@ -54301,18 +54659,18 @@ function extractTablesRelationalConfig(schema, configHelpers) {
   return { tables: tablesConfig, tableNamesMap };
 }
 function createOne(sourceTable) {
-  return function one(table, config) {
+  return function one(table, config2) {
     return new One(
       sourceTable,
       table,
-      config,
-      config?.fields.reduce((res, f) => res && f.notNull, true) ?? false
+      config2,
+      config2?.fields.reduce((res, f) => res && f.notNull, true) ?? false
     );
   };
 }
 function createMany(sourceTable) {
-  return function many(referencedTable, config) {
-    return new Many(sourceTable, referencedTable, config);
+  return function many(referencedTable, config2) {
+    return new Many(sourceTable, referencedTable, config2);
   };
 }
 function normalizeRelation(schema, tableNamesMap, relation) {
@@ -54424,8 +54782,8 @@ import { createClient } from "@libsql/client";
 var SelectionProxyHandler = class _SelectionProxyHandler {
   static [entityKind] = "SelectionProxyHandler";
   config;
-  constructor(config) {
-    this.config = { ...config };
+  constructor(config2) {
+    this.config = { ...config2 };
   }
   get(subquery, prop) {
     if (prop === "_") {
@@ -54497,9 +54855,9 @@ var ForeignKeyBuilder2 = class {
   _onUpdate;
   /** @internal */
   _onDelete;
-  constructor(config, actions) {
+  constructor(config2, actions) {
     this.reference = () => {
-      const { name, columns, foreignColumns } = config();
+      const { name, columns, foreignColumns } = config2();
       return { name, columns, foreignTable: foreignColumns[0].table, foreignColumns };
     };
     if (actions) {
@@ -54603,11 +54961,11 @@ var SQLiteColumnBuilder = class extends ColumnBuilder {
     this.config.uniqueName = name;
     return this;
   }
-  generatedAlwaysAs(as, config) {
+  generatedAlwaysAs(as, config2) {
     this.config.generated = {
       as,
       type: "always",
-      mode: config?.mode ?? "virtual"
+      mode: config2?.mode ?? "virtual"
     };
     return this;
   }
@@ -54631,11 +54989,11 @@ var SQLiteColumnBuilder = class extends ColumnBuilder {
   }
 };
 var SQLiteColumn = class extends Column {
-  constructor(table, config) {
-    if (!config.uniqueName) {
-      config.uniqueName = uniqueKeyName2(table, [config.name]);
+  constructor(table, config2) {
+    if (!config2.uniqueName) {
+      config2.uniqueName = uniqueKeyName2(table, [config2.name]);
     }
-    super(table, config);
+    super(table, config2);
     this.table = table;
   }
   static [entityKind] = "SQLiteColumn";
@@ -54720,11 +55078,11 @@ var SQLiteBlobBuffer = class extends SQLiteColumn {
   }
 };
 function blob(a, b) {
-  const { name, config } = getColumnNameAndConfig(a, b);
-  if (config?.mode === "json") {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (config2?.mode === "json") {
     return new SQLiteBlobJsonBuilder(name);
   }
-  if (config?.mode === "bigint") {
+  if (config2?.mode === "bigint") {
     return new SQLiteBigIntBuilder(name);
   }
   return new SQLiteBlobBufferBuilder(name);
@@ -54751,11 +55109,11 @@ var SQLiteCustomColumn = class extends SQLiteColumn {
   sqlName;
   mapTo;
   mapFrom;
-  constructor(table, config) {
-    super(table, config);
-    this.sqlName = config.customTypeParams.dataType(config.fieldConfig);
-    this.mapTo = config.customTypeParams.toDriver;
-    this.mapFrom = config.customTypeParams.fromDriver;
+  constructor(table, config2) {
+    super(table, config2);
+    this.sqlName = config2.customTypeParams.dataType(config2.fieldConfig);
+    this.mapTo = config2.customTypeParams.toDriver;
+    this.mapFrom = config2.customTypeParams.fromDriver;
   }
   getSQLType() {
     return this.sqlName;
@@ -54769,10 +55127,10 @@ var SQLiteCustomColumn = class extends SQLiteColumn {
 };
 function customType(customTypeParams) {
   return (a, b) => {
-    const { name, config } = getColumnNameAndConfig(a, b);
+    const { name, config: config2 } = getColumnNameAndConfig(a, b);
     return new SQLiteCustomColumnBuilder(
       name,
-      config,
+      config2,
       customTypeParams
     );
   };
@@ -54785,8 +55143,8 @@ var SQLiteBaseIntegerBuilder = class extends SQLiteColumnBuilder {
     super(name, dataType, columnType);
     this.config.autoIncrement = false;
   }
-  primaryKey(config) {
-    if (config?.autoIncrement) {
+  primaryKey(config2) {
+    if (config2?.autoIncrement) {
       this.config.autoIncrement = true;
     }
     this.config.hasDefault = true;
@@ -54877,12 +55235,12 @@ var SQLiteBoolean = class extends SQLiteBaseInteger {
   }
 };
 function integer(a, b) {
-  const { name, config } = getColumnNameAndConfig(a, b);
-  if (config?.mode === "timestamp" || config?.mode === "timestamp_ms") {
-    return new SQLiteTimestampBuilder(name, config.mode);
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (config2?.mode === "timestamp" || config2?.mode === "timestamp_ms") {
+    return new SQLiteTimestampBuilder(name, config2.mode);
   }
-  if (config?.mode === "boolean") {
-    return new SQLiteBooleanBuilder(name, config.mode);
+  if (config2?.mode === "boolean") {
+    return new SQLiteBooleanBuilder(name, config2.mode);
   }
   return new SQLiteIntegerBuilder(name);
 }
@@ -54957,8 +55315,8 @@ var SQLiteNumericBigInt = class extends SQLiteColumn {
   }
 };
 function numeric(a, b) {
-  const { name, config } = getColumnNameAndConfig(a, b);
-  const mode = config?.mode;
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  const mode = config2?.mode;
   return mode === "number" ? new SQLiteNumericNumberBuilder(name) : mode === "bigint" ? new SQLiteNumericBigIntBuilder(name) : new SQLiteNumericBuilder(name);
 }
 
@@ -54986,10 +55344,10 @@ function real(name) {
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@libsql+client@0.17.3_@types+pg@8.20.0/node_modules/drizzle-orm/sqlite-core/columns/text.js
 var SQLiteTextBuilder = class extends SQLiteColumnBuilder {
   static [entityKind] = "SQLiteTextBuilder";
-  constructor(name, config) {
+  constructor(name, config2) {
     super(name, "string", "SQLiteText");
-    this.config.enumValues = config.enum;
-    this.config.length = config.length;
+    this.config.enumValues = config2.enum;
+    this.config.length = config2.length;
   }
   /** @internal */
   build(table) {
@@ -55003,8 +55361,8 @@ var SQLiteText = class extends SQLiteColumn {
   static [entityKind] = "SQLiteText";
   enumValues = this.config.enumValues;
   length = this.config.length;
-  constructor(table, config) {
-    super(table, config);
+  constructor(table, config2) {
+    super(table, config2);
   }
   getSQLType() {
     return `text${this.config.length ? `(${this.config.length})` : ""}`;
@@ -55036,11 +55394,11 @@ var SQLiteTextJson = class extends SQLiteColumn {
   }
 };
 function text(a, b = {}) {
-  const { name, config } = getColumnNameAndConfig(a, b);
-  if (config.mode === "json") {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (config2.mode === "json") {
     return new SQLiteTextJsonBuilder(name);
   }
-  return new SQLiteTextBuilder(name, config);
+  return new SQLiteTextBuilder(name, config2);
 }
 
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@libsql+client@0.17.3_@types+pg@8.20.0/node_modules/drizzle-orm/sqlite-core/columns/all.js
@@ -55284,8 +55642,8 @@ var SQLiteDialect = class {
   static [entityKind] = "SQLiteDialect";
   /** @internal */
   casing;
-  constructor(config) {
-    this.casing = new CasingCache(config?.casing);
+  constructor(config2) {
+    this.casing = new CasingCache(config2?.casing);
   }
   escapeName(name) {
     return `"${name.replace(/"/g, '""')}"`;
@@ -55667,7 +56025,7 @@ var SQLiteDialect = class {
     tableNamesMap,
     table,
     tableConfig,
-    queryConfig: config,
+    queryConfig: config2,
     tableAlias,
     nestedQueryRelation,
     joinOn
@@ -55675,7 +56033,7 @@ var SQLiteDialect = class {
     let selection = [];
     let limit, offset, orderBy = [], where;
     const joins = [];
-    if (config === true) {
+    if (config2 === true) {
       const selectionEntries = Object.entries(tableConfig.columns);
       selection = selectionEntries.map(([key, value]) => ({
         dbKey: value.name,
@@ -55692,15 +56050,15 @@ var SQLiteDialect = class {
           aliasedTableColumn(value, tableAlias)
         ])
       );
-      if (config.where) {
-        const whereSql = typeof config.where === "function" ? config.where(aliasedColumns, getOperators()) : config.where;
+      if (config2.where) {
+        const whereSql = typeof config2.where === "function" ? config2.where(aliasedColumns, getOperators()) : config2.where;
         where = whereSql && mapColumnsInSQLToAlias(whereSql, tableAlias);
       }
       const fieldsSelection = [];
       let selectedColumns = [];
-      if (config.columns) {
+      if (config2.columns) {
         let isIncludeMode = false;
-        for (const [field, value] of Object.entries(config.columns)) {
+        for (const [field, value] of Object.entries(config2.columns)) {
           if (value === void 0) {
             continue;
           }
@@ -55712,7 +56070,7 @@ var SQLiteDialect = class {
           }
         }
         if (selectedColumns.length > 0) {
-          selectedColumns = isIncludeMode ? selectedColumns.filter((c) => config.columns?.[c] === true) : Object.keys(tableConfig.columns).filter(
+          selectedColumns = isIncludeMode ? selectedColumns.filter((c) => config2.columns?.[c] === true) : Object.keys(tableConfig.columns).filter(
             (key) => !selectedColumns.includes(key)
           );
         }
@@ -55724,8 +56082,8 @@ var SQLiteDialect = class {
         fieldsSelection.push({ tsKey: field, value: column });
       }
       let selectedRelations = [];
-      if (config.with) {
-        selectedRelations = Object.entries(config.with).filter(
+      if (config2.with) {
+        selectedRelations = Object.entries(config2.with).filter(
           (entry) => !!entry[1]
         ).map(([tsKey, queryConfig]) => ({
           tsKey,
@@ -55734,8 +56092,8 @@ var SQLiteDialect = class {
         }));
       }
       let extras;
-      if (config.extras) {
-        extras = typeof config.extras === "function" ? config.extras(aliasedColumns, { sql }) : config.extras;
+      if (config2.extras) {
+        extras = typeof config2.extras === "function" ? config2.extras(aliasedColumns, { sql }) : config2.extras;
         for (const [tsKey, value] of Object.entries(extras)) {
           fieldsSelection.push({
             tsKey,
@@ -55753,7 +56111,7 @@ var SQLiteDialect = class {
           selection: []
         });
       }
-      let orderByOrig = typeof config.orderBy === "function" ? config.orderBy(aliasedColumns, getOrderByOperators()) : config.orderBy ?? [];
+      let orderByOrig = typeof config2.orderBy === "function" ? config2.orderBy(aliasedColumns, getOrderByOperators()) : config2.orderBy ?? [];
       if (!Array.isArray(orderByOrig)) {
         orderByOrig = [orderByOrig];
       }
@@ -55763,8 +56121,8 @@ var SQLiteDialect = class {
         }
         return mapColumnsInSQLToAlias(orderByValue, tableAlias);
       });
-      limit = config.limit;
-      offset = config.offset;
+      limit = config2.limit;
+      offset = config2.offset;
       for (const {
         tsKey: selectedRelationTsKey,
         queryConfig: selectedRelationConfigValue,
@@ -55901,8 +56259,8 @@ var SQLiteDialect = class {
 };
 var SQLiteSyncDialect = class extends SQLiteDialect {
   static [entityKind] = "SQLiteSyncDialect";
-  migrate(migrations, session2, config) {
-    const migrationsTable = config === void 0 ? "__drizzle_migrations" : typeof config === "string" ? "__drizzle_migrations" : config.migrationsTable ?? "__drizzle_migrations";
+  migrate(migrations, session2, config2) {
+    const migrationsTable = config2 === void 0 ? "__drizzle_migrations" : typeof config2 === "string" ? "__drizzle_migrations" : config2.migrationsTable ?? "__drizzle_migrations";
     const migrationTableCreate = sql`
 			CREATE TABLE IF NOT EXISTS ${sql.identifier(migrationsTable)} (
 				id SERIAL PRIMARY KEY,
@@ -55938,8 +56296,8 @@ var SQLiteSyncDialect = class extends SQLiteDialect {
 };
 var SQLiteAsyncDialect = class extends SQLiteDialect {
   static [entityKind] = "SQLiteAsyncDialect";
-  async migrate(migrations, session2, config) {
-    const migrationsTable = config === void 0 ? "__drizzle_migrations" : typeof config === "string" ? "__drizzle_migrations" : config.migrationsTable ?? "__drizzle_migrations";
+  async migrate(migrations, session2, config2) {
+    const migrationsTable = config2 === void 0 ? "__drizzle_migrations" : typeof config2 === "string" ? "__drizzle_migrations" : config2.migrationsTable ?? "__drizzle_migrations";
     const migrationTableCreate = sql`
 			CREATE TABLE IF NOT EXISTS ${sql.identifier(migrationsTable)} (
 				id SERIAL PRIMARY KEY,
@@ -55986,12 +56344,12 @@ var SQLiteSelectBuilder = class {
   dialect;
   withList;
   distinct;
-  constructor(config) {
-    this.fields = config.fields;
-    this.session = config.session;
-    this.dialect = config.dialect;
-    this.withList = config.withList;
-    this.distinct = config.distinct;
+  constructor(config2) {
+    this.fields = config2.fields;
+    this.session = config2.session;
+    this.dialect = config2.dialect;
+    this.withList = config2.withList;
+    this.distinct = config2.distinct;
   }
   from(source) {
     const isPartialSelect = !!this.fields;
@@ -56591,8 +56949,8 @@ var SQLiteSelectBase = class extends SQLiteSelectQueryBuilderBase {
     query.joinsNotNullableMap = this.joinsNotNullableMap;
     return query;
   }
-  $withCache(config) {
-    this.cacheConfig = config === void 0 ? { config: {}, enable: true, autoInvalidate: true } : config === false ? { enable: false } : { enable: true, autoInvalidate: true, ...config };
+  $withCache(config2) {
+    this.cacheConfig = config2 === void 0 ? { config: {}, enable: true, autoInvalidate: true } : config2 === false ? { enable: false } : { enable: true, autoInvalidate: true, ...config2 };
     return this;
   }
   prepare() {
@@ -56782,13 +57140,13 @@ var SQLiteInsertBase = class extends QueryPromise {
    *   .onConflictDoNothing({ target: cars.id });
    * ```
    */
-  onConflictDoNothing(config = {}) {
+  onConflictDoNothing(config2 = {}) {
     if (!this.config.onConflict) this.config.onConflict = [];
-    if (config.target === void 0) {
+    if (config2.target === void 0) {
       this.config.onConflict.push(sql` on conflict do nothing`);
     } else {
-      const targetSql = Array.isArray(config.target) ? sql`${config.target}` : sql`${[config.target]}`;
-      const whereSql = config.where ? sql` where ${config.where}` : sql``;
+      const targetSql = Array.isArray(config2.target) ? sql`${config2.target}` : sql`${[config2.target]}`;
+      const whereSql = config2.where ? sql` where ${config2.where}` : sql``;
       this.config.onConflict.push(sql` on conflict ${targetSql} do nothing${whereSql}`);
     }
     return this;
@@ -56822,18 +57180,18 @@ var SQLiteInsertBase = class extends QueryPromise {
    *   });
    * ```
    */
-  onConflictDoUpdate(config) {
-    if (config.where && (config.targetWhere || config.setWhere)) {
+  onConflictDoUpdate(config2) {
+    if (config2.where && (config2.targetWhere || config2.setWhere)) {
       throw new Error(
         'You cannot use both "where" and "targetWhere"/"setWhere" at the same time - "where" is deprecated, use "targetWhere" or "setWhere" instead.'
       );
     }
     if (!this.config.onConflict) this.config.onConflict = [];
-    const whereSql = config.where ? sql` where ${config.where}` : void 0;
-    const targetWhereSql = config.targetWhere ? sql` where ${config.targetWhere}` : void 0;
-    const setWhereSql = config.setWhere ? sql` where ${config.setWhere}` : void 0;
-    const targetSql = Array.isArray(config.target) ? sql`${config.target}` : sql`${[config.target]}`;
-    const setSql = this.dialect.buildUpdateSet(this.config.table, mapUpdateSet(this.config.table, config.set));
+    const whereSql = config2.where ? sql` where ${config2.where}` : void 0;
+    const targetWhereSql = config2.targetWhere ? sql` where ${config2.targetWhere}` : void 0;
+    const setWhereSql = config2.setWhere ? sql` where ${config2.setWhere}` : void 0;
+    const targetSql = Array.isArray(config2.target) ? sql`${config2.target}` : sql`${[config2.target]}`;
+    const setSql = this.dialect.buildUpdateSet(this.config.table, mapUpdateSet(this.config.table, config2.set));
     this.config.onConflict.push(
       sql` on conflict ${targetSql}${targetWhereSql} do update set ${setSql}${whereSql}${setWhereSql}`
     );
@@ -57107,7 +57465,7 @@ var RelationalQueryBuilder = class {
     this.session = session2;
   }
   static [entityKind] = "SQLiteAsyncRelationalQueryBuilder";
-  findMany(config) {
+  findMany(config2) {
     return this.mode === "sync" ? new SQLiteSyncRelationalQuery(
       this.fullSchema,
       this.schema,
@@ -57116,7 +57474,7 @@ var RelationalQueryBuilder = class {
       this.tableConfig,
       this.dialect,
       this.session,
-      config ? config : {},
+      config2 ? config2 : {},
       "many"
     ) : new SQLiteRelationalQuery(
       this.fullSchema,
@@ -57126,11 +57484,11 @@ var RelationalQueryBuilder = class {
       this.tableConfig,
       this.dialect,
       this.session,
-      config ? config : {},
+      config2 ? config2 : {},
       "many"
     );
   }
-  findFirst(config) {
+  findFirst(config2) {
     return this.mode === "sync" ? new SQLiteSyncRelationalQuery(
       this.fullSchema,
       this.schema,
@@ -57139,7 +57497,7 @@ var RelationalQueryBuilder = class {
       this.tableConfig,
       this.dialect,
       this.session,
-      config ? { ...config, limit: 1 } : { limit: 1 },
+      config2 ? { ...config2, limit: 1 } : { limit: 1 },
       "first"
     ) : new SQLiteRelationalQuery(
       this.fullSchema,
@@ -57149,13 +57507,13 @@ var RelationalQueryBuilder = class {
       this.tableConfig,
       this.dialect,
       this.session,
-      config ? { ...config, limit: 1 } : { limit: 1 },
+      config2 ? { ...config2, limit: 1 } : { limit: 1 },
       "first"
     );
   }
 };
 var SQLiteRelationalQuery = class extends QueryPromise {
-  constructor(fullSchema, schema, tableNamesMap, table, tableConfig, dialect, session2, config, mode) {
+  constructor(fullSchema, schema, tableNamesMap, table, tableConfig, dialect, session2, config2, mode) {
     super();
     this.fullSchema = fullSchema;
     this.schema = schema;
@@ -57164,7 +57522,7 @@ var SQLiteRelationalQuery = class extends QueryPromise {
     this.tableConfig = tableConfig;
     this.dialect = dialect;
     this.session = session2;
-    this.config = config;
+    this.config = config2;
     this.mode = mode;
   }
   static [entityKind] = "SQLiteAsyncRelationalQuery";
@@ -57552,8 +57910,8 @@ var BaseSQLiteDatabase = class {
     }
     return this.session.values(sequel);
   }
-  transaction(transaction, config) {
-    return this.session.transaction(transaction, config);
+  transaction(transaction, config2) {
+    return this.session.transaction(transaction, config2);
   }
 };
 
@@ -58007,32 +58365,32 @@ var LibSQLDatabase = class extends BaseSQLiteDatabase {
     return this.session.batch(batch);
   }
 };
-function construct(client2, config = {}) {
-  const dialect = new SQLiteAsyncDialect({ casing: config.casing });
+function construct(client2, config2 = {}) {
+  const dialect = new SQLiteAsyncDialect({ casing: config2.casing });
   let logger2;
-  if (config.logger === true) {
+  if (config2.logger === true) {
     logger2 = new DefaultLogger();
-  } else if (config.logger !== false) {
-    logger2 = config.logger;
+  } else if (config2.logger !== false) {
+    logger2 = config2.logger;
   }
   let schema;
-  if (config.schema) {
+  if (config2.schema) {
     const tablesConfig = extractTablesRelationalConfig(
-      config.schema,
+      config2.schema,
       createTableRelationsHelpers
     );
     schema = {
-      fullSchema: config.schema,
+      fullSchema: config2.schema,
       schema: tablesConfig.tables,
       tableNamesMap: tablesConfig.tableNamesMap
     };
   }
-  const session2 = new LibSQLSession(client2, dialect, schema, { logger: logger2, cache: config.cache }, void 0);
+  const session2 = new LibSQLSession(client2, dialect, schema, { logger: logger2, cache: config2.cache }, void 0);
   const db2 = new LibSQLDatabase("async", dialect, session2, schema);
   db2.$client = client2;
-  db2.$cache = config.cache;
+  db2.$cache = config2.cache;
   if (db2.$cache) {
-    db2.$cache["invalidate"] = config.cache?.onMutate;
+    db2.$cache["invalidate"] = config2.cache?.onMutate;
   }
   return db2;
 }
@@ -58054,8 +58412,8 @@ function drizzle(...params) {
   return construct(params[0], params[1]);
 }
 ((drizzle2) => {
-  function mock(config) {
-    return construct({}, config);
+  function mock(config2) {
+    return construct({}, config2);
   }
   drizzle2.mock = mock;
 })(drizzle || (drizzle = {}));
@@ -58202,10 +58560,59 @@ var customerScansTable = sqliteTable("customer_scans", {
 });
 
 // ../../lib/db/src/index.ts
+var dotenv = __toESM(require_main(), 1);
 import path from "path";
-var dbFile = path.resolve(import.meta.dirname, "..", "traclytag.db");
-var dbUrl = process.env.DATABASE_URL || `file:${dbFile}`;
-var dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
+import fs from "fs";
+var resolvedDirname = "";
+try {
+  resolvedDirname = import.meta.dirname || __dirname;
+} catch (e) {
+  resolvedDirname = ".";
+}
+dotenv.config({ path: path.resolve(resolvedDirname, "../../../.env") });
+dotenv.config({ path: path.resolve(resolvedDirname, "../../.env") });
+dotenv.config({ path: path.resolve(resolvedDirname, "../.env") });
+dotenv.config();
+var dbUrl = "libsql://traclytag-dhyeykhanpara21.aws-ap-south-1.turso.io";
+var dbAuthToken = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzkyNTg0MDksImlkIjoiMDE5ZTQ0MDAtNTcwMS03Njc4LWExMWMtYjVkOGUyNzBjY2UyIiwicmlkIjoiOGI0NTA0OTYtYTk1Yi00M2MzLTkwMTgtZDNhMGM5ZjE5NjRhIn0.0FKVo6IIRfqK5WEgyOLNwuWJh1YrnI1VCZQxu2BHl80fEWcudYcpcPJo1VyiHTxwTERnXO0k9hhY17GXVEh-Aw";
+if (!dbUrl) {
+  const dbFile = path.resolve(resolvedDirname, "..", "traclytag.db");
+  const isVercel = !!process.env.VERCEL || process.env.NODE_ENV === "production";
+  if (isVercel) {
+    const tmpDbFile = path.resolve("/tmp", "traclytag.db");
+    if (!fs.existsSync(tmpDbFile)) {
+      try {
+        if (fs.existsSync(dbFile)) {
+          fs.copyFileSync(dbFile, tmpDbFile);
+        } else {
+          const fallbackPaths = [
+            path.resolve(process.cwd(), "lib/db/traclytag.db"),
+            path.resolve(process.cwd(), "traclytag.db"),
+            path.resolve(process.cwd(), "../lib/db/traclytag.db"),
+            path.resolve(resolvedDirname, "../../lib/db/traclytag.db"),
+            path.resolve(resolvedDirname, "../lib/db/traclytag.db")
+          ];
+          let copied = false;
+          for (const fallbackPath of fallbackPaths) {
+            if (fs.existsSync(fallbackPath)) {
+              fs.copyFileSync(fallbackPath, tmpDbFile);
+              copied = true;
+              break;
+            }
+          }
+          if (!copied) {
+            fs.writeFileSync(tmpDbFile, "");
+          }
+        }
+      } catch (e) {
+        console.error("Failed to copy SQLite database to /tmp:", e);
+      }
+    }
+    dbUrl = `file:${tmpDbFile}`;
+  } else {
+    dbUrl = `file:${dbFile}`;
+  }
+}
 var client = createClient2({
   url: dbUrl,
   authToken: dbAuthToken
@@ -58810,7 +59217,7 @@ var import_express3 = __toESM(require_express2(), 1);
 
 // src/lib/session.ts
 var import_express_session = __toESM(require_express_session(), 1);
-var secret = process.env["SESSION_SECRET"] ?? "dev-insecure-secret";
+var secret = "traclytag-production-secure-session-key-xyz-987654321";
 var sessionMiddleware = (0, import_express_session.default)({
   secret,
   resave: false,
@@ -59331,6 +59738,7 @@ var logCustomerScan = async (codeId, query) => {
     console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city})`);
   } catch (err) {
     console.error("Failed to log customer scan:", err);
+    throw err;
   }
 };
 router8.get("/codes/public/:serial", async (req, res) => {
@@ -59846,11 +60254,11 @@ var reports_default = router9;
 var import_express10 = __toESM(require_express2(), 1);
 var import_multer = __toESM(require_multer(), 1);
 import path2 from "path";
-import fs from "fs";
+import fs2 from "fs";
 var router10 = (0, import_express10.Router)();
 var uploadDir = process.env.VERCEL ? "/tmp" : path2.resolve(__dirname, "../uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+if (!fs2.existsSync(uploadDir)) {
+  fs2.mkdirSync(uploadDir, { recursive: true });
 }
 var storage = import_multer.default.diskStorage({
   destination: (req, file, cb) => {
@@ -59881,106 +60289,41 @@ var upload_default = router10;
 
 // src/routes/subscription.ts
 var import_express11 = __toESM(require_express2(), 1);
-import crypto3 from "crypto";
 var router11 = (0, import_express11.Router)();
-var KEY_ID = process.env.RAZORPAY_KEY_ID || "rzp_test_DUMMY_KEY_ID";
-var KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "DUMMY_KEY_SECRET";
-router11.post("/subscription/create-order", async (req, res) => {
+router11.post("/subscription/set", async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  const { plan, companyId } = req.body;
-  if (plan !== "standard" && plan !== "enterprise") {
-    res.status(400).json({ error: "Invalid plan" });
+  if (req.user.role !== "master") {
+    res.status(403).json({ error: "Only the master account can manage subscriptions" });
     return;
   }
-  let targetCompanyId = req.user.companyId;
-  if (req.user.role === "master" && companyId) {
-    targetCompanyId = parseInt(companyId, 10);
-  }
-  const amount = plan === "standard" ? 199900 : 999900;
-  try {
-    if (KEY_ID !== "rzp_test_DUMMY_KEY_ID") {
-      const authString = Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString("base64");
-      const response = await fetch("https://api.razorpay.com/v1/orders", {
-        method: "POST",
-        headers: {
-          "Authorization": `Basic ${authString}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          amount,
-          currency: "INR",
-          receipt: `receipt_co_${targetCompanyId || 0}_${Date.now()}`
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        res.json({
-          success: true,
-          key: KEY_ID,
-          orderId: data.id,
-          amount: data.amount,
-          currency: data.currency,
-          isMock: false
-        });
-        return;
-      } else {
-        const errText = await response.text();
-        req.log.warn({ err: errText }, "Razorpay API error, falling back to mock mode");
-      }
-    }
-  } catch (e) {
-    req.log.warn({ err: e }, "Failed to connect to Razorpay, falling back to mock mode");
-  }
-  const mockOrderId = `order_mock_${crypto3.randomBytes(8).toString("hex")}`;
-  res.json({
-    success: true,
-    key: "rzp_test_DUMMY_KEY_ID",
-    orderId: mockOrderId,
-    amount,
-    currency: "INR",
-    isMock: true
-  });
-});
-router11.post("/subscription/verify-payment", async (req, res) => {
-  if (!req.user) {
-    res.status(401).json({ error: "Not authenticated" });
+  const { companyId, plan, durationDays } = req.body;
+  if (!companyId) {
+    res.status(400).json({ error: "companyId is required" });
     return;
   }
-  let targetCompanyId = req.user.companyId;
-  if (req.user.role === "master" && req.body.companyId) {
-    targetCompanyId = parseInt(req.body.companyId, 10);
-  }
-  if (!targetCompanyId) {
-    res.status(400).json({ error: "User is not associated with any company" });
+  if (plan !== "free" && plan !== "standard" && plan !== "enterprise") {
+    res.status(400).json({ error: "Invalid plan. Must be 'free', 'standard', or 'enterprise'" });
     return;
   }
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, plan } = req.body;
-  if (plan !== "standard" && plan !== "enterprise" && plan !== "free") {
-    res.status(400).json({ error: "Invalid plan" });
-    return;
-  }
-  const isMock = !razorpay_order_id || razorpay_order_id.startsWith("order_mock_") || KEY_ID === "rzp_test_DUMMY_KEY_ID";
-  if (!isMock) {
-    const generated_signature = crypto3.createHmac("sha256", KEY_SECRET).update(`${razorpay_order_id}|${razorpay_payment_id}`).digest("hex");
-    if (generated_signature !== razorpay_signature) {
-      res.status(400).json({ error: "Payment verification failed" });
-      return;
-    }
-  }
+  const days = typeof durationDays === "number" && durationDays > 0 ? durationDays : 30;
   try {
     const expiresAtDate = /* @__PURE__ */ new Date();
-    expiresAtDate.setDate(expiresAtDate.getDate() + 30);
+    expiresAtDate.setDate(expiresAtDate.getDate() + days);
     await db.update(companiesTable).set({
       subscriptionPlan: plan,
-      subscriptionStatus: "active",
-      subscriptionExpiresAt: expiresAtDate.toISOString(),
-      razorpayOrderId: razorpay_order_id || null,
-      razorpayPaymentId: razorpay_payment_id || null
-    }).where(eq(companiesTable.id, targetCompanyId));
-    res.json({ success: true, plan });
+      subscriptionStatus: plan === "free" ? "inactive" : "active",
+      subscriptionExpiresAt: plan === "free" ? null : expiresAtDate.toISOString()
+    }).where(eq(companiesTable.id, parseInt(companyId, 10)));
+    res.json({
+      success: true,
+      companyId: parseInt(companyId, 10),
+      plan,
+      subscriptionStatus: plan === "free" ? "inactive" : "active",
+      expiresAt: plan === "free" ? null : expiresAtDate.toISOString()
+    });
   } catch (err) {
     req.log.error({ err }, "Failed to update company subscription");
     res.status(500).json({ error: "Failed to update subscription in database" });
@@ -60044,7 +60387,7 @@ var loadUser = async (req, _res, next) => {
 
 // src/app.ts
 import path3 from "path";
-import fs2 from "fs";
+import fs3 from "fs";
 var app = (0, import_express13.default)();
 app.set("trust proxy", 1);
 app.use(
@@ -60074,12 +60417,12 @@ app.use(
 );
 app.use(import_express13.default.json({ limit: "1mb" }));
 app.use(import_express13.default.urlencoded({ extended: true }));
-app.use((0, import_cookie_parser.default)(process.env["SESSION_SECRET"] ?? "dev-insecure-secret"));
+app.use((0, import_cookie_parser.default)("traclytag-production-secure-session-key-xyz-987654321"));
 app.use(loadUser);
 app.use("/api", routes_default);
 var uploadDir2 = process.env.VERCEL ? "/tmp" : path3.resolve(__dirname, "../uploads");
-if (!fs2.existsSync(uploadDir2)) {
-  fs2.mkdirSync(uploadDir2, { recursive: true });
+if (!fs3.existsSync(uploadDir2)) {
+  fs3.mkdirSync(uploadDir2, { recursive: true });
 }
 app.use("/api/uploads", import_express13.default.static(uploadDir2));
 var app_default = app;

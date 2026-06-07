@@ -7,11 +7,11 @@
     "node": "20.x"
   },
   "scripts": {
-    "dev": "cross-env NODE_ENV=development DATABASE_URL=file:../../lib/db/traclytag.db pnpm run build && pnpm run start",
+    "dev": "cross-env NODE_ENV=development pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
-    "start": "cross-env DATABASE_URL=file:../../lib/db/traclytag.db node --enable-source-maps ./dist/index.mjs",
+    "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "db:seed": "cross-env DATABASE_URL=file:../../lib/db/traclytag.db pnpm exec tsx scratch/check_db.ts"
+    "db:seed": "pnpm exec tsx scratch/check_db.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
@@ -20,6 +20,7 @@
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2",
+    "dotenv": "^16.4.5",
     "drizzle-orm": "catalog:",
     "express": "^5",
     "express-session": "^1.19.0",
