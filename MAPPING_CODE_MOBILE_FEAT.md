@@ -118,19 +118,44 @@ When the APK runs on a mobile device, it communicates over HTTP directly with th
     *   *Payload*: `{ locationId: number }`
     *   *Response*: Returns the fully enriched code data object.
 
-### B. Database Schema Models (Located in `lib/db/src/schema/codes.ts`)
-The mapping logic directly mutates the `codesTable` schema:
-*   `id` (integer, Primary Key)
-*   `productId` (integer, reference to `productsTable`)
-*   `batchId` (integer, reference to `batchesTable`)
-*   `level` (text - e.g., 'unit', 'shipper')
-*   `rawString` (text - unique GS1 barcode string)
-*   `serialNumber` (text - nullable serial number)
-*   `ssccCode` (text - nullable SSCC barcode)
-*   `mapped` (boolean - set to `true` upon scan)
-*   `mappedAt` (text - ISO string timestamp of the mapping operation)
-*   `mappedByUserId` (integer - links to the scanning operator user ID)
-*   `locationId` (integer - reference to the warehouse mapping location ID)
+### B. Database Schema & Field Mappings (Located in `lib/db/src/schema/codes.ts`)
+
+To ensure seamless integration between direct SQLite queries (e.g., in Google AI Studio or raw SQL reports) and the application code (Drizzle ORM & OpenAPI React queries), the physical snake_case database columns are mapped directly to camelCase TypeScript properties.
+
+#### 1. Core Schema Field Mapping
+
+| SQLite Column Name | SQLite Data Type | Drizzle Schema Field (JS/TS Key) | TypeScript Type | Description / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `id` | `number` | Primary Key, Auto-increment |
+| `product_id` | `INTEGER` | `productId` | `number` | Reference to `productsTable.id` (`ON DELETE CASCADE`) |
+| `batch_id` | `INTEGER` | `batchId` | `number \| null` | Reference to `batchesTable.id` (`ON DELETE CASCADE`) |
+| `level` | `TEXT` | `level` | `'unit' \| 'l1' \| 'l2' \| 'shipper' \| 'pallet'` | GS1 serialization aggregation level |
+| `raw_string` | `TEXT` | `rawString` | `string` | Unique GS1 barcode string |
+| `serial_number` | `TEXT` | `serialNumber` | `string \| null` | Parsed serial number |
+| `sscc_code` | `TEXT` | `ssccCode` | `string \| null` | Parsed SSCC shipper code |
+| `mapped` | `INTEGER` | `mapped` | `boolean` | Stored as `0` / `1` in SQLite. Defaults to `false` |
+| `mapped_at` | `TEXT` | `mappedAt` | `string \| null` | Precise ISO timestamp of scan mapping |
+| `mapped_by_user_id`| `INTEGER` | `mappedByUserId` | `number \| null` | Reference to scanning operator `usersTable.id` |
+| `location_id` | `INTEGER` | `locationId` | `number \| null` | Reference to warehouse `locationsTable.id` |
+| `created_at` | `TEXT` | `createdAt` | `string` | Precise ISO timestamp of generation |
+
+> [!NOTE]
+> **Query Conventions & Guidelines**
+> * **Direct SQLite Access**: When querying the sqlite file (`traclytag.db`) directly with raw SQL, you must query physical columns like `product_id`, `raw_string`, etc.
+> * **Application / API Layer**: When interacting with the database through Drizzle ORM or when utilizing React Hooks / API client queries, use the camelCase equivalents (`productId`, `rawString`, etc.).
+> * **Boolean Conversion**: The database column `mapped` is an `INTEGER` (0 or 1), but is mapped to a true `boolean` (`false` or `true`) at the application, Drizzle ORM, and API schema levels.
+
+#### 2. Enriched / Joined Fields (API Schema Model)
+
+When codes are fetched from backend endpoints (e.g. `GET /api/codes`), the API joins related tables to return an enriched `Code` object. Any client or LLM consuming the API can access these pre-joined properties:
+
+*   **`productName`** (`string`): Mapped from `productsTable.name` via `product_id`.
+*   **`batchNumber`** (`string | null`): Mapped from `batchesTable.batchNumber` via `batch_id`.
+*   **`mappedByUsername`** (`string | null`): Mapped from `usersTable.username` via `mapped_by_user_id`.
+*   **`locationName`** (`string | null`): Mapped from `locationsTable.locationName` via `location_id`.
+*   **`mfgDate`** (`string | null`): Mapped from `batchesTable.mfgDate` via `batch_id`.
+*   **`expiryDate`** (`string | null`): Mapped from `batchesTable.expiryDate` via `batch_id`.
+*   **`companyName`** (`string | null`): Mapped from `companiesTable.name` via the product's company scope.
 
 ---
 
