@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { ShieldCheck, Loader2, AlertCircle, Landmark, QrCode, Lock } from "lucide-react";
+import { ShieldCheck, Loader2, AlertCircle, Landmark, QrCode, Lock, MapPin } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,6 +50,71 @@ export default function PublicVerify() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [locationAccess, setLocationAccess] = useState(true);
+  const [isFetchingZip, setIsFetchingZip] = useState(false);
+
+  const fetchZipCodeAutomatically = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsFetchingZip(true);
+    toast.info("Fetching your location...");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            { signal: controller.signal, headers: { "User-Agent": "TraclyTag-App" } }
+          );
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) throw new Error("Geocoding failed");
+
+          const data = await response.json();
+          const postcode = data.address?.postcode;
+          
+          if (postcode) {
+            setZipCode(postcode);
+            toast.success(`Location auto-fetched: Zip ${postcode}`);
+          } else {
+            const city = data.address?.city || data.address?.town || data.address?.village || "Unknown";
+            setZipCode(city);
+            toast.success(`Location auto-fetched: ${city}`);
+          }
+        } catch (err) {
+          const coords = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+          setZipCode(coords);
+          toast.success("Coordinates fetched (Geocoding unavailable)");
+        } finally {
+          setIsFetchingZip(false);
+        }
+      },
+      (error) => {
+        setIsFetchingZip(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Location permission denied. Please enter manually.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Location information unavailable. Please enter manually.");
+            break;
+          case error.TIMEOUT:
+            toast.error("Location request timed out. Please enter manually.");
+            break;
+          default:
+            toast.error("Failed to fetch location automatically.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
 
   const handleVerify = () => {
     setError(null);
@@ -217,14 +283,29 @@ export default function PublicVerify() {
               {/* Zip Code */}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Zip Code</label>
-                <div className="relative">
+                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
                   <Input 
-                    className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm" 
+                    className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600" 
                     placeholder="10001" 
                     value={zipCode}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setZipCode(e.target.value)}
                     type="text"
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={fetchZipCodeAutomatically}
+                    disabled={isFetchingZip}
+                    title="Fetch GPS Location"
+                    className="shrink-0 h-8 w-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {isFetchingZip ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-safety-blue" />
+                    ) : (
+                      <MapPin className="h-4 w-4 text-slate-400 hover:text-safety-blue" />
+                    )}
+                  </Button>
                 </div>
               </div>
 
