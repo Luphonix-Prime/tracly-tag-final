@@ -28,6 +28,7 @@ import MappingCode from "@/pages/mapping-code";
 import CustomerScan from "@/pages/customer-scan";
 import Settings from "@/pages/settings";
 import Support from "@/pages/support";
+import Profile from "@/pages/profile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -140,6 +141,7 @@ function Router() {
       <Route path="/reports/marked-by"><ProtectedRoute component={MarkedByLog} /></Route>
       <Route path="/settings"><ProtectedRoute component={Settings} /></Route>
       <Route path="/support"><ProtectedRoute component={Support} /></Route>
+      <Route path="/profile"><ProtectedRoute component={Profile} /></Route>
       <Route component={NotFound} />
     </Switch>
   );
