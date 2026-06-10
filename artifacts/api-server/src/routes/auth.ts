@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db, usersTable, companiesTable, passkeysTable, deviceCodesTable } from "@workspace/db";
 import { LoginBody, LoginResponse, RegisterBody } from "@workspace/api-zod";
 import crypto from "crypto";
+import { sendOtpEmail } from "../lib/mail";
 
 const router: IRouter = Router();
 
@@ -133,6 +134,113 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
   }
+
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+
+  if (user.role !== "master") {
+    // Generate random 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    try {
+      await sendOtpEmail(user.email, otpCode);
+    } catch (err) {
+      req.log.error({ err, email: user.email }, "Failed to send OTP email");
+    }
+
+    const otpPayload = JSON.stringify({ userId: user.id, otp: otpCode });
+    res.cookie("temp_otp", otpPayload, {
+      signed: true,
+      httpOnly: true,
+      maxAge: 1000 * 60 * 5, // 5 minutes
+      secure: isProduction,
+      sameSite: "lax",
+    });
+
+    res.json({
+      otpRequired: true,
+      userId: user.id,
+      email: user.email,
+      otpCode, // Fallback for developer/offline testing
+    });
+    return;
+  }
+
+  res.cookie("connect.sid", user.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    secure: isProduction,
+    sameSite: "lax",
+  });
+
+  res.json(
+    LoginResponse.parse({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      companyId: user.companyId,
+      companyName,
+      subscriptionPlan,
+      subscriptionStatus,
+      subscriptionExpiresAt,
+    }),
+  );
+});
+
+router.post("/auth/verify-otp", async (req, res): Promise<void> => {
+  const { otp } = req.body;
+  const tempOtpPayload = req.signedCookies?.["temp_otp"];
+
+  if (!tempOtpPayload) {
+    res.status(400).json({ error: "Session expired or OTP request invalid. Please log in again." });
+    return;
+  }
+
+  let payload: { userId: number; otp: string };
+  try {
+    payload = JSON.parse(tempOtpPayload);
+  } catch (e) {
+    res.status(400).json({ error: "Invalid session payload. Please log in again." });
+    return;
+  }
+
+  if (payload.otp !== otp) {
+    res.status(400).json({ error: "Incorrect OTP code. Please try again." });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, payload.userId));
+
+  if (!user) {
+    res.status(401).json({ error: "User not found" });
+    return;
+  }
+
+  let companyName: string | null = null;
+  let subscriptionPlan: string | null = null;
+  let subscriptionStatus: string | null = null;
+  let subscriptionExpiresAt: string | null = null;
+  if (user.companyId) {
+    const [c] = await db
+      .select({ 
+        name: companiesTable.name,
+        subscriptionPlan: companiesTable.subscriptionPlan,
+        subscriptionStatus: companiesTable.subscriptionStatus,
+        subscriptionExpiresAt: companiesTable.subscriptionExpiresAt,
+      })
+      .from(companiesTable)
+      .where(eq(companiesTable.id, user.companyId));
+    companyName = c?.name ?? null;
+    subscriptionPlan = c?.subscriptionPlan ?? null;
+    subscriptionStatus = c?.subscriptionStatus ?? null;
+    subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
+  }
+
+  // Clear OTP cookie
+  res.clearCookie("temp_otp");
 
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
   res.cookie("connect.sid", user.id.toString(), {

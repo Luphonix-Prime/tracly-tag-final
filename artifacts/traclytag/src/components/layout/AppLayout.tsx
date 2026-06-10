@@ -8,21 +8,35 @@ import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
 import { 
   LayoutDashboard, Building2, Users, Package, MapPin, 
   Layers, QrCode, FileText, PackageCheck, BarChart3, ListOrdered, LogOut, Menu,
-  Link as LinkIcon, ScanBarcode, Settings, HelpCircle, Lock
+  Link as LinkIcon, ScanBarcode, Settings, HelpCircle, Lock, Copy, User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: user } = useGetCurrentUser();
   const logoutMutation = useLogout();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [location, setLocation] = useLocation();
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [requiredTier, setRequiredTier] = useState("");
   const { hideMappingCode } = useMappingCodeVisibility();
+
+  const getApiBaseUrl = () => {
+    if (typeof window === "undefined") return "";
+    const { protocol, hostname, port } = window.location;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `${protocol}//${hostname}:3000/api`;
+    }
+    if (port && port !== "80" && port !== "443") {
+      return `${protocol}//${hostname}:3000/api`;
+    }
+    return `${window.location.origin}/api`;
+  };
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -73,6 +87,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const bottomNavigation = [
+    { title: "Profile", href: "/profile", icon: User },
     { title: "Settings", href: "/settings", icon: Settings },
     { title: "Support", href: "/support", icon: HelpCircle },
   ];
@@ -162,15 +177,47 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Node status indicator matching Mockup */}
         <div className="p-3 border-t border-white/10">
           {isCollapsed ? (
-            <div className="flex justify-center p-2.5 bg-white/5 rounded-lg border border-white/10 w-10 h-10 mx-auto" title="Production Node 04: Active">
-              <div className="w-2 h-2 rounded-full bg-success-emerald animate-pulse"></div>
+            <div 
+              className="flex justify-center items-center bg-white/5 rounded-lg border border-white/10 w-10 h-10 mx-auto cursor-pointer hover:bg-white/10 text-white/40 hover:text-white transition-all" 
+              title="Copy Mobile API Endpoint"
+              onClick={() => {
+                navigator.clipboard.writeText(getApiBaseUrl());
+                toast({
+                  description: "Mobile API endpoint copied to clipboard",
+                });
+              }}
+            >
+              <LinkIcon className="h-4 w-4 text-safety-blue shrink-0" />
             </div>
           ) : (
-            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-              <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Instance</p>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-success-emerald animate-pulse"></div>
-                <span className="text-xs text-white font-bold">Production Node 04</span>
+            <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
+              <div>
+                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Instance</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-success-emerald animate-pulse"></div>
+                  <span className="text-xs text-white font-bold">Production Node 04</span>
+                </div>
+              </div>
+              <div className="pt-2.5 border-t border-white/5">
+                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Mobile API Endpoint</p>
+                <div className="flex items-center gap-1.5 bg-black/40 rounded-lg p-1.5 border border-white/5 overflow-hidden">
+                  <span className="text-[10px] font-mono text-white/70 truncate flex-1 select-all" title={getApiBaseUrl()}>
+                    {getApiBaseUrl()}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 hover:bg-white/10 text-white/40 hover:text-white shrink-0 cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(getApiBaseUrl());
+                      toast({
+                        description: "Mobile API endpoint copied to clipboard",
+                      });
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -199,15 +246,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-4 ml-auto">
             <ThemeToggle />
             <div className="flex items-center gap-3 border-l pl-4 border-slate-200 dark:border-slate-800">
-              <div className="flex flex-col items-end">
-                <span className="text-sm font-semibold leading-none text-midnight-navy dark:text-white">{user.username}</span>
-                <Badge variant="outline" className="mt-1 text-[9px] uppercase h-4 px-1.5 border-safety-blue/30 text-safety-blue bg-safety-blue/5">{user.role.replace('_', ' ')}</Badge>
-              </div>
-              <Avatar className="h-8 w-8 border border-safety-blue/20">
-                <AvatarFallback className="bg-safety-blue/10 text-safety-blue text-xs font-semibold">
-                  {user.username.substring(0,2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
+                <div className="flex flex-col items-end">
+                  <span className="text-sm font-semibold leading-none text-midnight-navy dark:text-white">{user.username}</span>
+                  <Badge variant="outline" className="mt-1 text-[9px] uppercase h-4 px-1.5 border-safety-blue/30 text-safety-blue bg-safety-blue/5">{user.role.replace('_', ' ')}</Badge>
+                </div>
+                <Avatar className="h-8 w-8 border border-safety-blue/20">
+                  <AvatarFallback className="bg-safety-blue/10 text-safety-blue text-xs font-semibold">
+                    {user.username.substring(0,2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
               <Button variant="ghost" size="icon" onClick={handleLogout} className="ml-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <LogOut className="h-4 w-4" />
                 <span className="sr-only">Log out</span>

@@ -78,6 +78,89 @@ export default function Login() {
   const [deviceUser, setDeviceUser] = useState<any>(null);
   const terminalBottomRef = useRef<HTMLDivElement>(null);
 
+  // --- OTP States ---
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [tempUserId, setTempUserId] = useState<number | null>(null);
+  const [userEmail, setUserEmail] = useState("");
+  const [simulatedOtp, setSimulatedOtp] = useState("");
+  const [enteredOtp, setEnteredOtp] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [timer, setTimer] = useState(300);
+
+  useEffect(() => {
+    if (!otpRequired || timer <= 0) return;
+    const interval = setInterval(() => {
+      setTimer((t) => t - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [otpRequired, timer]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const [name, domain] = email.split("@");
+    if (name.length <= 3) return `${name[0]}***@${domain}`;
+    return `${name.slice(0, 3)}***@${domain}`;
+  };
+
+  const handleOtpChange = (val: string, index: number) => {
+    if (val && !/^[0-9]$/.test(val)) return;
+    
+    let newOtp = enteredOtp.split("");
+    newOtp[index] = val;
+    const updated = newOtp.join("").slice(0, 6);
+    setEnteredOtp(updated);
+
+    if (val && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === "Backspace" && !enteredOtp[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`);
+      prevInput?.focus();
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enteredOtp.length < 6) return;
+
+    setIsVerifyingOtp(true);
+    try {
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp: enteredOtp }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to verify OTP");
+      }
+
+      toast.success("OTP verified successfully!");
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      handleRedirect();
+    } catch (err: any) {
+      toast.error(err.message || "Incorrect OTP code. Please try again.");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleResendOtp = () => {
+    const values = loginForm.getValues();
+    onLoginSubmit(values);
+  };
+
+
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -209,7 +292,16 @@ export default function Login() {
       password: values.password,
     };
     loginMutation.mutate({ data: loginData }, {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
+        if (data?.otpRequired) {
+          setOtpRequired(true);
+          setTempUserId(data.userId);
+          setUserEmail(data.email);
+          setSimulatedOtp(data.otpCode);
+          setTimer(300);
+          toast.info(`OTP sent! (Simulated: ${data.otpCode})`);
+          return;
+        }
         if (values.location) {
           localStorage.setItem("traclytag_login_location", values.location);
         } else {
@@ -673,7 +765,76 @@ export default function Login() {
 
                 {/* Forms Tabs Container */}
                 <motion.div variants={itemVariants} className="w-full">
-                  <Tabs defaultValue="login" className="w-full">
+                  {otpRequired ? (
+                    <motion.div
+                      key="otp-card"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="space-y-6"
+                    >
+                      <div className="text-center space-y-2">
+                        <div className="w-12 h-12 rounded-full bg-safety-blue/10 border border-safety-blue/20 flex items-center justify-center text-safety-blue mx-auto">
+                          <Lock className="w-6 h-6 animate-pulse" />
+                        </div>
+                        <h2 className="text-lg font-bold text-white">Enter Verification Code</h2>
+                        <p className="text-xs text-slate-400">
+                          We sent a 6-digit OTP code to <span className="font-semibold text-slate-200">{maskEmail(userEmail)}</span>. It will expire in 5 minutes.
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleOtpSubmit} className="space-y-6">
+                        <div className="flex justify-center gap-2">
+                          {Array.from({ length: 6 }).map((_, idx) => (
+                            <input
+                              key={idx}
+                              id={`otp-${idx}`}
+                              type="text"
+                              maxLength={1}
+                              value={enteredOtp[idx] || ""}
+                              onChange={(e) => handleOtpChange(e.target.value, idx)}
+                              onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                              className="w-11 h-12 bg-slate-950 border border-slate-800 rounded-lg text-center font-mono font-bold text-lg text-white focus:border-safety-blue focus:ring-1 focus:ring-safety-blue outline-none transition-all"
+                            />
+                          ))}
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-slate-400">
+                          <span>Expires in: <span className="font-mono text-safety-blue font-semibold">{formatTime(timer)}</span></span>
+                          <button
+                            type="button"
+                            onClick={handleResendOtp}
+                            disabled={timer > 0 || isVerifyingOtp}
+                            className="text-safety-blue hover:text-safety-blue/80 font-bold transition-all disabled:opacity-40"
+                          >
+                            Resend Code
+                          </button>
+                        </div>
+
+                        <div className="flex flex-col gap-2.5">
+                          <Button
+                            type="submit"
+                            disabled={isVerifyingOtp || enteredOtp.length < 6}
+                            className="w-full h-11 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-sm font-semibold cursor-pointer active:scale-[0.98]"
+                          >
+                            {isVerifyingOtp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Verify & Authenticate"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setOtpRequired(false);
+                              setEnteredOtp("");
+                            }}
+                            className="w-full h-11 rounded-lg border-slate-800 bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-xs cursor-pointer"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  ) : (
+                    <Tabs defaultValue="login" className="w-full">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auth Mode</span>
                       <TabsList className="grid grid-cols-2 w-[160px] h-8 p-0.5 bg-slate-800 border border-slate-700">
@@ -1086,6 +1247,7 @@ export default function Login() {
                       </Form>
                     </TabsContent>
                   </Tabs>
+                  )}
                 </motion.div>
 
                 {/* Demo Credentials Footer */}
