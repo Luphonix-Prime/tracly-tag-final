@@ -188,8 +188,17 @@ export default function MappingCode() {
 
           // Normalize scanned serial code
           let searchSerial = decodedText.trim();
+          if (searchSerial.includes("?")) {
+            searchSerial = searchSerial.split("?")[0].trim();
+          }
+          if (searchSerial.includes("/code/")) {
+            searchSerial = searchSerial.substring(searchSerial.indexOf("/code/") + 6);
+          }
           if (searchSerial.includes("::")) {
             searchSerial = searchSerial.split("::")[1] || searchSerial;
+          } else if (searchSerial.includes(":")) {
+            const parts = searchSerial.split(":");
+            searchSerial = parts[parts.length - 1] || searchSerial;
           }
 
           // Match code in current batch list
@@ -968,8 +977,17 @@ export default function MappingCode() {
                             e.preventDefault();
                             // Decode manually
                             let searchSerial = scannerInputValue.trim();
+                            if (searchSerial.includes("?")) {
+                              searchSerial = searchSerial.split("?")[0].trim();
+                            }
+                            if (searchSerial.includes("/code/")) {
+                              searchSerial = searchSerial.substring(searchSerial.indexOf("/code/") + 6);
+                            }
                             if (searchSerial.includes("::")) {
                               searchSerial = searchSerial.split("::")[1] || searchSerial;
+                            } else if (searchSerial.includes(":")) {
+                              const parts = searchSerial.split(":");
+                              searchSerial = parts[parts.length - 1] || searchSerial;
                             }
                             const matchedCode = codesList.find(c => 
                               c.serialNumber === searchSerial || 
