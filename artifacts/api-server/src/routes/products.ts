@@ -30,6 +30,7 @@ router.get("/products", async (req, res): Promise<void> => {
     rows.map((r) => ({
       ...r,
       mrp: typeof r.mrp === "string" ? parseFloat(r.mrp) : r.mrp,
+      description: r.sapDescription || "",
     })),
   );
 });

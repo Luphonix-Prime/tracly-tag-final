@@ -38,6 +38,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return `${window.location.origin}/api`;
   };
 
+  const getAuthToken = () => {
+    if (!user) return "";
+    if (user.role === "master") return "master";
+    if (user.role === "client_admin") return "demo_admin";
+    return "demo_op";
+  };
+
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
@@ -177,17 +184,31 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Node status indicator matching Mockup */}
         <div className="p-3 border-t border-white/10">
           {isCollapsed ? (
-            <div 
-              className="flex justify-center items-center bg-white/5 rounded-lg border border-white/10 w-10 h-10 mx-auto cursor-pointer hover:bg-white/10 text-white/40 hover:text-white transition-all" 
-              title="Copy Mobile API Endpoint"
-              onClick={() => {
-                navigator.clipboard.writeText(getApiBaseUrl());
-                toast({
-                  description: "Mobile API endpoint copied to clipboard",
-                });
-              }}
-            >
-              <LinkIcon className="h-4 w-4 text-safety-blue shrink-0" />
+            <div className="flex flex-col gap-2">
+              <div 
+                className="flex justify-center items-center bg-white/5 rounded-lg border border-white/10 w-10 h-10 mx-auto cursor-pointer hover:bg-white/10 text-white/40 hover:text-white transition-all" 
+                title="Copy Mobile API Endpoint"
+                onClick={() => {
+                  navigator.clipboard.writeText(getApiBaseUrl());
+                  toast({
+                    description: "Mobile API endpoint copied to clipboard",
+                  });
+                }}
+              >
+                <LinkIcon className="h-4 w-4 text-safety-blue shrink-0" />
+              </div>
+              <div 
+                className="flex justify-center items-center bg-white/5 rounded-lg border border-white/10 w-10 h-10 mx-auto cursor-pointer hover:bg-white/10 text-white/40 hover:text-white transition-all" 
+                title="Copy API Authorization Token"
+                onClick={() => {
+                  navigator.clipboard.writeText(getAuthToken());
+                  toast({
+                    description: "API Authorization Token copied to clipboard",
+                  });
+                }}
+              >
+                <Lock className="h-4 w-4 text-amber-500 shrink-0" />
+              </div>
             </div>
           ) : (
             <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
@@ -212,6 +233,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       navigator.clipboard.writeText(getApiBaseUrl());
                       toast({
                         description: "Mobile API endpoint copied to clipboard",
+                      });
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <div className="pt-2.5 border-t border-white/5">
+                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1.5">API Authorization Token</p>
+                <div className="flex items-center gap-1.5 bg-black/40 rounded-lg p-1.5 border border-white/5 overflow-hidden">
+                  <span className="text-[10px] font-mono text-white/70 truncate flex-1 select-all" title={getAuthToken()}>
+                    {getAuthToken()}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 hover:bg-white/10 text-white/40 hover:text-white shrink-0 cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(getAuthToken());
+                      toast({
+                        description: "API Authorization Token copied to clipboard",
                       });
                     }}
                   >
