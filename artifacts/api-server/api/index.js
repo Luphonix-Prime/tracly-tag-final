@@ -59673,7 +59673,8 @@ router5.get("/products", async (req, res) => {
   res.json(
     rows.map((r) => ({
       ...r,
-      mrp: typeof r.mrp === "string" ? parseFloat(r.mrp) : r.mrp
+      mrp: typeof r.mrp === "string" ? parseFloat(r.mrp) : r.mrp,
+      description: r.sapDescription || ""
     }))
   );
 });
@@ -60063,7 +60064,7 @@ router8.get("/codes", requireAuth, async (req, res) => {
   const level = typeof req.query.level === "string" ? req.query.level : null;
   const batchId = typeof req.query.batchId === "string" ? parseInt(req.query.batchId, 10) : null;
   const productId = typeof req.query.productId === "string" ? parseInt(req.query.productId, 10) : null;
-  const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 100;
+  const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 5e3;
   const conds = [];
   if (level) conds.push(eq(codesTable.level, level));
   if (batchId && !Number.isNaN(batchId))

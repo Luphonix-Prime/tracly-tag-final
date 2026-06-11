@@ -301,7 +301,7 @@ router.get("/codes", requireAuth, async (req, res): Promise<void> => {
       ? parseInt(req.query.productId, 10)
       : null;
   const limit =
-    typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 100;
+    typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 5000;
 
   const conds = [];
   if (level) conds.push(eq(codesTable.level, level));
