@@ -184,6 +184,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+
+
+
+
   /users/{id}:
     delete:
       operationId: deleteUser
@@ -197,8 +201,29 @@ paths:
       responses:
         "204":
           description: Deleted
+    put:
+      operationId: updateUser
+      tags: [users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
 
-  # ---------- PRODUCTS ----------
   /products:
     get:
       operationId: listProducts
@@ -598,7 +623,11 @@ components:
           type: ["integer", "null"]
         companyName:
           type: ["string", "null"]
-      required: [id, username, email, role, companyId, companyName]
+        isActive:
+          type: boolean
+        enabledModules:
+          type: string
+      required: [id, username, email, role, companyId, companyName, isActive, enabledModules]
 
     Company:
       type: object
@@ -650,10 +679,14 @@ components:
           type: ["integer", "null"]
         companyName:
           type: ["string", "null"]
+        isActive:
+          type: boolean
+        enabledModules:
+          type: string
         createdAt:
           type: string
           format: date-time
-      required: [id, username, email, phone, role, companyId, companyName, createdAt]
+      required: [id, username, email, phone, role, companyId, companyName, isActive, enabledModules, createdAt]
 
     CreateUserBody:
       type: object
@@ -670,7 +703,28 @@ components:
           $ref: "#/components/schemas/Role"
         companyId:
           type: ["integer", "null"]
+        isActive:
+          type: boolean
+        enabledModules:
+          type: string
       required: [username, email, password, role]
+
+    UpdateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          $ref: "#/components/schemas/Role"
+        isActive:
+          type: boolean
+        enabledModules:
+          type: string
+        password:
+          type: string
+
 
     Product:
       type: object

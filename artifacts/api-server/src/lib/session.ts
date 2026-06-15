@@ -27,6 +27,8 @@ export interface AuthUser {
   email: string;
   role: "master" | "client_admin" | "operator";
   companyId: number | null;
+  isActive: boolean;
+  enabledModules: string;
 }
 
 declare global {
@@ -59,3 +61,25 @@ export function requireRole(...roles: AuthUser["role"][]): RequestHandler {
     next();
   };
 }
+
+export function requireModule(moduleName: string): RequestHandler {
+  return (req, res, next) => {
+    if (!req.user) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+    // Master role has full access to all modules
+    if (req.user.role === "master") {
+      next();
+      return;
+    }
+    
+    const modules = (req.user.enabledModules || "").split(",");
+    if (!modules.includes(moduleName)) {
+      res.status(403).json({ error: `Forbidden: '${moduleName}' module is disabled for your account` });
+      return;
+    }
+    next();
+  };
+}
+

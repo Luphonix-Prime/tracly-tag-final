@@ -87,6 +87,41 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     return required === "free";
   };
 
+  const getRequiredModule = (path: string): string | null => {
+    if (path.startsWith("/dashboard")) return "dashboard";
+    if (path.startsWith("/companies")) return "companies";
+    if (path.startsWith("/users")) return "users";
+    if (path.startsWith("/products")) return "products";
+    if (path.startsWith("/locations")) return "locations";
+    if (path.startsWith("/production/batches")) return "batches";
+    if (path.startsWith("/production/codes")) return "generate_codes";
+    if (path.startsWith("/mapping-code")) return "mapping_code";
+    if (path.startsWith("/customer-scan")) return "customer_scan";
+    if (path.startsWith("/production/summary")) return "summary";
+    if (path.startsWith("/reports")) return "reports";
+    return null;
+  };
+
+  const requiredModule = getRequiredModule(path);
+  if (requiredModule && !isMaster) {
+    const userModules = (user.enabledModules || "").split(",");
+    if (!userModules.includes(requiredModule)) {
+      return (
+        <AppLayout>
+          <div className="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto font-sans">
+            <div className="w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive shadow-md mb-6">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">Access Denied</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
+              Your account does not have access to the <strong className="capitalize">{requiredModule.replace('_', ' ')}</strong> module. Please contact your administrator to request access.
+            </p>
+          </div>
+        </AppLayout>
+      );
+    }
+  }
+
   const requiredPlan = getRequiredPlan(path);
   const isAllowed = isPlanSufficient(requiredPlan, currentPlan);
 

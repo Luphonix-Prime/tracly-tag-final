@@ -2,11 +2,11 @@ import { Router, type IRouter } from "express";
 import { and, eq, desc } from "drizzle-orm";
 import { db, batchesTable, productsTable } from "@workspace/db";
 import { CreateBatchBody } from "@workspace/api-zod";
-import { requireAuth } from "../lib/session";
+import { requireAuth, requireModule } from "../lib/session";
 
 const router: IRouter = Router();
 
-router.use("/batches", requireAuth);
+router.use("/batches", requireAuth, requireModule("batches"));
 
 router.get("/batches", async (req, res): Promise<void> => {
   const rawProductId = req.query.productId;

@@ -302,6 +302,8 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     role: req.user.role,
     companyId: req.user.companyId,
     companyName,
+    isActive: req.user.isActive,
+    enabledModules: req.user.enabledModules,
     subscriptionPlan,
     subscriptionStatus,
     subscriptionExpiresAt,
