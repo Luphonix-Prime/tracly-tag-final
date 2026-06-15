@@ -20,7 +20,15 @@ const companySchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   address: z.string().min(1, "Address is required"),
-  gstin: z.string().optional().or(z.literal("")),
+  gstin: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => val?.trim().toUpperCase())
+    .refine(
+      (val) => !val || /^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]Z[A-Z0-9]?$/.test(val),
+      "Invalid GSTIN format. Expected: 2-digit state code, 10-char PAN, 1-char registration code, 'Z', and optional check code (e.g., 24ZW9EE0GZLL1Z)."
+    ),
 });
 
 export default function Companies() {

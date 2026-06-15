@@ -613,6 +613,7 @@ components:
           type: string
         gstin:
           type: ["string", "null"]
+          pattern: "^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$"
         createdAt:
           type: string
           format: date-time
@@ -629,6 +630,7 @@ components:
           type: string
         gstin:
           type: ["string", "null"]
+          pattern: "^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$"
       required: [name, email, address]
 
     User:
