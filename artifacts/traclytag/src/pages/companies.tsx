@@ -1,9 +1,6 @@
-import { useState } from "react";
-import { useGetCurrentUser, useListCompanies, getListCompaniesQueryKey, useCreateCompany, useDeleteCompany } from "@workspace/api-client-react";
+import { useLocation } from "wouter";
+import { useGetCurrentUser, useListCompanies, getListCompaniesQueryKey, useDeleteCompany } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { toast } from "sonner";
 import { Trash2, Plus, Building2 } from "lucide-react";
 
@@ -11,56 +8,18 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-
-const companySchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email"),
-  address: z.string().min(1, "Address is required"),
-  gstin: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((val) => val?.trim().toUpperCase())
-    .refine(
-      (val) => !val || /^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]Z[A-Z0-9]?$/.test(val),
-      "Invalid GSTIN format. Expected: 2-digit state code, 10-char PAN, 1-char registration code, 'Z', and optional check code (e.g., 24ZW9EE0GZLL1Z)."
-    ),
-});
 
 export default function Companies() {
   const { data: user } = useGetCurrentUser();
   const { data: companies = [], isLoading } = useListCompanies();
-  const createCompany = useCreateCompany();
   const deleteCompany = useDeleteCompany();
   const queryClient = useQueryClient();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-  const form = useForm<z.infer<typeof companySchema>>({
-    resolver: zodResolver(companySchema),
-    defaultValues: { name: "", email: "", address: "", gstin: "" },
-  });
+  const [, setLocation] = useLocation();
 
   if (user?.role !== "master") {
     return <div className="p-8 text-center text-destructive">Access denied. Master role required.</div>;
   }
-
-  const onSubmit = (values: z.infer<typeof companySchema>) => {
-    createCompany.mutate({ data: values }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListCompaniesQueryKey() });
-        toast.success("Company created successfully");
-        setIsCreateOpen(false);
-        form.reset();
-      },
-      onError: (error: any) => {
-        toast.error(error?.data?.error || "Failed to create company");
-      }
-    });
-  };
 
   const handleDelete = (id: number) => {
     deleteCompany.mutate({ id }, {
@@ -86,38 +45,13 @@ export default function Companies() {
           <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Companies</h2>
           <p className="text-[16px] text-slate-600 mt-1">Manage tenant companies and their regulatory information.</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto">
-              <Plus className="h-5 w-5" />
-              Add Company
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Company</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="email" render={({ field }) => (
-                  <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="gstin" render={({ field }) => (
-                  <FormItem><FormLabel>GSTIN <span className="text-muted-foreground text-xs">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="address" render={({ field }) => (
-                  <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <DialogFooter>
-                  <Button type="submit" disabled={createCompany.isPending}>Save Company</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <Button 
+          onClick={() => setLocation("/companies/new")} 
+          className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
+        >
+          <Plus className="h-5 w-5" />
+          Add Company
+        </Button>
       </div>
 
       <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">

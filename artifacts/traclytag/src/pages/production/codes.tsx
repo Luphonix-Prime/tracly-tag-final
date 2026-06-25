@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { 
   useGenerateCodes, 
   useListBatches, 
@@ -46,6 +47,7 @@ const generateSchema = z.object({
 
 export default function Codes() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [downloadingBatchId, setDownloadingBatchId] = useState<number | null>(null);
   const [viewCodesDialogOpen, setViewCodesDialogOpen] = useState(false);
@@ -237,10 +239,7 @@ export default function Codes() {
           <p className="text-sm text-[#434655] mt-1">Manage and track unique serialization codes for product inventory.</p>
         </div>
         <Button 
-          onClick={() => {
-            form.reset({ level: "unit", quantity: 100 });
-            setGenerateDialogOpen(true);
-          }}
+          onClick={() => setLocation("/production/codes/new")}
           className="flex items-center gap-2 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white px-6 py-3 rounded-lg font-bold shadow-md transform active:scale-95 transition-all cursor-pointer h-11"
         >
           <Plus className="h-4 w-4" />

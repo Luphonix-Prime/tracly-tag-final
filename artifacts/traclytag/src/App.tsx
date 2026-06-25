@@ -14,11 +14,17 @@ import PublicVerify from "@/pages/public-verify";
 import Activate from "@/pages/activate";
 import Dashboard from "@/pages/dashboard";
 import Companies from "@/pages/companies";
+import NewCompany from "@/pages/new-company";
 import Users from "@/pages/users";
+import NewUser from "@/pages/new-user";
 import Products from "@/pages/products";
+import NewProduct from "@/pages/new-product";
 import Locations from "@/pages/locations";
+import NewLocation from "@/pages/new-location";
 import Batches from "@/pages/production/batches";
+import NewBatch from "@/pages/production/new-batch";
 import Codes from "@/pages/production/codes";
+import GenerateCodes from "@/pages/production/generate-codes";
 import Summary from "@/pages/production/summary";
 import StockReport from "@/pages/reports/stock";
 import ProductReport from "@/pages/reports/product";
@@ -163,11 +169,17 @@ function Router() {
       <Route path="/" component={RedirectToDashboard} />
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/companies"><ProtectedRoute component={Companies} /></Route>
+      <Route path="/companies/new"><ProtectedRoute component={NewCompany} /></Route>
       <Route path="/users"><ProtectedRoute component={Users} /></Route>
+      <Route path="/users/new"><ProtectedRoute component={NewUser} /></Route>
       <Route path="/products"><ProtectedRoute component={Products} /></Route>
+      <Route path="/products/new"><ProtectedRoute component={NewProduct} /></Route>
       <Route path="/locations"><ProtectedRoute component={Locations} /></Route>
+      <Route path="/locations/new"><ProtectedRoute component={NewLocation} /></Route>
       <Route path="/production/batches"><ProtectedRoute component={Batches} /></Route>
+      <Route path="/production/batches/new"><ProtectedRoute component={NewBatch} /></Route>
       <Route path="/production/codes"><ProtectedRoute component={Codes} /></Route>
+      <Route path="/production/codes/new"><ProtectedRoute component={GenerateCodes} /></Route>
       <Route path="/mapping-code"><ProtectedRoute component={MappingCode} /></Route>
       <Route path="/customer-scan"><ProtectedRoute component={CustomerScan} /></Route>
       <Route path="/production/summary"><ProtectedRoute component={Summary} /></Route>

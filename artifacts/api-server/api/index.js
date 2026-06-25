@@ -50811,9 +50811,8 @@ var LoginResponse = objectType({
   "role": enumType(["master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
-  "subscriptionPlan": stringType().nullable().optional(),
-  "subscriptionStatus": stringType().nullable().optional(),
-  "subscriptionExpiresAt": stringType().nullable().optional()
+  "isActive": booleanType(),
+  "enabledModules": stringType()
 });
 var RegisterBody = objectType({
   "username": stringType(),
@@ -50831,24 +50830,25 @@ var GetCurrentUserResponse = objectType({
   "role": enumType(["master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
-  "subscriptionPlan": stringType().nullable().optional(),
-  "subscriptionStatus": stringType().nullable().optional(),
-  "subscriptionExpiresAt": stringType().nullable().optional()
+  "isActive": booleanType(),
+  "enabledModules": stringType()
 });
+var listCompaniesResponseGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
 var ListCompaniesResponseItem = objectType({
   "id": numberType(),
   "name": stringType(),
   "email": stringType(),
   "address": stringType(),
-  "gstin": stringType().nullable(),
+  "gstin": stringType().regex(listCompaniesResponseGstinRegExp).nullable(),
   "createdAt": coerce.date()
 });
 var ListCompaniesResponse = arrayType(ListCompaniesResponseItem);
+var createCompanyBodyGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
 var CreateCompanyBody = objectType({
   "name": stringType(),
   "email": stringType(),
   "address": stringType(),
-  "gstin": stringType().nullish()
+  "gstin": stringType().regex(createCompanyBodyGstinRegExp).nullish()
 });
 var DeleteCompanyParams = objectType({
   "id": coerce.number()
@@ -50861,6 +50861,8 @@ var ListUsersResponseItem = objectType({
   "role": enumType(["master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
+  "isActive": booleanType(),
+  "enabledModules": stringType(),
   "createdAt": coerce.date()
 });
 var ListUsersResponse = arrayType(ListUsersResponseItem);
@@ -50870,10 +50872,35 @@ var CreateUserBody = objectType({
   "phone": stringType().nullish(),
   "password": stringType(),
   "role": enumType(["master", "client_admin", "operator"]),
-  "companyId": numberType().nullish()
+  "companyId": numberType().nullish(),
+  "isActive": booleanType().optional(),
+  "enabledModules": stringType().optional()
 });
 var DeleteUserParams = objectType({
   "id": coerce.number()
+});
+var UpdateUserParams = objectType({
+  "id": coerce.number()
+});
+var UpdateUserBody = objectType({
+  "email": stringType().optional(),
+  "phone": stringType().nullish(),
+  "role": enumType(["master", "client_admin", "operator"]).optional(),
+  "isActive": booleanType().optional(),
+  "enabledModules": stringType().optional(),
+  "password": stringType().optional()
+});
+var UpdateUserResponse = objectType({
+  "id": numberType(),
+  "username": stringType(),
+  "email": stringType(),
+  "phone": stringType().nullable(),
+  "role": enumType(["master", "client_admin", "operator"]),
+  "companyId": numberType().nullable(),
+  "companyName": stringType().nullable(),
+  "isActive": booleanType(),
+  "enabledModules": stringType(),
+  "createdAt": coerce.date()
 });
 var ListProductsResponseItem = objectType({
   "id": numberType(),
@@ -58459,6 +58486,8 @@ var usersTable = sqliteTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: text("role").notNull(),
   companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "set null" }),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  enabledModules: text("enabled_modules").notNull().default("dashboard,companies,users,products,locations,batches,generate_codes,mapping_code,customer_scan,summary,reports"),
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
@@ -58904,6 +58933,8 @@ router2.get("/auth/me", async (req, res) => {
     role: req.user.role,
     companyId: req.user.companyId,
     companyName,
+    isActive: req.user.isActive,
+    enabledModules: req.user.enabledModules,
     subscriptionPlan,
     subscriptionStatus,
     subscriptionExpiresAt
@@ -59384,6 +59415,24 @@ function requireRole(...roles) {
     next();
   };
 }
+function requireModule(moduleName) {
+  return (req, res, next) => {
+    if (!req.user) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+    if (req.user.role === "master") {
+      next();
+      return;
+    }
+    const modules = (req.user.enabledModules || "").split(",");
+    if (!modules.includes(moduleName)) {
+      res.status(403).json({ error: `Forbidden: '${moduleName}' module is disabled for your account` });
+      return;
+    }
+    next();
+  };
+}
 
 // src/routes/companies.ts
 var router3 = (0, import_express3.Router)();
@@ -59429,7 +59478,7 @@ var companies_default = router3;
 // src/routes/users.ts
 var import_express4 = __toESM(require_express2(), 1);
 var router4 = (0, import_express4.Router)();
-router4.use("/users", requireAuth);
+router4.use("/users", requireAuth, requireModule("users"));
 router4.get("/users", async (req, res) => {
   const rows = await db.select({
     id: usersTable.id,
@@ -59439,6 +59488,8 @@ router4.get("/users", async (req, res) => {
     role: usersTable.role,
     companyId: usersTable.companyId,
     companyName: companiesTable.name,
+    isActive: usersTable.isActive,
+    enabledModules: usersTable.enabledModules,
     createdAt: usersTable.createdAt
   }).from(usersTable).leftJoin(companiesTable, eq(usersTable.companyId, companiesTable.id)).orderBy(desc(usersTable.createdAt));
   const filtered = req.user.role === "master" ? rows : rows.filter((r) => r.companyId === req.user.companyId);
@@ -59466,7 +59517,9 @@ router4.post("/users", async (req, res) => {
       phone: parsed.data.phone ?? null,
       passwordHash,
       role: parsed.data.role,
-      companyId
+      companyId,
+      isActive: parsed.data.isActive ?? true,
+      enabledModules: parsed.data.enabledModules ?? "dashboard,products,batches,codes,locations,reports,users,generate_codes,mapping_code,customer_scan,summary"
     }).returning();
     let companyName = null;
     if (row.companyId) {
@@ -59481,11 +59534,77 @@ router4.post("/users", async (req, res) => {
       role: row.role,
       companyId: row.companyId,
       companyName,
+      isActive: row.isActive,
+      enabledModules: row.enabledModules,
       createdAt: row.createdAt
     });
   } catch (err) {
     req.log.error({ err }, "Failed to create user");
     res.status(400).json({ error: "Username may already exist" });
+  }
+});
+router4.put("/users/:id", async (req, res) => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = UpdateUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  try {
+    const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+    if (!targetUser) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    if (req.user.role !== "master") {
+      if (targetUser.companyId !== req.user.companyId) {
+        res.status(403).json({ error: "Forbidden: Cannot edit users outside your company" });
+        return;
+      }
+      if (targetUser.role === "master" || parsed.data.role === "master") {
+        res.status(403).json({ error: "Forbidden: Cannot edit master users or change roles to master" });
+        return;
+      }
+    }
+    const updateData = {};
+    if (parsed.data.email !== void 0) updateData.email = parsed.data.email;
+    if (parsed.data.phone !== void 0) updateData.phone = parsed.data.phone ?? null;
+    if (parsed.data.role !== void 0) updateData.role = parsed.data.role;
+    if (parsed.data.isActive !== void 0) updateData.isActive = parsed.data.isActive;
+    if (parsed.data.enabledModules !== void 0) updateData.enabledModules = parsed.data.enabledModules;
+    if (parsed.data.password && parsed.data.password.trim().length > 0) {
+      if (parsed.data.password.length < 6) {
+        res.status(400).json({ error: "Password must be at least 6 characters long" });
+        return;
+      }
+      updateData.passwordHash = await bcryptjs_default.hash(parsed.data.password, 10);
+    }
+    const [updatedUser] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, id)).returning();
+    let companyName = null;
+    if (updatedUser.companyId) {
+      const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, updatedUser.companyId));
+      companyName = c?.name ?? null;
+    }
+    res.json({
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      phone: updatedUser.phone,
+      role: updatedUser.role,
+      companyId: updatedUser.companyId,
+      companyName,
+      isActive: updatedUser.isActive,
+      enabledModules: updatedUser.enabledModules,
+      createdAt: updatedUser.createdAt
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update user");
+    res.status(500).json({ error: err.message || "Failed to update user" });
   }
 });
 router4.delete("/users/:id", async (req, res) => {
@@ -59662,7 +59781,7 @@ function parseGs1Code(rawCode) {
 
 // src/routes/products.ts
 var router5 = (0, import_express5.Router)();
-router5.use("/products", requireAuth);
+router5.use("/products", requireAuth, requireModule("products"));
 function effectiveCompanyId(user2) {
   if (user2.role === "master") return null;
   return user2.companyId;
@@ -59731,7 +59850,7 @@ var products_default = router5;
 // src/routes/locations.ts
 var import_express6 = __toESM(require_express2(), 1);
 var router6 = (0, import_express6.Router)();
-router6.use("/locations", requireAuth);
+router6.use("/locations", requireAuth, requireModule("locations"));
 router6.get("/locations", async (req, res) => {
   const rows = req.user.role === "master" ? await db.select().from(locationsTable).orderBy(desc(locationsTable.createdAt)) : await db.select().from(locationsTable).where(eq(locationsTable.companyId, req.user.companyId)).orderBy(desc(locationsTable.createdAt));
   res.json(rows);
@@ -59774,7 +59893,7 @@ var locations_default = router6;
 // src/routes/batches.ts
 var import_express7 = __toESM(require_express2(), 1);
 var router7 = (0, import_express7.Router)();
-router7.use("/batches", requireAuth);
+router7.use("/batches", requireAuth, requireModule("batches"));
 router7.get("/batches", async (req, res) => {
   const rawProductId = req.query.productId;
   const productId = typeof rawProductId === "string" ? parseInt(rawProductId, 10) : null;
@@ -60060,7 +60179,23 @@ async function fetchEnrichedCodes(ids) {
   ).orderBy(desc(codesTable.createdAt));
   return rows;
 }
-router8.get("/codes", requireAuth, async (req, res) => {
+var requireGenerateOrMapCodes = (req, res, next) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  if (req.user.role === "master") {
+    next();
+    return;
+  }
+  const modules = (req.user.enabledModules || "").split(",");
+  if (!modules.includes("generate_codes") && !modules.includes("mapping_code")) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  next();
+};
+router8.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res) => {
   const level = typeof req.query.level === "string" ? req.query.level : null;
   const batchId = typeof req.query.batchId === "string" ? parseInt(req.query.batchId, 10) : null;
   const productId = typeof req.query.productId === "string" ? parseInt(req.query.productId, 10) : null;
@@ -60102,7 +60237,7 @@ router8.get("/codes", requireAuth, async (req, res) => {
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(where).orderBy(desc(codesTable.createdAt)).limit(Math.min(Math.max(limit, 1), 5e3));
   res.json(rows);
 });
-router8.post("/codes", requireAuth, async (req, res) => {
+router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req, res) => {
   const parsed = GenerateCodesBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -60158,7 +60293,7 @@ router8.post("/codes", requireAuth, async (req, res) => {
   const rows = await fetchEnrichedCodes(ids);
   res.status(201).json({ generated: inserted.length, codes: rows });
 });
-router8.post("/codes/:id/map", requireAuth, async (req, res) => {
+router8.post("/codes/:id/map", requireAuth, requireModule("mapping_code"), async (req, res) => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw ?? "", 10);
   if (Number.isNaN(id)) {
@@ -60183,7 +60318,7 @@ router8.post("/codes/:id/map", requireAuth, async (req, res) => {
   }
   res.json(row);
 });
-router8.get("/codes/scans", async (req, res) => {
+router8.get("/codes/scans", requireAuth, requireModule("customer_scan"), async (req, res) => {
   try {
     const scans = await db.select({
       id: customerScansTable.id,
@@ -60273,7 +60408,7 @@ function dateRangeConds(from, to) {
   }
   return conds;
 }
-router9.get("/reports/dashboard", async (req, res) => {
+router9.get("/reports/dashboard", requireModule("dashboard"), async (req, res) => {
   const scope = companyScope(req.user);
   const [productsAgg] = await db.select({ count: count() }).from(productsTable).where(
     req.user.role === "master" ? void 0 : eq(productsTable.companyId, req.user.companyId)
@@ -60326,7 +60461,7 @@ router9.get("/reports/dashboard", async (req, res) => {
     codesByLevel: byLevel
   });
 });
-router9.get("/reports/stock", async (req, res) => {
+router9.get("/reports/stock", requireModule("reports"), async (req, res) => {
   const scope = companyScope(req.user);
   const productId = typeof req.query.productId === "string" ? parseInt(req.query.productId, 10) : null;
   const conds = [];
@@ -60348,7 +60483,7 @@ router9.get("/reports/stock", async (req, res) => {
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).innerJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).where(where).groupBy(productsTable.id, productsTable.name, batchesTable.id, batchesTable.batchNumber);
   res.json(rows);
 });
-router9.get("/reports/product", async (req, res) => {
+router9.get("/reports/product", requireModule("reports"), async (req, res) => {
   const scope = companyScope(req.user);
   const conds = [];
   if (scope) conds.push(scope);
@@ -60366,7 +60501,7 @@ router9.get("/reports/product", async (req, res) => {
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).innerJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).where(where).groupBy(productsTable.id, productsTable.name, batchesTable.id, batchesTable.batchNumber, productsTable.skuSize);
   res.json(rows);
 });
-router9.get("/reports/shipper-summary", async (req, res) => {
+router9.get("/reports/shipper-summary", requireModule("reports"), async (req, res) => {
   const scope = companyScope(req.user);
   const conds = [eq(codesTable.level, "shipper")];
   if (scope) conds.push(scope);
@@ -60384,7 +60519,7 @@ router9.get("/reports/shipper-summary", async (req, res) => {
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).innerJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).where(where).groupBy(productsTable.id, productsTable.name, batchesTable.id, batchesTable.batchNumber, productsTable.skuSize);
   res.json(rows);
 });
-router9.get("/reports/pallet-summary", async (req, res) => {
+router9.get("/reports/pallet-summary", requireModule("reports"), async (req, res) => {
   const scope = companyScope(req.user);
   const conds = [eq(codesTable.level, "pallet")];
   if (scope) conds.push(scope);
@@ -60402,7 +60537,7 @@ router9.get("/reports/pallet-summary", async (req, res) => {
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).innerJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).where(where).groupBy(productsTable.id, productsTable.name, batchesTable.id, batchesTable.batchNumber, productsTable.skuSize);
   res.json(rows);
 });
-router9.get("/reports/marked-by", async (req, res) => {
+router9.get("/reports/marked-by", requireModule("reports"), async (req, res) => {
   const scope = companyScope(req.user);
   const conds = [eq(codesTable.mapped, true)];
   if (scope) conds.push(scope);
@@ -60536,7 +60671,7 @@ var logger = (0, import_pino.default)({
 });
 
 // src/middlewares/loadUser.ts
-var loadUser = async (req, _res, next) => {
+var loadUser = async (req, res, next) => {
   let userIdRaw = req.signedCookies?.["connect.sid"];
   if (!userIdRaw) {
     const authHeader = req.headers.authorization;
@@ -60551,12 +60686,18 @@ var loadUser = async (req, _res, next) => {
         }
         const [user3] = await db.select().from(usersTable).where(eq(usersTable.username, username));
         if (user3) {
+          if (!user3.isActive) {
+            next();
+            return;
+          }
           req.user = {
             id: user3.id,
             username: user3.username,
             email: user3.email,
             role: user3.role,
-            companyId: user3.companyId
+            companyId: user3.companyId,
+            isActive: user3.isActive,
+            enabledModules: user3.enabledModules
           };
           next();
           return;
@@ -60571,13 +60712,19 @@ var loadUser = async (req, _res, next) => {
   }
   const [user2] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (user2) {
-    req.user = {
-      id: user2.id,
-      username: user2.username,
-      email: user2.email,
-      role: user2.role,
-      companyId: user2.companyId
-    };
+    if (!user2.isActive) {
+      res.clearCookie("connect.sid");
+    } else {
+      req.user = {
+        id: user2.id,
+        username: user2.username,
+        email: user2.email,
+        role: user2.role,
+        companyId: user2.companyId,
+        isActive: user2.isActive,
+        enabledModules: user2.enabledModules
+      };
+    }
   }
   next();
 };

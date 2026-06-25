@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useListBatches, getListBatchesQueryKey, useCreateBatch, useDeleteBatch, useListProducts } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -28,6 +29,7 @@ const batchSchema = z.object({
 });
 
 export default function Batches() {
+  const [, setLocation] = useLocation();
   const [filterProductId, setFilterProductId] = useState<number | undefined>();
   const [search, setSearch] = useState("");
   const { data: products = [] } = useListProducts();
@@ -101,135 +103,12 @@ export default function Batches() {
           <p className="text-[16px] text-slate-600 mt-1">Monitor and control production batch serialization across global factories.</p>
         </div>
 
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white px-6 py-3 h-11 rounded-lg font-semibold hover:shadow-lg hover:shadow-safety-blue/20 transition-all transform active:scale-95 cursor-pointer">
-              <Plus className="h-4 w-4" /> ADD BATCH
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md bg-white border border-[#E2E8F0] shadow-xl rounded-xl">
-            <DialogHeader className="border-b border-[#E2E8F0] pb-4">
-              <DialogTitle className="text-lg font-bold text-[#0F172A] uppercase tracking-wider">Create New Batch</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                <FormField control={form.control} name="productId" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Product Context</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value?.toString() || ""}>
-                      <FormControl>
-                        <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:ring-0">
-                          <SelectValue placeholder="Select a product" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {products.map(p => (
-                          <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                
-                <FormField control={form.control} name="batchNumber" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Batch Number</FormLabel>
-                    <FormControl>
-                      <Input className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg py-2 focus:border-[#2563EB] focus:ring-0 uppercase font-mono" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField
-                  control={form.control}
-                  name="mfgDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Date of Manufacturing</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal bg-[#F8FAFC] border border-[#E2E8F0] h-10",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick manufacturing date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="expiryDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest block">Date of Expiry</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal bg-[#F8FAFC] border border-[#E2E8F0] h-10",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick expiry date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <DialogFooter className="pt-4 border-t border-[#E2E8F0]">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="cursor-pointer">Cancel</Button>
-                  <Button type="submit" className="bg-[#2563EB] hover:bg-[#2563EB]/90 text-white cursor-pointer" disabled={createBatch.isPending}>
-                    Save Batch
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <Button 
+          onClick={() => setLocation("/production/batches/new")}
+          className="flex items-center gap-2 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white px-6 py-3 h-11 rounded-lg font-semibold hover:shadow-lg hover:shadow-safety-blue/20 transition-all transform active:scale-95 cursor-pointer"
+        >
+          <Plus className="h-4 w-4" /> ADD BATCH
+        </Button>
       </div>
 
       {/* Filters Section */}

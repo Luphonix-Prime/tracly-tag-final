@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { 
   useGetCurrentUser, 
   useListUsers, 
@@ -51,6 +52,7 @@ const AVAILABLE_MODULES = [
 ];
 
 export default function Users() {
+  const [, setLocation] = useLocation();
   const { data: currentUser } = useGetCurrentUser();
   const { data: users = [], isLoading } = useListUsers();
   const { data: companies = [] } = useListCompanies({ query: { enabled: currentUser?.role === "master" } } as any);
@@ -177,77 +179,13 @@ export default function Users() {
           <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Users</h2>
           <p className="text-[16px] text-slate-600 mt-1">Manage system access and roles.</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto">
-              <Plus className="h-5 w-5" />
-              Add User
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="username" render={({ field }) => (
-                  <FormItem><FormLabel>Username</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="password" render={({ field }) => (
-                  <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={form.control} name="phone" render={({ field }) => (
-                    <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                </div>
-                
-                <FormField control={form.control} name="role" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {isMaster && <SelectItem value="master">Master Admin</SelectItem>}
-                        <SelectItem value="client_admin">Client Admin</SelectItem>
-                        <SelectItem value="operator">Operator</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                
-                {isMaster && form.watch("role") !== "master" && (
-                  <FormField control={form.control} name="companyId" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value?.toString() || ""}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select a company" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {companies.map(c => (
-                            <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                )}
-                
-                <DialogFooter className="pt-4">
-                  <Button type="submit" disabled={createUser.isPending}>Save User</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <Button 
+          onClick={() => setLocation("/users/new")}
+          className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
+        >
+          <Plus className="h-5 w-5" />
+          Add User
+        </Button>
       </div>
 
       <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">

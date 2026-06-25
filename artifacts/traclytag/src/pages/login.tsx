@@ -51,6 +51,7 @@ export default function Login() {
   const loginMutation = useLogin();
   const registerMutation = useRegister();
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 
   // --- SSO States ---
   const [isSsoOpen, setIsSsoOpen] = useState(false);
@@ -727,10 +728,10 @@ export default function Login() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-grow flex flex-col items-center justify-center relative z-10 px-6 py-12">
-        <div className="w-full max-w-[460px] flex flex-col items-center">
+      <main className="flex-grow flex items-center justify-center relative z-10 px-4 md:px-8 py-12">
+        <div className="w-full max-w-[440px]">
           {/* Card */}
-          <div className="bg-slate-900 border border-slate-800 shadow-2xl rounded-xl w-full overflow-hidden transition-all duration-300">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-lg overflow-hidden transition-all duration-300">
             <div className="p-8 md:p-10">
               <motion.div
                 variants={containerVariants}
@@ -738,15 +739,23 @@ export default function Login() {
                 animate="visible"
                 className="flex flex-col gap-6"
               >
-                {/* Logo branding block & Device Simulator button */}
+                {/* Logo branding block */}
                 <motion.div variants={itemVariants} className="flex flex-col items-center mb-4 w-full relative">
                   <div className="flex items-center gap-2 mb-2">
-                    <QrCode className="h-8 w-8 text-safety-blue animate-pulse" />
-                    <span className="text-2xl font-bold tracking-tight text-white">TracelyTag</span>
+                    <span className="material-symbols-outlined text-safety-blue text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>sensors</span>
+                    <span className="text-2xl font-bold tracking-tight text-midnight-navy dark:text-white">TracelyTag</span>
                   </div>
-                  <div className="h-0.5 w-12 bg-safety-blue mb-4"></div>
-                  <h1 className="text-sm font-bold text-white uppercase tracking-widest">Terminal Access</h1>
-                  <p className="text-xs text-slate-400 mt-1 text-center">Enter your credentials to access the security layer.</p>
+                  <div className="h-px w-12 bg-safety-blue mb-4"></div>
+                  <h1 className="text-sm font-bold text-midnight-navy dark:text-white uppercase tracking-widest">
+                    {otpRequired ? "Security Code" : "Terminal Access"}
+                  </h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-center">
+                    {otpRequired 
+                      ? `Enter the verification code sent to ${maskEmail(userEmail)}`
+                      : authMode === "login" 
+                        ? "Enter your credentials to access the security layer." 
+                        : "Register your account and company details to get started."}
+                  </p>
                   
                   <Button
                     type="button"
@@ -763,7 +772,7 @@ export default function Login() {
                   </Button>
                 </motion.div>
 
-                {/* Forms Tabs Container */}
+                {/* Forms Area */}
                 <motion.div variants={itemVariants} className="w-full">
                   {otpRequired ? (
                     <motion.div
@@ -775,11 +784,11 @@ export default function Login() {
                     >
                       <div className="text-center space-y-2">
                         <div className="w-12 h-12 rounded-full bg-safety-blue/10 border border-safety-blue/20 flex items-center justify-center text-safety-blue mx-auto">
-                          <Lock className="w-6 h-6 animate-pulse" />
+                          <span className="material-symbols-outlined text-[24px]">lock</span>
                         </div>
-                        <h2 className="text-lg font-bold text-white">Enter Verification Code</h2>
-                        <p className="text-xs text-slate-400">
-                          We sent a 6-digit OTP code to <span className="font-semibold text-slate-200">{maskEmail(userEmail)}</span>. It will expire in 5 minutes.
+                        <h2 className="text-lg font-bold text-midnight-navy dark:text-white">Enter Verification Code</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          We sent a 6-digit OTP code to <span className="font-semibold text-midnight-navy dark:text-slate-200">{maskEmail(userEmail)}</span>. It will expire in 5 minutes.
                         </p>
                       </div>
 
@@ -794,12 +803,12 @@ export default function Login() {
                               value={enteredOtp[idx] || ""}
                               onChange={(e) => handleOtpChange(e.target.value, idx)}
                               onKeyDown={(e) => handleOtpKeyDown(e, idx)}
-                              className="w-11 h-12 bg-slate-950 border border-slate-800 rounded-lg text-center font-mono font-bold text-lg text-white focus:border-safety-blue focus:ring-1 focus:ring-safety-blue outline-none transition-all"
+                              className="w-11 h-12 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-center font-mono font-bold text-lg text-midnight-navy dark:text-white focus:border-safety-blue focus:ring-1 focus:ring-safety-blue outline-none transition-all"
                             />
                           ))}
                         </div>
 
-                        <div className="flex justify-between items-center text-xs text-slate-400">
+                        <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
                           <span>Expires in: <span className="font-mono text-safety-blue font-semibold">{formatTime(timer)}</span></span>
                           <button
                             type="button"
@@ -815,7 +824,7 @@ export default function Login() {
                           <Button
                             type="submit"
                             disabled={isVerifyingOtp || enteredOtp.length < 6}
-                            className="w-full h-11 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-sm font-semibold cursor-pointer active:scale-[0.98]"
+                            className="w-full h-12 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-sm font-semibold cursor-pointer active:scale-[0.98]"
                           >
                             {isVerifyingOtp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Verify & Authenticate"}
                           </Button>
@@ -826,186 +835,202 @@ export default function Login() {
                               setOtpRequired(false);
                               setEnteredOtp("");
                             }}
-                            className="w-full h-11 rounded-lg border-slate-800 bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-xs cursor-pointer"
+                            className="w-full h-12 rounded-lg border-slate-200 dark:border-slate-800 bg-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-midnight-navy dark:hover:text-white font-medium text-xs cursor-pointer"
                           >
                             Cancel
                           </Button>
                         </div>
                       </form>
                     </motion.div>
+                  ) : authMode === "login" ? (
+                    <Form {...loginForm}>
+                      <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                        <FormField
+                          control={loginForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem className="space-y-2">
+                              <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                <span className="material-symbols-outlined text-[14px]">account_circle</span>
+                                EMAIL / USERNAME
+                              </FormLabel>
+                              <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
+                                <FormControl>
+                                  <Input 
+                                    placeholder="sys_admin_01" 
+                                    className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                              </div>
+                              <FormMessage className="ml-1 text-[10px]" />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={loginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">lock</span>
+                                  PASSWORD
+                                </FormLabel>
+                                <a className="text-[11px] font-bold tracking-wider text-safety-blue hover:underline transition-all uppercase" href="#">
+                                  Forgot Password?
+                                </a>
+                              </div>
+                              <div className="relative flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-12 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
+                                <FormControl>
+                                  <Input 
+                                    type="password" 
+                                    placeholder="••••••••••••" 
+                                    className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                              </div>
+                              <FormMessage className="ml-1 text-[10px]" />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={loginForm.control}
+                          name="location"
+                          render={({ field }) => (
+                            <FormItem className="space-y-2">
+                              <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                SESSION LOCATION
+                              </FormLabel>
+                              <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Start location (optional)" 
+                                    className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => fetchLocationAutomatically("login")}
+                                  disabled={isFetchingLocation}
+                                  title="Fetch Location Automatically"
+                                  className="shrink-0 h-8 w-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
+                                >
+                                  {isFetchingLocation ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-safety-blue" />
+                                  ) : (
+                                    <span className="material-symbols-outlined text-[16px] text-slate-500 dark:text-slate-400">my_location</span>
+                                  )}
+                                </Button>
+                              </div>
+                              <FormMessage className="ml-1 text-[10px]" />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="flex flex-col gap-2.5 mt-4">
+                          <Button 
+                            type="submit" 
+                            className="w-full h-12 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-sm font-semibold cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
+                            disabled={loginMutation.isPending}
+                          >
+                            {loginMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                Sign In
+                                <span className="material-symbols-outlined text-[18px]">login</span>
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handlePasskeyLogin(loginForm.getValues("username"))}
+                            className="w-full h-12 rounded-lg flex items-center justify-center gap-2 border-slate-200 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-safety-blue text-[18px]">fingerprint</span>
+                            <span>Sign In with Passkey</span>
+                          </Button>
+                        </div>
+
+                        <div className="relative my-3">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-slate-200 dark:border-slate-800" />
+                          </div>
+                          <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
+                            <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 dark:text-slate-500 font-bold">
+                              Or continue with
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleSsoLogin("Google")}
+                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                          >
+                            <FcGoogle className="h-4.5 w-4.5" />
+                            <span>Google</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleSsoLogin("Microsoft")}
+                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                          >
+                            <FaMicrosoft className="h-4 w-4 text-[#00a4ef]" />
+                            <span>Microsoft</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleSsoLogin("GitHub")}
+                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                          >
+                            <FaGithub className="h-4.5 w-4.5" />
+                            <span>GitHub</span>
+                          </Button>
+                        </div>
+
+                        <div className="flex justify-center pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setAuthMode("signup")}
+                            className="font-body-sm text-xs text-slate-500 dark:text-slate-400 hover:text-midnight-navy dark:hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            Need access? <span className="text-safety-blue font-bold">Request Access</span>
+                          </button>
+                        </div>
+                      </form>
+                    </Form>
                   ) : (
-                    <Tabs defaultValue="login" className="w-full">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auth Mode</span>
-                      <TabsList className="grid grid-cols-2 w-[160px] h-8 p-0.5 bg-slate-800 border border-slate-700">
-                        <TabsTrigger value="login" className="text-xs py-1 data-[state=active]:bg-safety-blue data-[state=active]:text-white">Sign In</TabsTrigger>
-                        <TabsTrigger value="signup" className="text-xs py-1 data-[state=active]:bg-safety-blue data-[state=active]:text-white">Sign Up</TabsTrigger>
-                      </TabsList>
-                    </div>
-                    
-                    {/* Sign In form tab */}
-                    <TabsContent value="login" className="space-y-5">
-                      <Form {...loginForm}>
-                        <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                          <FormField
-                            control={loginForm.control}
-                            name="username"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Username</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <User className="h-4 w-4 text-slate-400 shrink-0" />
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="sys_admin_01" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 font-mono text-white placeholder-slate-600" 
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                </div>
-                                <FormMessage className="ml-1 text-[10px]" />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={loginForm.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Password</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <Lock className="h-4 w-4 text-slate-400 shrink-0" />
-                                  <FormControl>
-                                    <Input 
-                                      type="password" 
-                                      placeholder="••••••••••••" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 font-mono text-white placeholder-slate-600" 
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                </div>
-                                <FormMessage className="ml-1 text-[10px]" />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={loginForm.control}
-                            name="location"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Location</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="Start location (optional)" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => fetchLocationAutomatically("login")}
-                                    disabled={isFetchingLocation}
-                                    title="Fetch Location Automatically"
-                                    className="shrink-0 h-8 w-8 rounded-lg hover:bg-slate-800"
-                                  >
-                                    {isFetchingLocation ? (
-                                      <Loader2 className="h-4 w-4 animate-spin text-safety-blue" />
-                                    ) : (
-                                      <MapPin className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                                <FormMessage className="ml-1 text-[10px]" />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <div className="flex flex-col gap-2.5 mt-4">
-                            <Button 
-                              type="submit" 
-                              className="w-full h-11 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-sm font-semibold cursor-pointer active:scale-[0.98]"
-                              disabled={loginMutation.isPending}
-                            >
-                              {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                              Sign In
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handlePasskeyLogin(loginForm.getValues("username"))}
-                              className="w-full h-11 rounded-lg flex items-center justify-center gap-2 border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white font-medium text-xs cursor-pointer transition-colors"
-                            >
-                              <Fingerprint className="h-4.5 w-4.5 text-safety-blue" />
-                              <span>Sign In with Passkey</span>
-                            </Button>
-                          </div>
-
-                          <div className="relative my-3">
-                            <div className="absolute inset-0 flex items-center">
-                              <span className="w-full border-t border-slate-800" />
-                            </div>
-                            <div className="relative flex justify-center text-[9px] uppercase tracking-wider">
-                              <span className="bg-slate-900 px-2 text-slate-500 font-bold">
-                                Or continue with
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleSsoLogin("Google")}
-                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
-                            >
-                              <FcGoogle className="h-4 w-4" />
-                              <span>Google</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleSsoLogin("Microsoft")}
-                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
-                            >
-                              <FaMicrosoft className="h-3.5 w-3.5 text-[#00a4ef]" />
-                              <span>Microsoft</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleSsoLogin("GitHub")}
-                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
-                            >
-                              <FaGithub className="h-4 w-4" />
-                              <span>GitHub</span>
-                            </Button>
-                          </div>
-                        </form>
-                      </Form>
-                    </TabsContent>
-
-                    {/* Sign Up form tab */}
-                    <TabsContent value="signup" className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
-                      <Form {...signUpForm}>
-                        <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-4">
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-safety-blue border-b border-slate-800 pb-1 mb-2 mt-2">User Credentials</div>
+                    <Form {...signUpForm}>
+                      <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-4">
+                        <div className="max-h-[300px] overflow-y-auto pr-1 space-y-4 scrollbar-thin">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-safety-blue border-b border-slate-100 dark:border-slate-800 pb-1 mb-2">User Credentials</div>
                           
                           <FormField
                             control={signUpForm.control}
                             name="username"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Username</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <User className="h-4 w-4 text-slate-400 shrink-0" />
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">account_circle</span>
+                                  Username
+                                </FormLabel>
+                                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
                                   <FormControl>
                                     <Input 
                                       placeholder="Choose username" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
                                       {...field} 
                                     />
                                   </FormControl>
@@ -1018,15 +1043,17 @@ export default function Login() {
                             control={signUpForm.control}
                             name="email"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Email</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">mail</span>
+                                  Email
+                                </FormLabel>
+                                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
                                   <FormControl>
                                     <Input 
                                       type="email" 
                                       placeholder="user@corp.com" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
                                       {...field} 
                                     />
                                   </FormControl>
@@ -1039,15 +1066,17 @@ export default function Login() {
                             control={signUpForm.control}
                             name="password"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Password</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <Lock className="h-4 w-4 text-slate-400 shrink-0" />
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">lock</span>
+                                  Password
+                                </FormLabel>
+                                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
                                   <FormControl>
                                     <Input 
                                       type="password" 
                                       placeholder="Minimum 6 characters" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
                                       {...field} 
                                     />
                                   </FormControl>
@@ -1060,14 +1089,16 @@ export default function Login() {
                             control={signUpForm.control}
                             name="phone"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Phone</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">phone</span>
+                                  Phone
+                                </FormLabel>
+                                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
                                   <FormControl>
                                     <Input 
                                       placeholder="Phone number (optional)" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
                                       {...field} 
                                     />
                                   </FormControl>
@@ -1077,20 +1108,22 @@ export default function Login() {
                             )}
                           />
 
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-safety-blue border-b border-slate-800 pb-1 mb-2 mt-4">Company Details</div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-safety-blue border-b border-slate-100 dark:border-slate-800 pb-1 mb-2 mt-4">Company Details</div>
 
                           <FormField
                             control={signUpForm.control}
                             name="companyName"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Company Name</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">business</span>
+                                  Company Name
+                                </FormLabel>
+                                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
                                   <FormControl>
                                     <Input 
                                       placeholder="Acme Corporation" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
                                       {...field} 
                                     />
                                   </FormControl>
@@ -1103,15 +1136,17 @@ export default function Login() {
                             control={signUpForm.control}
                             name="companyEmail"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Company Email</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">mail</span>
+                                  Company Email
+                                </FormLabel>
+                                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
                                   <FormControl>
                                     <Input 
                                       type="email" 
                                       placeholder="info@corp.com" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
                                       {...field} 
                                     />
                                   </FormControl>
@@ -1124,14 +1159,16 @@ export default function Login() {
                             control={signUpForm.control}
                             name="companyWebsiteUrl"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Website URL</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <Globe className="h-4 w-4 text-slate-400 shrink-0" />
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">language</span>
+                                  Website URL
+                                </FormLabel>
+                                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-2 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
                                   <FormControl>
                                     <Input 
                                       placeholder="https://www.company.com" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-mono tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
                                       {...field} 
                                     />
                                   </FormControl>
@@ -1144,14 +1181,16 @@ export default function Login() {
                             control={signUpForm.control}
                             name="location"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] ml-1 text-slate-400 font-bold uppercase tracking-wider">Session Location</FormLabel>
-                                <div className="flex items-center w-full bg-slate-950 border border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
-                                  <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase">
+                                  <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                  Session Location
+                                </FormLabel>
+                                <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-12 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue/20 transition-all">
                                   <FormControl>
                                     <Input 
                                       placeholder="Start location (optional)" 
-                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-white placeholder-slate-600" 
+                                      className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm tracking-wide w-full h-full p-0 text-midnight-navy dark:text-white placeholder-slate-400" 
                                       {...field} 
                                     />
                                   </FormControl>
@@ -1162,12 +1201,12 @@ export default function Login() {
                                     onClick={() => fetchLocationAutomatically("signUp")}
                                     disabled={isFetchingLocation}
                                     title="Fetch Location Automatically"
-                                    className="shrink-0 h-8 w-8 rounded-lg hover:bg-slate-800"
+                                    className="shrink-0 h-8 w-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
                                   >
                                     {isFetchingLocation ? (
                                       <Loader2 className="h-4 w-4 animate-spin text-safety-blue" />
                                     ) : (
-                                      <MapPin className="h-4 w-4" />
+                                      <span className="material-symbols-outlined text-[16px] text-slate-500 dark:text-slate-400">my_location</span>
                                     )}
                                   </Button>
                                 </div>
@@ -1175,103 +1214,112 @@ export default function Login() {
                               </FormItem>
                             )}
                           />
+                        </div>
 
-                          <div className="grid grid-cols-2 gap-3 mt-4">
-                            <Button 
-                              type="submit" 
-                              className="w-full h-11 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-xs font-semibold cursor-pointer"
-                              disabled={registerMutation.isPending}
-                            >
-                              {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                              Register Company
-                            </Button>
-                            <Button 
-                              type="button"
-                              variant="outline"
-                              onClick={() => {
-                                const values = signUpForm.getValues();
-                                if (!values.username || !values.email || !values.companyName) {
-                                  toast.error("Please fill in Username, Email, and Company Name to register with a Passkey.");
-                                  return;
-                                }
-                                handlePasskeyRegister(values);
-                              }}
-                              className="w-full h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white font-medium text-xs cursor-pointer transition-colors"
-                            >
-                              <Fingerprint className="h-4.5 w-4.5 text-safety-blue" />
-                              <span>Use Passkey</span>
-                            </Button>
-                          </div>
+                        <div className="grid grid-cols-2 gap-3 mt-4">
+                          <Button 
+                            type="submit" 
+                            className="w-full h-12 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-xs font-semibold cursor-pointer active:scale-[0.98]"
+                            disabled={registerMutation.isPending}
+                          >
+                            {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Register Company
+                          </Button>
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              const values = signUpForm.getValues();
+                              if (!values.username || !values.email || !values.companyName) {
+                                toast.error("Please fill in Username, Email, and Company Name to register with a Passkey.");
+                                return;
+                              }
+                              handlePasskeyRegister(values);
+                            }}
+                            className="w-full h-12 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-safety-blue text-[18px]">fingerprint</span>
+                            <span>Use Passkey</span>
+                          </Button>
+                        </div>
 
-                          <div className="relative my-3">
-                            <div className="absolute inset-0 flex items-center">
-                              <span className="w-full border-t border-slate-800" />
-                            </div>
-                            <div className="relative flex justify-center text-[9px] uppercase tracking-wider">
-                              <span className="bg-slate-900 px-2 text-slate-500 font-bold">
-                                Or register with
-                              </span>
-                            </div>
+                        <div className="relative my-3">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-slate-200 dark:border-slate-800" />
                           </div>
+                          <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
+                            <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 dark:text-slate-500 font-bold">
+                              Or register with
+                            </span>
+                          </div>
+                        </div>
 
-                          <div className="grid grid-cols-3 gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleSsoLogin("Google")}
-                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
-                            >
-                              <FcGoogle className="h-4 w-4" />
-                              <span>Google</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleSsoLogin("Microsoft")}
-                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
-                            >
-                              <FaMicrosoft className="h-3.5 w-3.5 text-[#00a4ef]" />
-                              <span>Microsoft</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleSsoLogin("GitHub")}
-                              className="w-full text-xs py-1 h-10 rounded-lg flex items-center justify-center gap-1.5 border-slate-800 bg-transparent hover:bg-slate-850 hover:text-white font-medium cursor-pointer"
-                            >
-                              <FaGithub className="h-4 w-4" />
-                              <span>GitHub</span>
-                            </Button>
-                          </div>
-                        </form>
-                      </Form>
-                    </TabsContent>
-                  </Tabs>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleSsoLogin("Google")}
+                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                          >
+                            <FcGoogle className="h-4.5 w-4.5" />
+                            <span>Google</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleSsoLogin("Microsoft")}
+                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                          >
+                            <FaMicrosoft className="h-4 w-4 text-[#00a4ef]" />
+                            <span>Microsoft</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleSsoLogin("GitHub")}
+                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                          >
+                            <FaGithub className="h-4.5 w-4.5" />
+                            <span>GitHub</span>
+                          </Button>
+                        </div>
+
+                        <div className="flex justify-center pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setAuthMode("login")}
+                            className="font-body-sm text-xs text-slate-500 dark:text-slate-400 hover:text-midnight-navy dark:hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            Already registered? <span className="text-safety-blue font-bold">Sign In</span>
+                          </button>
+                        </div>
+                      </form>
+                    </Form>
                   )}
                 </motion.div>
 
                 {/* Demo Credentials Footer */}
                 <motion.div 
                   variants={itemVariants}
-                  className="bg-slate-950 text-[9px] text-slate-400 flex flex-col items-start gap-1 p-3 rounded-lg border border-slate-850 mt-2"
+                  className="bg-slate-50 dark:bg-slate-950 text-[9px] text-slate-500 dark:text-slate-400 flex flex-col items-start gap-1 p-3 rounded-lg border border-slate-200 dark:border-slate-850 mt-2"
                 >
-                  <div className="font-semibold text-slate-300">Demo Credentials:</div>
-                  <div className="grid grid-cols-3 gap-x-3 gap-y-1 w-full text-[9px] font-mono">
-                    <div>Master: <code className="bg-slate-900 px-1 rounded text-white font-medium">master</code> / <code className="bg-slate-900 px-1 rounded text-slate-300">master123</code></div>
-                    <div>Admin: <code className="bg-slate-900 px-1 rounded text-white font-medium">demo_admin</code> / <code className="bg-slate-900 px-1 rounded text-slate-300">admin123</code></div>
-                    <div>Op: <code className="bg-slate-900 px-1 rounded text-white font-medium">demo_op</code> / <code className="bg-slate-900 px-1 rounded text-slate-300">op123</code></div>
+                  <div className="font-semibold text-slate-700 dark:text-slate-300">Demo Credentials:</div>
+                  <div className="grid grid-cols-1 gap-x-3 gap-y-1 w-full text-[9px] font-mono">
+                    <div>Master: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">master</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">master123</code></div>
+                    <div>Admin: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_admin</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">admin123</code></div>
+                    <div>Op: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_op</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">op123</code></div>
                   </div>
                 </motion.div>
 
                 {/* Security Validation Pills */}
-                <div className="mt-4 pt-6 border-t border-slate-800 flex justify-center gap-4">
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-850 rounded-full border border-slate-800">
-                    <span className="h-1.5 w-1.5 rounded-full bg-success-emerald" />
-                    <span className="text-[9px] font-bold text-slate-300">AES-256 ENCRYPTED</span>
+                <div className="mt-4 pt-6 border-t border-slate-100 dark:border-slate-850 flex justify-center gap-4">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-850 rounded-full border border-slate-200 dark:border-slate-800">
+                    <span className="material-symbols-outlined text-success-emerald text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">AES-256 ENCRYPTED</span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-850 rounded-full border border-slate-800">
-                    <span className="h-1.5 w-1.5 rounded-full bg-warning-amber" />
-                    <span className="text-[9px] font-bold text-slate-300">GS1 COMPLIANT</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-850 rounded-full border border-slate-200 dark:border-slate-800">
+                    <span className="material-symbols-outlined text-warning-amber text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>security</span>
+                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">GS1 COMPLIANT</span>
                   </div>
                 </div>
 
@@ -1280,7 +1328,7 @@ export default function Login() {
           </div>
 
           {/* Global Status Indicator */}
-          <div className="mt-6 flex justify-between items-center px-4 w-full max-w-[460px] text-white/50 text-[9px] font-bold uppercase tracking-widest">
+          <div className="mt-6 flex justify-between items-center px-4 w-full max-w-[440px] text-white/50 text-[10px] font-bold uppercase tracking-wider">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-emerald opacity-75"></span>
@@ -1294,17 +1342,18 @@ export default function Login() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full mt-auto py-6 px-8 bg-slate-950 border-t border-slate-900 text-slate-400 text-[11px] flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
-        <div className="flex items-center gap-4">
-          <span className="font-bold text-white">TracelyTag</span>
-          <span>© 2026 TracelyTag Industrial Intelligence. Secured by AES-256.</span>
+      <footer className="w-full mt-auto py-6 px-8 bg-slate-50 dark:bg-midnight-navy border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[11px] flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
+        <div className="flex flex-col md:flex-row items-center gap-4 mb-4 md:mb-0">
+          <span className="font-bold text-midnight-navy dark:text-white">TracelyTag</span>
+          <span>© 2026 TracelyTag Industrial Intelligence. Secured by AES-255.</span>
         </div>
         <div className="flex gap-6 text-[10px] font-bold uppercase tracking-wider">
-          <a href="#" className="hover:text-white transition-colors">Security Protocol</a>
-          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-white transition-colors">System Status</a>
+          <a href="#" className="hover:text-midnight-navy dark:hover:text-white transition-colors underline decoration-transparent hover:decoration-current">Security Protocol</a>
+          <a href="#" className="hover:text-midnight-navy dark:hover:text-white transition-colors underline decoration-transparent hover:decoration-current">Privacy Policy</a>
+          <a href="#" className="hover:text-midnight-navy dark:hover:text-white transition-colors underline decoration-transparent hover:decoration-current">System Status</a>
         </div>
       </footer>
+
 
 
       {/* --- SSO Identity Provider Modal --- */}
