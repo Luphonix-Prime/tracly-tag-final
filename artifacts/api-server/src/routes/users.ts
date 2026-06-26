@@ -2,12 +2,12 @@ import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import { eq, desc } from "drizzle-orm";
 import { db, usersTable, companiesTable } from "@workspace/db";
-import { CreateUserBody } from "@workspace/api-zod";
-import { requireAuth } from "../lib/session";
+import { CreateUserBody, UpdateUserBody } from "@workspace/api-zod";
+import { requireAuth, requireModule } from "../lib/session";
 
 const router: IRouter = Router();
 
-router.use("/users", requireAuth);
+router.use("/users", requireAuth, requireModule("users"));
 
 router.get("/users", async (req, res): Promise<void> => {
   const rows = await db
@@ -19,6 +19,8 @@ router.get("/users", async (req, res): Promise<void> => {
       role: usersTable.role,
       companyId: usersTable.companyId,
       companyName: companiesTable.name,
+      isActive: usersTable.isActive,
+      enabledModules: usersTable.enabledModules,
       createdAt: usersTable.createdAt,
     })
     .from(usersTable)
@@ -62,6 +64,8 @@ router.post("/users", async (req, res): Promise<void> => {
         passwordHash,
         role: parsed.data.role,
         companyId,
+        isActive: parsed.data.isActive ?? true,
+        enabledModules: parsed.data.enabledModules ?? "dashboard,products,batches,codes,locations,reports,users,generate_codes,mapping_code,customer_scan,summary",
       })
       .returning();
 
@@ -82,6 +86,8 @@ router.post("/users", async (req, res): Promise<void> => {
       role: row!.role,
       companyId: row!.companyId,
       companyName,
+      isActive: row!.isActive,
+      enabledModules: row!.enabledModules,
       createdAt: row!.createdAt,
     });
   } catch (err) {
@@ -89,6 +95,92 @@ router.post("/users", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Username may already exist" });
   }
 });
+
+router.put("/users/:id", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const parsed = UpdateUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  try {
+    const [targetUser] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, id));
+
+    if (!targetUser) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    // Security constraints
+    if (req.user!.role !== "master") {
+      if (targetUser.companyId !== req.user!.companyId) {
+        res.status(403).json({ error: "Forbidden: Cannot edit users outside your company" });
+        return;
+      }
+      if (targetUser.role === "master" || parsed.data.role === "master") {
+        res.status(403).json({ error: "Forbidden: Cannot edit master users or change roles to master" });
+        return;
+      }
+    }
+
+    const updateData: any = {};
+    if (parsed.data.email !== undefined) updateData.email = parsed.data.email;
+    if (parsed.data.phone !== undefined) updateData.phone = parsed.data.phone ?? null;
+    if (parsed.data.role !== undefined) updateData.role = parsed.data.role;
+    if (parsed.data.isActive !== undefined) updateData.isActive = parsed.data.isActive;
+    if (parsed.data.enabledModules !== undefined) updateData.enabledModules = parsed.data.enabledModules;
+
+    if (parsed.data.password && parsed.data.password.trim().length > 0) {
+      if (parsed.data.password.length < 6) {
+        res.status(400).json({ error: "Password must be at least 6 characters long" });
+        return;
+      }
+      updateData.passwordHash = await bcrypt.hash(parsed.data.password, 10);
+    }
+
+    const [updatedUser] = await db
+      .update(usersTable)
+      .set(updateData)
+      .where(eq(usersTable.id, id))
+      .returning();
+
+    let companyName: string | null = null;
+    if (updatedUser!.companyId) {
+      const [c] = await db
+        .select({ name: companiesTable.name })
+        .from(companiesTable)
+        .where(eq(companiesTable.id, updatedUser!.companyId));
+      companyName = c?.name ?? null;
+    }
+
+    res.json({
+      id: updatedUser!.id,
+      username: updatedUser!.username,
+      email: updatedUser!.email,
+      phone: updatedUser!.phone,
+      role: updatedUser!.role,
+      companyId: updatedUser!.companyId,
+      companyName,
+      isActive: updatedUser!.isActive,
+      enabledModules: updatedUser!.enabledModules,
+      createdAt: updatedUser!.createdAt,
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "Failed to update user");
+    res.status(500).json({ error: err.message || "Failed to update user" });
+  }
+});
+
 
 router.delete("/users/:id", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

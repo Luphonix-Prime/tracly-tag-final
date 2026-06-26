@@ -31,9 +31,8 @@ export const LoginResponse = zod.object({
   "role": zod.enum(['master', 'client_admin', 'operator']),
   "companyId": zod.number().nullable(),
   "companyName": zod.string().nullable(),
-  "subscriptionPlan": zod.string().nullable().optional(),
-  "subscriptionStatus": zod.string().nullable().optional(),
-  "subscriptionExpiresAt": zod.string().nullable().optional()
+  "isActive": zod.boolean(),
+  "enabledModules": zod.string()
 })
 
 
@@ -61,10 +60,12 @@ export const GetCurrentUserResponse = zod.object({
   "role": zod.enum(['master', 'client_admin', 'operator']),
   "companyId": zod.number().nullable(),
   "companyName": zod.string().nullable(),
-  "subscriptionPlan": zod.string().nullable().optional(),
-  "subscriptionStatus": zod.string().nullable().optional(),
-  "subscriptionExpiresAt": zod.string().nullable().optional()
+  "isActive": zod.boolean(),
+  "enabledModules": zod.string()
 })
+
+
+export const listCompaniesResponseGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');
 
 
 export const ListCompaniesResponseItem = zod.object({
@@ -72,17 +73,20 @@ export const ListCompaniesResponseItem = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "address": zod.string(),
-  "gstin": zod.string().nullable(),
+  "gstin": zod.string().regex(listCompaniesResponseGstinRegExp).nullable(),
   "createdAt": zod.coerce.date()
 })
 export const ListCompaniesResponse = zod.array(ListCompaniesResponseItem)
+
+
+export const createCompanyBodyGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');
 
 
 export const CreateCompanyBody = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "address": zod.string(),
-  "gstin": zod.string().nullish()
+  "gstin": zod.string().regex(createCompanyBodyGstinRegExp).nullish()
 })
 
 
@@ -99,6 +103,8 @@ export const ListUsersResponseItem = zod.object({
   "role": zod.enum(['master', 'client_admin', 'operator']),
   "companyId": zod.number().nullable(),
   "companyName": zod.string().nullable(),
+  "isActive": zod.boolean(),
+  "enabledModules": zod.string(),
   "createdAt": zod.coerce.date()
 })
 export const ListUsersResponse = zod.array(ListUsersResponseItem)
@@ -110,12 +116,41 @@ export const CreateUserBody = zod.object({
   "phone": zod.string().nullish(),
   "password": zod.string(),
   "role": zod.enum(['master', 'client_admin', 'operator']),
-  "companyId": zod.number().nullish()
+  "companyId": zod.number().nullish(),
+  "isActive": zod.boolean().optional(),
+  "enabledModules": zod.string().optional()
 })
 
 
 export const DeleteUserParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+export const UpdateUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateUserBody = zod.object({
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "role": zod.enum(['master', 'client_admin', 'operator']).optional(),
+  "isActive": zod.boolean().optional(),
+  "enabledModules": zod.string().optional(),
+  "password": zod.string().optional()
+})
+
+export const UpdateUserResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.enum(['master', 'client_admin', 'operator']),
+  "companyId": zod.number().nullable(),
+  "companyName": zod.string().nullable(),
+  "isActive": zod.boolean(),
+  "enabledModules": zod.string(),
+  "createdAt": zod.coerce.date()
 })
 
 

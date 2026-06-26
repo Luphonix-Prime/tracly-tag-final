@@ -2,11 +2,11 @@ import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, locationsTable } from "@workspace/db";
 import { CreateLocationBody } from "@workspace/api-zod";
-import { requireAuth } from "../lib/session";
+import { requireAuth, requireModule } from "../lib/session";
 
 const router: IRouter = Router();
 
-router.use("/locations", requireAuth);
+router.use("/locations", requireAuth, requireModule("locations"));
 
 router.get("/locations", async (req, res): Promise<void> => {
   const rows =

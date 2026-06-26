@@ -2,12 +2,12 @@ import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, productsTable } from "@workspace/db";
 import { CreateProductBody } from "@workspace/api-zod";
-import { requireAuth } from "../lib/session";
+import { requireAuth, requireModule } from "../lib/session";
 import { isValidGtin } from "../lib/gs1";
 
 const router: IRouter = Router();
 
-router.use("/products", requireAuth);
+router.use("/products", requireAuth, requireModule("products"));
 
 function effectiveCompanyId(user: NonNullable<typeof globalThis> extends never ? never : { role: string; companyId: number | null }): number | null {
   if (user.role === "master") return null;

@@ -39,4 +39,5 @@ export * from './registerBody';
 export * from './role';
 export * from './shipperSummaryRow';
 export * from './stockRow';
+export * from './updateUserBody';
 export * from './user';

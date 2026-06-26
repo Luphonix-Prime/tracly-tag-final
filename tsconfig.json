@@ -12,5 +12,11 @@
     {
       "path": "./lib/api-zod"
     }
+    // {
+    //   "path": "./artifacts/traclytag"
+    // },
+    // {
+    //   "path": "./artifacts/api-server"
+    // }
   ]
 }

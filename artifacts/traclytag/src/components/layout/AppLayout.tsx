@@ -79,19 +79,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return required === "free";
   };
 
+  const userModules = isMaster 
+    ? ["dashboard", "companies", "users", "products", "locations", "batches", "generate_codes", "mapping_code", "customer_scan", "summary", "reports"]
+    : (user.enabledModules || "").split(",");
+
   const navigation = [
-    { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    ...(isMaster ? [{ title: "Companies", href: "/companies", icon: Building2 }] : []),
-    { title: "Users", href: "/users", icon: Users },
-    { title: "Products", href: "/products", icon: Package },
-    { title: "Locations", href: "/locations", icon: MapPin },
-    { title: "Batches", href: "/production/batches", icon: Layers },
-    { title: "Generate Codes", href: "/production/codes", icon: QrCode },
-    ...(!hideMappingCode ? [{ title: "Mapping Code", href: "/mapping-code", icon: LinkIcon }] : []),
-    { title: "Customer Scan", href: "/customer-scan", icon: ScanBarcode },
-    { title: "Summary", href: "/production/summary", icon: PackageCheck },
-    { title: "Reports", href: "/reports/stock", icon: BarChart3 },
-  ];
+    { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, module: "dashboard" },
+    ...(isMaster ? [{ title: "Companies", href: "/companies", icon: Building2, module: "companies" }] : []),
+    { title: "Users", href: "/users", icon: Users, module: "users" },
+    { title: "Products", href: "/products", icon: Package, module: "products" },
+    { title: "Locations", href: "/locations", icon: MapPin, module: "locations" },
+    { title: "Batches", href: "/production/batches", icon: Layers, module: "batches" },
+    { title: "Generate Codes", href: "/production/codes", icon: QrCode, module: "generate_codes" },
+    ...(!hideMappingCode ? [{ title: "Mapping Code", href: "/mapping-code", icon: LinkIcon, module: "mapping_code" }] : []),
+    { title: "Customer Scan", href: "/customer-scan", icon: ScanBarcode, module: "customer_scan" },
+    { title: "Summary", href: "/production/summary", icon: PackageCheck, module: "summary" },
+    { title: "Reports", href: "/reports/stock", icon: BarChart3, module: "reports" },
+  ].filter(item => userModules.includes(item.module));
 
   const bottomNavigation = [
     { title: "Profile", href: "/profile", icon: User },

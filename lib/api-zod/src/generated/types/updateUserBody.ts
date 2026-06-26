@@ -7,15 +7,12 @@
  */
 import type { Role } from './role';
 
-export interface CreateUserBody {
-  username: string;
-  email: string;
+export interface UpdateUserBody {
+  email?: string;
   /** @nullable */
   phone?: string | null;
-  password: string;
-  role: Role;
-  /** @nullable */
-  companyId?: number | null;
+  role?: Role;
   isActive?: boolean;
   enabledModules?: string;
+  password?: string;
 }

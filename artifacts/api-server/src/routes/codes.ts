@@ -11,7 +11,7 @@ import {
   customerScansTable,
 } from "@workspace/db";
 import { GenerateCodesBody, MapCodeBody } from "@workspace/api-zod";
-import { requireAuth } from "../lib/session";
+import { requireAuth, requireModule } from "../lib/session";
 import { generateUnitCode, generateSsccCode, parseGs1Code } from "../lib/gs1";
 
 const router: IRouter = Router();
@@ -290,7 +290,24 @@ async function fetchEnrichedCodes(ids: number[]) {
   return rows;
 }
 
-router.get("/codes", requireAuth, async (req, res): Promise<void> => {
+const requireGenerateOrMapCodes = (req: any, res: any, next: any) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  if (req.user.role === "master") {
+    next();
+    return;
+  }
+  const modules = (req.user.enabledModules || "").split(",");
+  if (!modules.includes("generate_codes") && !modules.includes("mapping_code")) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  next();
+};
+
+router.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res): Promise<void> => {
   const level = typeof req.query.level === "string" ? req.query.level : null;
   const batchId =
     typeof req.query.batchId === "string"
@@ -354,7 +371,7 @@ router.get("/codes", requireAuth, async (req, res): Promise<void> => {
   res.json(rows);
 });
 
-router.post("/codes", requireAuth, async (req, res): Promise<void> => {
+router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, res): Promise<void> => {
   const parsed = GenerateCodesBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -424,7 +441,7 @@ router.post("/codes", requireAuth, async (req, res): Promise<void> => {
   res.status(201).json({ generated: inserted.length, codes: rows });
 });
 
-router.post("/codes/:id/map", requireAuth, async (req, res): Promise<void> => {
+router.post("/codes/:id/map", requireAuth, requireModule("mapping_code"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw ?? "", 10);
   if (Number.isNaN(id)) {
@@ -455,7 +472,7 @@ router.post("/codes/:id/map", requireAuth, async (req, res): Promise<void> => {
   res.json(row);
 });
 
-router.get("/codes/scans", async (req, res): Promise<void> => {
+router.get("/codes/scans", requireAuth, requireModule("customer_scan"), async (req, res): Promise<void> => {
   try {
     const scans = await db
       .select({

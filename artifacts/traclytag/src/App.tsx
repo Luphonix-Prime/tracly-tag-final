@@ -14,11 +14,17 @@ import PublicVerify from "@/pages/public-verify";
 import Activate from "@/pages/activate";
 import Dashboard from "@/pages/dashboard";
 import Companies from "@/pages/companies";
+import NewCompany from "@/pages/new-company";
 import Users from "@/pages/users";
+import NewUser from "@/pages/new-user";
 import Products from "@/pages/products";
+import NewProduct from "@/pages/new-product";
 import Locations from "@/pages/locations";
+import NewLocation from "@/pages/new-location";
 import Batches from "@/pages/production/batches";
+import NewBatch from "@/pages/production/new-batch";
 import Codes from "@/pages/production/codes";
+import GenerateCodes from "@/pages/production/generate-codes";
 import Summary from "@/pages/production/summary";
 import StockReport from "@/pages/reports/stock";
 import ProductReport from "@/pages/reports/product";
@@ -87,6 +93,41 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     return required === "free";
   };
 
+  const getRequiredModule = (path: string): string | null => {
+    if (path.startsWith("/dashboard")) return "dashboard";
+    if (path.startsWith("/companies")) return "companies";
+    if (path.startsWith("/users")) return "users";
+    if (path.startsWith("/products")) return "products";
+    if (path.startsWith("/locations")) return "locations";
+    if (path.startsWith("/production/batches")) return "batches";
+    if (path.startsWith("/production/codes")) return "generate_codes";
+    if (path.startsWith("/mapping-code")) return "mapping_code";
+    if (path.startsWith("/customer-scan")) return "customer_scan";
+    if (path.startsWith("/production/summary")) return "summary";
+    if (path.startsWith("/reports")) return "reports";
+    return null;
+  };
+
+  const requiredModule = getRequiredModule(path);
+  if (requiredModule && !isMaster) {
+    const userModules = (user.enabledModules || "").split(",");
+    if (!userModules.includes(requiredModule)) {
+      return (
+        <AppLayout>
+          <div className="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto font-sans">
+            <div className="w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive shadow-md mb-6">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">Access Denied</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
+              Your account does not have access to the <strong className="capitalize">{requiredModule.replace('_', ' ')}</strong> module. Please contact your administrator to request access.
+            </p>
+          </div>
+        </AppLayout>
+      );
+    }
+  }
+
   const requiredPlan = getRequiredPlan(path);
   const isAllowed = isPlanSufficient(requiredPlan, currentPlan);
 
@@ -128,11 +169,17 @@ function Router() {
       <Route path="/" component={RedirectToDashboard} />
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/companies"><ProtectedRoute component={Companies} /></Route>
+      <Route path="/companies/new"><ProtectedRoute component={NewCompany} /></Route>
       <Route path="/users"><ProtectedRoute component={Users} /></Route>
+      <Route path="/users/new"><ProtectedRoute component={NewUser} /></Route>
       <Route path="/products"><ProtectedRoute component={Products} /></Route>
+      <Route path="/products/new"><ProtectedRoute component={NewProduct} /></Route>
       <Route path="/locations"><ProtectedRoute component={Locations} /></Route>
+      <Route path="/locations/new"><ProtectedRoute component={NewLocation} /></Route>
       <Route path="/production/batches"><ProtectedRoute component={Batches} /></Route>
+      <Route path="/production/batches/new"><ProtectedRoute component={NewBatch} /></Route>
       <Route path="/production/codes"><ProtectedRoute component={Codes} /></Route>
+      <Route path="/production/codes/new"><ProtectedRoute component={GenerateCodes} /></Route>
       <Route path="/mapping-code"><ProtectedRoute component={MappingCode} /></Route>
       <Route path="/customer-scan"><ProtectedRoute component={CustomerScan} /></Route>
       <Route path="/production/summary"><ProtectedRoute component={Summary} /></Route>

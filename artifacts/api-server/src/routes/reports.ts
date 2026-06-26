@@ -9,7 +9,7 @@ import {
   usersTable,
   companiesTable,
 } from "@workspace/db";
-import { requireAuth } from "../lib/session";
+import { requireAuth, requireModule } from "../lib/session";
 
 const router: IRouter = Router();
 
@@ -38,7 +38,7 @@ function dateRangeConds(from: unknown, to: unknown) {
   return conds;
 }
 
-router.get("/reports/dashboard", async (req, res): Promise<void> => {
+router.get("/reports/dashboard", requireModule("dashboard"), async (req, res): Promise<void> => {
   const scope = companyScope(req.user!);
 
   const [productsAgg] = await db
@@ -140,7 +140,7 @@ router.get("/reports/dashboard", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/reports/stock", async (req, res): Promise<void> => {
+router.get("/reports/stock", requireModule("reports"), async (req, res): Promise<void> => {
   const scope = companyScope(req.user!);
   const productId =
     typeof req.query.productId === "string"
@@ -175,7 +175,7 @@ router.get("/reports/stock", async (req, res): Promise<void> => {
   res.json(rows);
 });
 
-router.get("/reports/product", async (req, res): Promise<void> => {
+router.get("/reports/product", requireModule("reports"), async (req, res): Promise<void> => {
   const scope = companyScope(req.user!);
   const conds = [];
   if (scope) conds.push(scope);
@@ -202,7 +202,7 @@ router.get("/reports/product", async (req, res): Promise<void> => {
   res.json(rows);
 });
 
-router.get("/reports/shipper-summary", async (req, res): Promise<void> => {
+router.get("/reports/shipper-summary", requireModule("reports"), async (req, res): Promise<void> => {
   const scope = companyScope(req.user!);
   const conds = [eq(codesTable.level, "shipper")];
   if (scope) conds.push(scope);
@@ -228,7 +228,7 @@ router.get("/reports/shipper-summary", async (req, res): Promise<void> => {
   res.json(rows);
 });
 
-router.get("/reports/pallet-summary", async (req, res): Promise<void> => {
+router.get("/reports/pallet-summary", requireModule("reports"), async (req, res): Promise<void> => {
   const scope = companyScope(req.user!);
   const conds = [eq(codesTable.level, "pallet")];
   if (scope) conds.push(scope);
@@ -254,7 +254,7 @@ router.get("/reports/pallet-summary", async (req, res): Promise<void> => {
   res.json(rows);
 });
 
-router.get("/reports/marked-by", async (req, res): Promise<void> => {
+router.get("/reports/marked-by", requireModule("reports"), async (req, res): Promise<void> => {
   const scope = companyScope(req.user!);
   const conds = [eq(codesTable.mapped, true)];
   if (scope) conds.push(scope);

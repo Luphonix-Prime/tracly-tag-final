@@ -9,6 +9,8 @@ export const usersTable = sqliteTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: text("role").notNull(),
   companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "set null" }),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  enabledModules: text("enabled_modules").notNull().default("dashboard,companies,users,products,locations,batches,generate_codes,mapping_code,customer_scan,summary,reports"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 

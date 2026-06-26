@@ -18,5 +18,7 @@ export interface User {
   companyId: number | null;
   /** @nullable */
   companyName: string | null;
+  isActive: boolean;
+  enabledModules: string;
   createdAt: Date;
 }
