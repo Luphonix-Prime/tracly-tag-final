@@ -6,7 +6,8 @@ import {
   useListProducts,
   useGetProductReport, 
   getGetProductReportQueryKey,
-  getListCodesQueryKey
+  getListCodesQueryKey,
+  useGetCurrentUser
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -46,6 +47,7 @@ const generateSchema = z.object({
 });
 
 export default function Codes() {
+  const { data: user } = useGetCurrentUser();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -723,7 +725,8 @@ export default function Codes() {
                     console.error(e);
                   }
                   const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
-                  const verificationUrl = `${window.location.origin}/code/${qrCodeString}`;
+                  const baseOrigin = user?.companyUrl ? `https://${user.companyUrl}` : window.location.origin;
+                  const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
                   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
                   
                   return (
@@ -790,7 +793,8 @@ export default function Codes() {
                     console.error(e);
                   }
                   const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
-                  const verificationUrl = `${window.location.origin}/code/${qrCodeString}`;
+                  const baseOrigin = user?.companyUrl ? `https://${user.companyUrl}` : window.location.origin;
+                  const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
                   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
 
                   return (

@@ -15,4 +15,6 @@ export interface CreateCompanyBody {
      * @pattern ^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$
      */
   gstin?: string | null;
+  /** @nullable */
+  companyUrl?: string | null;
 }

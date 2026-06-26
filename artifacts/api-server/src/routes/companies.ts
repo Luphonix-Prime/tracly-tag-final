@@ -6,6 +6,28 @@ import { requireAuth, requireRole } from "../lib/session";
 
 const router: IRouter = Router();
 
+router.get("/companies/public/by-domain", async (req, res): Promise<void> => {
+  const domain = req.query.domain as string;
+  if (!domain) {
+    res.status(400).json({ error: "Domain parameter is required" });
+    return;
+  }
+  const [company] = await db
+    .select({
+      id: companiesTable.id,
+      name: companiesTable.name,
+      companyUrl: companiesTable.companyUrl,
+    })
+    .from(companiesTable)
+    .where(eq(companiesTable.companyUrl, domain));
+
+  if (!company) {
+    res.status(404).json({ error: "Company not found for this domain" });
+    return;
+  }
+  res.json(company);
+});
+
 router.use("/companies", requireAuth);
 
 router.get("/companies", async (_req, res): Promise<void> => {
@@ -32,6 +54,7 @@ router.post(
         email: parsed.data.email,
         address: parsed.data.address,
         gstin: parsed.data.gstin ?? null,
+        companyUrl: parsed.data.companyUrl ?? null,
       })
       .returning();
     res.status(201).json(row);

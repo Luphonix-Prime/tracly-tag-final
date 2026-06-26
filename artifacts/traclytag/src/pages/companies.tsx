@@ -2,13 +2,14 @@ import { useLocation } from "wouter";
 import { useGetCurrentUser, useListCompanies, getListCompaniesQueryKey, useDeleteCompany } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Plus, Building2 } from "lucide-react";
+import { Trash2, Plus, Building2, Globe, Info } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function Companies() {
   const { data: user } = useGetCurrentUser();
@@ -73,19 +74,20 @@ export default function Companies() {
           <Table className="w-full text-left table-fixed">
             <TableHeader>
               <TableRow className="border-b border-[#E2E8F0] bg-slate-50/50 hover:bg-slate-50/50">
-                <TableHead className="text-slate-500 tracking-wider w-[30%] text-[11px] font-bold px-6 py-4 uppercase">NAME</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[25%] text-[11px] font-bold px-6 py-4 uppercase">NAME</TableHead>
                 <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">EMAIL</TableHead>
                 <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">GSTIN</TableHead>
-                <TableHead className="text-slate-500 tracking-wider w-[25%] text-[11px] font-bold px-6 py-4 uppercase">ADDRESS</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">PORTAL URL</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[10%] text-[11px] font-bold px-6 py-4 uppercase">ADDRESS</TableHead>
                 <TableHead className="text-slate-500 tracking-wider w-[10%] text-[11px] font-bold px-6 py-4 uppercase text-right">ACTIONS</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-[#E2E8F0]">
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
               ) : companies.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-slate-500">
+                  <TableCell colSpan={6} className="text-center py-12 text-slate-500">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Building2 className="h-8 w-8 opacity-50" />
                       <p>No companies found</p>
@@ -108,13 +110,89 @@ export default function Companies() {
                       <span className="font-semibold tracking-wide text-slate-600">{company.gstin || '—'}</span>
                     </TableCell>
                     <TableCell className="align-middle px-6 py-5 text-[14px]">
+                      {company.companyUrl ? (
+                        <div className="flex items-center gap-1.5 text-blue-600 font-medium font-mono text-xs">
+                          <Globe className="h-3.5 w-3.5" />
+                          <span className="truncate">{company.companyUrl}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic">Not set</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="align-middle px-6 py-5 text-[14px]">
                       <span className="text-slate-600 truncate block" title={company.address}>{company.address}</span>
                     </TableCell>
                     <TableCell className="align-middle px-6 py-5">
                       <div className="flex items-center justify-end gap-1">
+                        {company.companyUrl && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="View DNS Setup Instructions">
+                                <Info className="h-5 w-5" />
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[550px] bg-white border border-[#E2E8F0] rounded-xl shadow-lg p-6 font-sans">
+                              <DialogHeader className="border-b border-[#E2E8F0] pb-3">
+                                <DialogTitle className="text-lg font-bold text-midnight-navy flex items-center gap-2">
+                                  <Globe className="h-5 w-5 text-blue-600" />
+                                  DNS Config: {company.name}
+                                </DialogTitle>
+                                <DialogDescription className="text-sm text-slate-600 mt-1">
+                                  Point the custom domain to the TracelyTag verification platform.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4 py-4 text-slate-800 text-sm">
+                                <p>
+                                  To show verification pages under <strong className="font-mono text-blue-600">https://{company.companyUrl}</strong>, the company needs to add one of the following DNS records in their domain registrar panel:
+                                </p>
+                                
+                                <div className="border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm">
+                                  <div className="bg-slate-50 px-4 py-2 border-b border-[#E2E8F0] font-bold text-xs uppercase text-slate-500 tracking-wider">
+                                    Option A: Subdomain setup (Recommended)
+                                  </div>
+                                  <div className="p-4 space-y-2.5 font-mono text-xs">
+                                    <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-1.5">
+                                      <span className="font-bold text-slate-500">Record Type</span>
+                                      <span className="font-bold text-slate-500">Host/Name</span>
+                                      <span className="font-bold text-slate-500">Value/Target</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <span className="font-bold text-blue-700">CNAME</span>
+                                      <span className="font-semibold text-slate-800">{company.companyUrl.split('.')[0]}</span>
+                                      <span className="text-slate-800 break-all">{window.location.hostname}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm">
+                                  <div className="bg-slate-50 px-4 py-2 border-b border-[#E2E8F0] font-bold text-xs uppercase text-slate-500 tracking-wider">
+                                    Option B: Apex domain setup
+                                  </div>
+                                  <div className="p-4 space-y-2.5 font-mono text-xs">
+                                    <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-1.5">
+                                      <span className="font-bold text-slate-500">Record Type</span>
+                                      <span className="font-bold text-slate-500">Host/Name</span>
+                                      <span className="font-bold text-slate-500">Value/Target</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <span className="font-bold text-blue-700">A</span>
+                                      <span className="font-semibold text-slate-800">@</span>
+                                      <span className="text-slate-800">76.76.21.21</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <p className="text-xs text-slate-500 italic mt-2">
+                                  Note: DNS changes can take up to 24-48 hours to propagate worldwide. Once configured, visiting the URL will automatically redirect visitors to this company's product verification portal.
+                                </p>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                        
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                            <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Delete Company">
                               <Trash2 className="h-5 w-5" />
                             </button>
                           </AlertDialogTrigger>
