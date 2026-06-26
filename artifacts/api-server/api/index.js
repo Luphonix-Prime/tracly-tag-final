@@ -58748,6 +58748,8 @@ router2.post("/auth/register", async (req, res) => {
         role: user2.role,
         companyId: user2.companyId,
         companyName: company.name,
+        isActive: user2.isActive,
+        enabledModules: user2.enabledModules,
         subscriptionPlan: company.subscriptionPlan,
         subscriptionStatus: company.subscriptionStatus,
         subscriptionExpiresAt: company.subscriptionExpiresAt
@@ -58832,6 +58834,8 @@ router2.post("/auth/login", async (req, res) => {
       role: user2.role,
       companyId: user2.companyId,
       companyName,
+      isActive: user2.isActive,
+      enabledModules: user2.enabledModules,
       subscriptionPlan,
       subscriptionStatus,
       subscriptionExpiresAt
@@ -58895,6 +58899,8 @@ router2.post("/auth/verify-otp", async (req, res) => {
       role: user2.role,
       companyId: user2.companyId,
       companyName,
+      isActive: user2.isActive,
+      enabledModules: user2.enabledModules,
       subscriptionPlan,
       subscriptionStatus,
       subscriptionExpiresAt
