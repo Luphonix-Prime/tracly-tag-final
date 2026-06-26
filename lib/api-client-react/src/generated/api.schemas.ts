@@ -47,6 +47,8 @@ export interface AuthSession {
   companyId: number | null;
   /** @nullable */
   companyName: string | null;
+  /** @nullable */
+  companyUrl?: string | null;
   isActive: boolean;
   enabledModules: string;
 }
@@ -61,6 +63,8 @@ export interface Company {
      * @pattern ^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$
      */
   gstin: string | null;
+  /** @nullable */
+  companyUrl?: string | null;
   createdAt: string;
 }
 
@@ -73,6 +77,8 @@ export interface CreateCompanyBody {
      * @pattern ^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$
      */
   gstin?: string | null;
+  /** @nullable */
+  companyUrl?: string | null;
 }
 
 export interface User {

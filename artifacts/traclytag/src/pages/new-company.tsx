@@ -23,6 +23,11 @@ const companySchema = z.object({
       (val) => !val || /^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]Z[A-Z0-9]?$/.test(val),
       "Invalid GSTIN format. Expected: 2-digit state code, 10-char PAN, 1-char registration code, 'Z', and optional check code (e.g., 27AAAAA0000A1Z5)."
     ),
+  companyUrl: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => val?.trim().toLowerCase()),
 });
 
 export default function NewCompany() {
@@ -33,7 +38,7 @@ export default function NewCompany() {
 
   const form = useForm<z.infer<typeof companySchema>>({
     resolver: zodResolver(companySchema),
-    defaultValues: { name: "", email: "", address: "", gstin: "" },
+    defaultValues: { name: "", email: "", address: "", gstin: "", companyUrl: "" },
   });
 
   if (user?.role !== "master") {
@@ -191,6 +196,33 @@ export default function NewCompany() {
                         <Input 
                           placeholder="27AAAAA0000A1Z5" 
                           className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all uppercase font-mono"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[11px] text-[#EF4444]" />
+                    </FormItem>
+                  )}
+                />
+              </section>
+
+              {/* Section 4: Custom Domain / Portal Setup */}
+              <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>dns</span>
+                  <h3 className="text-lg font-bold text-[#0F172A]">Custom Domain / Portal URL</h3>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="companyUrl"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                        PORTAL URL / CUSTOM DOMAIN
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="verify.company.com" 
+                          className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono"
                           {...field} 
                         />
                       </FormControl>

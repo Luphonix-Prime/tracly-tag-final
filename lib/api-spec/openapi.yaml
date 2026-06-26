@@ -623,6 +623,8 @@ components:
           type: ["integer", "null"]
         companyName:
           type: ["string", "null"]
+        companyUrl:
+          type: ["string", "null"]
         isActive:
           type: boolean
         enabledModules:
@@ -643,6 +645,8 @@ components:
         gstin:
           type: ["string", "null"]
           pattern: "^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$"
+        companyUrl:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -660,6 +664,8 @@ components:
         gstin:
           type: ["string", "null"]
           pattern: "^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$"
+        companyUrl:
+          type: ["string", "null"]
       required: [name, email, address]
 
     User:

@@ -12,6 +12,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import PublicVerify from "@/pages/public-verify";
 import Activate from "@/pages/activate";
+import { BrandedPortal } from "@/components/BrandedPortal";
 import Dashboard from "@/pages/dashboard";
 import Companies from "@/pages/companies";
 import NewCompany from "@/pages/new-company";
@@ -160,13 +161,27 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
+const isCustomDomain = () => {
+  const hostname = window.location.hostname;
+  return (
+    hostname !== "localhost" &&
+    hostname !== "127.0.0.1" &&
+    !hostname.endsWith(".vercel.app") &&
+    !hostname.endsWith("traclytag.com")
+  );
+};
+
 function Router() {
+  const custom = isCustomDomain();
+
   return (
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/code/:serial" component={PublicVerify} />
       <Route path="/activate" component={Activate} />
-      <Route path="/" component={RedirectToDashboard} />
+      <Route path="/">
+        {custom ? <BrandedPortal /> : <RedirectToDashboard />}
+      </Route>
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/companies"><ProtectedRoute component={Companies} /></Route>
       <Route path="/companies/new"><ProtectedRoute component={NewCompany} /></Route>

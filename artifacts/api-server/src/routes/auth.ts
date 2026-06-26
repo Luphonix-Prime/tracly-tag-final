@@ -81,6 +81,9 @@ router.post("/auth/register", async (req, res): Promise<void> => {
         role: user.role,
         companyId: user.companyId,
         companyName: company.name,
+        companyUrl: company.companyUrl ?? null,
+        isActive: user.isActive,
+        enabledModules: user.enabledModules,
         subscriptionPlan: company.subscriptionPlan,
         subscriptionStatus: company.subscriptionStatus,
         subscriptionExpiresAt: company.subscriptionExpiresAt,
@@ -116,6 +119,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   let companyName: string | null = null;
+  let companyUrl: string | null = null;
   let subscriptionPlan: string | null = null;
   let subscriptionStatus: string | null = null;
   let subscriptionExpiresAt: string | null = null;
@@ -123,6 +127,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     const [c] = await db
       .select({ 
         name: companiesTable.name,
+        companyUrl: companiesTable.companyUrl,
         subscriptionPlan: companiesTable.subscriptionPlan,
         subscriptionStatus: companiesTable.subscriptionStatus,
         subscriptionExpiresAt: companiesTable.subscriptionExpiresAt,
@@ -130,6 +135,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       .from(companiesTable)
       .where(eq(companiesTable.id, user.companyId));
     companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -180,6 +186,9 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       role: user.role,
       companyId: user.companyId,
       companyName,
+      companyUrl,
+      isActive: user.isActive,
+      enabledModules: user.enabledModules,
       subscriptionPlan,
       subscriptionStatus,
       subscriptionExpiresAt,
@@ -220,6 +229,7 @@ router.post("/auth/verify-otp", async (req, res): Promise<void> => {
   }
 
   let companyName: string | null = null;
+  let companyUrl: string | null = null;
   let subscriptionPlan: string | null = null;
   let subscriptionStatus: string | null = null;
   let subscriptionExpiresAt: string | null = null;
@@ -227,6 +237,7 @@ router.post("/auth/verify-otp", async (req, res): Promise<void> => {
     const [c] = await db
       .select({ 
         name: companiesTable.name,
+        companyUrl: companiesTable.companyUrl,
         subscriptionPlan: companiesTable.subscriptionPlan,
         subscriptionStatus: companiesTable.subscriptionStatus,
         subscriptionExpiresAt: companiesTable.subscriptionExpiresAt,
@@ -234,6 +245,7 @@ router.post("/auth/verify-otp", async (req, res): Promise<void> => {
       .from(companiesTable)
       .where(eq(companiesTable.id, user.companyId));
     companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -259,6 +271,9 @@ router.post("/auth/verify-otp", async (req, res): Promise<void> => {
       role: user.role,
       companyId: user.companyId,
       companyName,
+      companyUrl,
+      isActive: user.isActive,
+      enabledModules: user.enabledModules,
       subscriptionPlan,
       subscriptionStatus,
       subscriptionExpiresAt,
@@ -277,6 +292,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     return;
   }
   let companyName: string | null = null;
+  let companyUrl: string | null = null;
   let subscriptionPlan: string | null = null;
   let subscriptionStatus: string | null = null;
   let subscriptionExpiresAt: string | null = null;
@@ -284,6 +300,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     const [c] = await db
       .select({ 
         name: companiesTable.name,
+        companyUrl: companiesTable.companyUrl,
         subscriptionPlan: companiesTable.subscriptionPlan,
         subscriptionStatus: companiesTable.subscriptionStatus,
         subscriptionExpiresAt: companiesTable.subscriptionExpiresAt,
@@ -291,6 +308,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
       .from(companiesTable)
       .where(eq(companiesTable.id, req.user.companyId));
     companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -302,6 +320,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     role: req.user.role,
     companyId: req.user.companyId,
     companyName,
+    companyUrl,
     isActive: req.user.isActive,
     enabledModules: req.user.enabledModules,
     subscriptionPlan,

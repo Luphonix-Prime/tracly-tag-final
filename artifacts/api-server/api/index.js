@@ -50811,6 +50811,7 @@ var LoginResponse = objectType({
   "role": enumType(["master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
+  "companyUrl": stringType().nullish(),
   "isActive": booleanType(),
   "enabledModules": stringType()
 });
@@ -50830,6 +50831,7 @@ var GetCurrentUserResponse = objectType({
   "role": enumType(["master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
+  "companyUrl": stringType().nullish(),
   "isActive": booleanType(),
   "enabledModules": stringType()
 });
@@ -50840,6 +50842,7 @@ var ListCompaniesResponseItem = objectType({
   "email": stringType(),
   "address": stringType(),
   "gstin": stringType().regex(listCompaniesResponseGstinRegExp).nullable(),
+  "companyUrl": stringType().nullish(),
   "createdAt": coerce.date()
 });
 var ListCompaniesResponse = arrayType(ListCompaniesResponseItem);
@@ -50848,7 +50851,8 @@ var CreateCompanyBody = objectType({
   "name": stringType(),
   "email": stringType(),
   "address": stringType(),
-  "gstin": stringType().regex(createCompanyBodyGstinRegExp).nullish()
+  "gstin": stringType().regex(createCompanyBodyGstinRegExp).nullish(),
+  "companyUrl": stringType().nullish()
 });
 var DeleteCompanyParams = objectType({
   "id": coerce.number()
@@ -58474,6 +58478,7 @@ var companiesTable = sqliteTable("companies", {
   subscriptionExpiresAt: text("subscription_expires_at"),
   razorpayOrderId: text("razorpay_order_id"),
   razorpayPaymentId: text("razorpay_payment_id"),
+  companyUrl: text("company_url"),
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
@@ -58602,8 +58607,8 @@ dotenv.config({ path: path.resolve(resolvedDirname, "../../../.env") });
 dotenv.config({ path: path.resolve(resolvedDirname, "../../.env") });
 dotenv.config({ path: path.resolve(resolvedDirname, "../.env") });
 dotenv.config();
-var dbUrl = "libsql://traclytag-dhyeykhanpara21.aws-ap-south-1.turso.io";
-var dbAuthToken = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzkyNTg0MDksImlkIjoiMDE5ZTQ0MDAtNTcwMS03Njc4LWExMWMtYjVkOGUyNzBjY2UyIiwicmlkIjoiOGI0NTA0OTYtYTk1Yi00M2MzLTkwMTgtZDNhMGM5ZjE5NjRhIn0.0FKVo6IIRfqK5WEgyOLNwuWJh1YrnI1VCZQxu2BHl80fEWcudYcpcPJo1VyiHTxwTERnXO0k9hhY17GXVEh-Aw";
+var dbUrl = "libsql://tracelytag-luphonix.aws-ap-south-1.turso.io";
+var dbAuthToken = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODI0NTMyMDUsImlkIjoiMDE5ZjAyN2MtYTEwMS03MDFhLTg1NmUtZjQzZjRmODg2N2NmIiwicmlkIjoiYjNjNjAyNjQtNmFiZC00MzA2LTlmMjYtOTc0YmY5Y2M5YzdhIn0.miOwWS6XuTi4n-QOmkz57sTpbOcAneku4AcDbN_aKngttkTmW51fOafV2eAUBr8E8new-lZjQG6Imnh67iRLCg";
 if (!dbUrl) {
   const dbFile = path.resolve(resolvedDirname, "..", "traclytag.db");
   const isVercel = !!process.env.VERCEL || process.env.NODE_ENV === "production";
@@ -58748,6 +58753,9 @@ router2.post("/auth/register", async (req, res) => {
         role: user2.role,
         companyId: user2.companyId,
         companyName: company.name,
+        companyUrl: company.companyUrl ?? null,
+        isActive: user2.isActive,
+        enabledModules: user2.enabledModules,
         subscriptionPlan: company.subscriptionPlan,
         subscriptionStatus: company.subscriptionStatus,
         subscriptionExpiresAt: company.subscriptionExpiresAt
@@ -58775,17 +58783,20 @@ router2.post("/auth/login", async (req, res) => {
     return;
   }
   let companyName = null;
+  let companyUrl = null;
   let subscriptionPlan = null;
   let subscriptionStatus = null;
   let subscriptionExpiresAt = null;
   if (user2.companyId) {
     const [c] = await db.select({
       name: companiesTable.name,
+      companyUrl: companiesTable.companyUrl,
       subscriptionPlan: companiesTable.subscriptionPlan,
       subscriptionStatus: companiesTable.subscriptionStatus,
       subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
     }).from(companiesTable).where(eq(companiesTable.id, user2.companyId));
     companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -58832,6 +58843,9 @@ router2.post("/auth/login", async (req, res) => {
       role: user2.role,
       companyId: user2.companyId,
       companyName,
+      companyUrl,
+      isActive: user2.isActive,
+      enabledModules: user2.enabledModules,
       subscriptionPlan,
       subscriptionStatus,
       subscriptionExpiresAt
@@ -58862,17 +58876,20 @@ router2.post("/auth/verify-otp", async (req, res) => {
     return;
   }
   let companyName = null;
+  let companyUrl = null;
   let subscriptionPlan = null;
   let subscriptionStatus = null;
   let subscriptionExpiresAt = null;
   if (user2.companyId) {
     const [c] = await db.select({
       name: companiesTable.name,
+      companyUrl: companiesTable.companyUrl,
       subscriptionPlan: companiesTable.subscriptionPlan,
       subscriptionStatus: companiesTable.subscriptionStatus,
       subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
     }).from(companiesTable).where(eq(companiesTable.id, user2.companyId));
     companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -58895,6 +58912,9 @@ router2.post("/auth/verify-otp", async (req, res) => {
       role: user2.role,
       companyId: user2.companyId,
       companyName,
+      companyUrl,
+      isActive: user2.isActive,
+      enabledModules: user2.enabledModules,
       subscriptionPlan,
       subscriptionStatus,
       subscriptionExpiresAt
@@ -58911,17 +58931,20 @@ router2.get("/auth/me", async (req, res) => {
     return;
   }
   let companyName = null;
+  let companyUrl = null;
   let subscriptionPlan = null;
   let subscriptionStatus = null;
   let subscriptionExpiresAt = null;
   if (req.user.companyId) {
     const [c] = await db.select({
       name: companiesTable.name,
+      companyUrl: companiesTable.companyUrl,
       subscriptionPlan: companiesTable.subscriptionPlan,
       subscriptionStatus: companiesTable.subscriptionStatus,
       subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
     }).from(companiesTable).where(eq(companiesTable.id, req.user.companyId));
     companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -58933,6 +58956,7 @@ router2.get("/auth/me", async (req, res) => {
     role: req.user.role,
     companyId: req.user.companyId,
     companyName,
+    companyUrl,
     isActive: req.user.isActive,
     enabledModules: req.user.enabledModules,
     subscriptionPlan,
@@ -59436,6 +59460,23 @@ function requireModule(moduleName) {
 
 // src/routes/companies.ts
 var router3 = (0, import_express3.Router)();
+router3.get("/companies/public/by-domain", async (req, res) => {
+  const domain = req.query.domain;
+  if (!domain) {
+    res.status(400).json({ error: "Domain parameter is required" });
+    return;
+  }
+  const [company] = await db.select({
+    id: companiesTable.id,
+    name: companiesTable.name,
+    companyUrl: companiesTable.companyUrl
+  }).from(companiesTable).where(eq(companiesTable.companyUrl, domain));
+  if (!company) {
+    res.status(404).json({ error: "Company not found for this domain" });
+    return;
+  }
+  res.json(company);
+});
 router3.use("/companies", requireAuth);
 router3.get("/companies", async (_req, res) => {
   const rows = await db.select().from(companiesTable).orderBy(desc(companiesTable.createdAt));
@@ -59454,7 +59495,8 @@ router3.post(
       name: parsed.data.name,
       email: parsed.data.email,
       address: parsed.data.address,
-      gstin: parsed.data.gstin ?? null
+      gstin: parsed.data.gstin ?? null,
+      companyUrl: parsed.data.companyUrl ?? null
     }).returning();
     res.status(201).json(row);
   }

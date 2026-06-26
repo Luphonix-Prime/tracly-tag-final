@@ -16,6 +16,8 @@ export interface AuthSession {
   companyId: number | null;
   /** @nullable */
   companyName: string | null;
+  /** @nullable */
+  companyUrl?: string | null;
   isActive: boolean;
   enabledModules: string;
 }
