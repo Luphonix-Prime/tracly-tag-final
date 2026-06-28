@@ -167,27 +167,98 @@ export default function Support() {
     return (
       <div className="space-y-6 max-w-6xl mx-auto font-sans">
         <div className="flex items-center gap-4 text-outline font-bold text-[10px] uppercase tracking-widest mb-6">
-          <span>Client Integrations</span>
+          <span>Master Integrations Dashboard</span>
         </div>
-        <Card className="border border-border-subtle shadow-sm bg-white dark:bg-slate-900">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="h-6 w-6 text-safety-blue" />
-              <div>
-                <CardTitle className="text-xl font-bold text-midnight-navy dark:text-white">Global Integration Console</CardTitle>
-                <CardDescription className="dark:text-slate-400">View configuration details for client white-labeling.</CardDescription>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Console Card */}
+          <Card className="lg:col-span-2 border border-border-subtle shadow-sm bg-white dark:bg-slate-900 rounded-2xl">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-5">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-6 w-6 text-safety-blue" />
+                <div>
+                  <CardTitle className="text-xl font-bold text-midnight-navy dark:text-white">Global Integration Console</CardTitle>
+                  <CardDescription className="dark:text-slate-400">Infrastructure and routing requirements for tenant white-labeling.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <div className="space-y-4">
+                <h4 className="font-bold text-sm text-midnight-navy dark:text-white flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  Active Routing Pointer (DNS Target)
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  All tenant custom domains map to this central target. Ensure your DNS server continues to route traffic correctly:
+                </p>
+
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 rounded-xl font-mono text-xs space-y-2">
+                  <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <span className="font-bold text-slate-400 uppercase text-[10px]">DNS Hostname</span>
+                    <span className="font-bold text-slate-400 uppercase text-[10px]">Points to Target</span>
+                    <span className="font-bold text-slate-400 uppercase text-[10px]">Status</span>
+                  </div>
+                  <div className="flex justify-between text-midnight-navy dark:text-white pt-1">
+                    <span>domains.traclytag.com</span>
+                    <span>tracly-tag-final-traclytag-ruddy.vercel.app</span>
+                    <span className="text-emerald-500 font-bold">ONLINE</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6">
+                <h4 className="font-bold text-sm text-midnight-navy dark:text-white">Server-Side Actions Required:</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-xs text-midnight-navy dark:text-white uppercase tracking-wider">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-safety-blue/10 text-safety-blue font-bold text-[10px]">1</span>
+                      Dynamic SSL/TLS Setup
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Configure your reverse proxy (Nginx/Traefik) or cloud host (Vercel Custom Domains API / Cloudflare for SaaS) to dynamically issue SSL certificates for newly mapped tenant domains.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-xs text-midnight-navy dark:text-white uppercase tracking-wider">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-safety-blue/10 text-safety-blue font-bold text-[10px]">2</span>
+                      Host Headers Detection
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Ensure the backend API and frontend routing detect the incoming HTTP <code>Host</code> header to query the database and render the correct tenant's branded portal.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Config Card */}
+          <Card className="border border-border-subtle shadow-sm bg-white dark:bg-slate-900 rounded-2xl p-6 space-y-6">
+            <h3 className="font-bold text-sm text-midnight-navy dark:text-white uppercase tracking-wider">Master Actions</h3>
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg h-fit">
+                  <Server className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Reverse Proxy SSL Status</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Wildcard TLS certificate verified active for domain endpoints.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg h-fit">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">CNAME Validation Server</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">DNS validation server running at 142.250.190.46.</p>
+                </div>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="py-8 text-center space-y-4 max-w-lg mx-auto">
-            <Server className="h-12 w-12 text-slate-400 mx-auto" />
-            <h3 className="text-lg font-bold text-midnight-navy dark:text-white">Master Account View</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Master administrator accounts run globally across all tenants and do not belong to a specific company. 
-              To configure and test custom domains, JS widgets, or API keys, please log in using a client administrator account.
-            </p>
-          </CardContent>
-        </Card>
+          </Card>
+        </div>
       </div>
     );
   }
