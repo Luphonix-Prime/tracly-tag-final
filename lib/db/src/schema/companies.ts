@@ -12,6 +12,7 @@ export const companiesTable = sqliteTable("companies", {
   razorpayOrderId: text("razorpay_order_id"),
   razorpayPaymentId: text("razorpay_payment_id"),
   companyUrl: text("company_url"),
+  apiKey: text("api_key"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 

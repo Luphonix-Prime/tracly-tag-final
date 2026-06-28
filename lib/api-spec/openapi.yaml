@@ -140,6 +140,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Company"
+  /companies/my-company:
+    get:
+      operationId: getMyCompany
+      tags: [companies]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateMyCompany
+      tags: [companies]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                companyUrl:
+                  type: ["string", "null"]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /companies/my-company/regenerate-api-key:
+    post:
+      operationId: regenerateCompanyApiKey
+      tags: [companies]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /companies/{id}:
     delete:
       operationId: deleteCompany
@@ -646,6 +705,8 @@ components:
           type: ["string", "null"]
           pattern: "^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$"
         companyUrl:
+          type: ["string", "null"]
+        apiKey:
           type: ["string", "null"]
         createdAt:
           type: string

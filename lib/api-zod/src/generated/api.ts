@@ -77,6 +77,7 @@ export const ListCompaniesResponseItem = zod.object({
   "address": zod.string(),
   "gstin": zod.string().regex(listCompaniesResponseGstinRegExp).nullable(),
   "companyUrl": zod.string().nullish(),
+  "apiKey": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListCompaniesResponse = zod.array(ListCompaniesResponseItem)
@@ -91,6 +92,55 @@ export const CreateCompanyBody = zod.object({
   "address": zod.string(),
   "gstin": zod.string().regex(createCompanyBodyGstinRegExp).nullish(),
   "companyUrl": zod.string().nullish()
+})
+
+
+export const getMyCompanyResponseGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');
+
+
+export const GetMyCompanyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "address": zod.string(),
+  "gstin": zod.string().regex(getMyCompanyResponseGstinRegExp).nullable(),
+  "companyUrl": zod.string().nullish(),
+  "apiKey": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const UpdateMyCompanyBody = zod.object({
+  "companyUrl": zod.string().nullish()
+})
+
+export const updateMyCompanyResponseGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');
+
+
+export const UpdateMyCompanyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "address": zod.string(),
+  "gstin": zod.string().regex(updateMyCompanyResponseGstinRegExp).nullable(),
+  "companyUrl": zod.string().nullish(),
+  "apiKey": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const regenerateCompanyApiKeyResponseGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');
+
+
+export const RegenerateCompanyApiKeyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "address": zod.string(),
+  "gstin": zod.string().regex(regenerateCompanyApiKeyResponseGstinRegExp).nullable(),
+  "companyUrl": zod.string().nullish(),
+  "apiKey": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
 })
 
 
