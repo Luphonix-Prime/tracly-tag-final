@@ -243,7 +243,7 @@ export default function Profile() {
               <div>
                 <h3 className="text-xl font-bold text-slate-800 dark:text-white leading-tight">{user.username}</h3>
                 <Badge variant="outline" className="mt-1.5 text-[9px] uppercase px-2 py-0.5 border-safety-blue/30 text-safety-blue bg-safety-blue/5">
-                  {user.role.replace("_", " ")}
+                  {user.role === "client_admin" ? "manager" : user.role.replace("_", " ")}
                 </Badge>
               </div>
 

@@ -67,6 +67,14 @@ export default function NewUser() {
     });
   };
 
+  if (currentUser && currentUser.role === "operator") {
+    return (
+      <div className="p-8 text-center text-destructive font-semibold">
+        Access denied. Manager or Master role required.
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[1200px] mx-auto space-y-6">
       {/* Breadcrumbs */}
@@ -227,7 +235,7 @@ export default function NewUser() {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="operator">Operator</SelectItem>
-                            <SelectItem value="client_admin">Client Admin</SelectItem>
+                            <SelectItem value="client_admin">Manager</SelectItem>
                             {isMaster && <SelectItem value="master">Master</SelectItem>}
                           </SelectContent>
                         </Select>

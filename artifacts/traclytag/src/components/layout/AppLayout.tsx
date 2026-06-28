@@ -295,7 +295,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
                 <div className="flex flex-col items-end">
                   <span className="text-sm font-semibold leading-none text-midnight-navy dark:text-white">{user.username}</span>
-                  <Badge variant="outline" className="mt-1 text-[9px] uppercase h-4 px-1.5 border-safety-blue/30 text-safety-blue bg-safety-blue/5">{user.role.replace('_', ' ')}</Badge>
+                  <Badge variant="outline" className="mt-1 text-[9px] uppercase h-4 px-1.5 border-safety-blue/30 text-safety-blue bg-safety-blue/5">{user.role === 'client_admin' ? 'manager' : user.role.replace('_', ' ')}</Badge>
                 </div>
                 <Avatar className="h-8 w-8 border border-safety-blue/20">
                   <AvatarFallback className="bg-safety-blue/10 text-safety-blue text-xs font-semibold">

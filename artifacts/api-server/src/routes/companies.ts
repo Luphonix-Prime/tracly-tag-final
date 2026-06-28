@@ -30,6 +30,60 @@ router.get("/companies/public/by-domain", async (req, res): Promise<void> => {
 
 router.use("/companies", requireAuth);
 
+import crypto from "crypto";
+
+router.get("/companies/my-company", async (req, res): Promise<void> => {
+  if (!req.user || !req.user.companyId) {
+    res.status(404).json({ error: "No company associated with this account" });
+    return;
+  }
+  const [company] = await db
+    .select()
+    .from(companiesTable)
+    .where(eq(companiesTable.id, req.user.companyId));
+  if (!company) {
+    res.status(404).json({ error: "Company not found" });
+    return;
+  }
+  res.json(company);
+});
+
+router.put("/companies/my-company", async (req, res): Promise<void> => {
+  if (!req.user || !req.user.companyId) {
+    res.status(404).json({ error: "No company associated with this account" });
+    return;
+  }
+  const { companyUrl } = req.body;
+  const [updated] = await db
+    .update(companiesTable)
+    .set({ companyUrl: companyUrl || null })
+    .where(eq(companiesTable.id, req.user.companyId))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Company not found" });
+    return;
+  }
+  res.json(updated);
+});
+
+router.post("/companies/my-company/regenerate-api-key", async (req, res): Promise<void> => {
+  if (!req.user || !req.user.companyId) {
+    res.status(404).json({ error: "No company associated with this account" });
+    return;
+  }
+  const newApiKey = `tt_live_${crypto.randomBytes(32).toString("hex")}`;
+  const [updated] = await db
+    .update(companiesTable)
+    .set({ apiKey: newApiKey })
+    .where(eq(companiesTable.id, req.user.companyId))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Company not found" });
+    return;
+  }
+  res.json(updated);
+});
+
 router.get("/companies", async (_req, res): Promise<void> => {
   const rows = await db
     .select()
