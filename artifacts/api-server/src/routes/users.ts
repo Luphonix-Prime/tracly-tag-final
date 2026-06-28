@@ -42,6 +42,11 @@ router.post("/users", async (req, res): Promise<void> => {
     return;
   }
 
+  if (req.user!.role === "operator") {
+    res.status(403).json({ error: "Forbidden: Operators cannot manage users" });
+    return;
+  }
+
   let companyId = parsed.data.companyId ?? null;
   if (req.user!.role !== "master") {
     // Force company scope for non-masters
@@ -121,6 +126,11 @@ router.put("/users/:id", async (req, res): Promise<void> => {
       return;
     }
 
+    if (req.user!.role === "operator") {
+      res.status(403).json({ error: "Forbidden: Operators cannot manage users" });
+      return;
+    }
+
     // Security constraints
     if (req.user!.role !== "master") {
       if (targetUser.companyId !== req.user!.companyId) {
@@ -189,10 +199,36 @@ router.delete("/users/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  if (req.user!.role === "operator") {
+    res.status(403).json({ error: "Forbidden: Operators cannot manage users" });
+    return;
+  }
   if (id === req.user!.id) {
     res.status(400).json({ error: "Cannot delete yourself" });
     return;
   }
+
+  const [targetUser] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, id));
+
+  if (!targetUser) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (req.user!.role !== "master") {
+    if (targetUser.companyId !== req.user!.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot delete users outside your company" });
+      return;
+    }
+    if (targetUser.role === "master") {
+      res.status(403).json({ error: "Forbidden: Cannot delete master users" });
+      return;
+    }
+  }
+
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.sendStatus(204);
 });

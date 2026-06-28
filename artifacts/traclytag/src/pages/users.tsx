@@ -179,13 +179,15 @@ export default function Users() {
           <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Users</h2>
           <p className="text-[16px] text-slate-600 mt-1">Manage system access and roles.</p>
         </div>
-        <Button 
-          onClick={() => setLocation("/users/new")}
-          className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
-        >
-          <Plus className="h-5 w-5" />
-          Add User
-        </Button>
+        {(isMaster || currentUser?.role === "client_admin") && (
+          <Button 
+            onClick={() => setLocation("/users/new")}
+            className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
+          >
+            <Plus className="h-5 w-5" />
+            Add User
+          </Button>
+        )}
       </div>
 
       <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
@@ -254,7 +256,7 @@ export default function Users() {
                       </TableCell>
                       <TableCell className="align-middle px-6 py-5">
                         <Badge className="text-[11px] font-bold tracking-widest uppercase bg-[#E2E8F0] text-[#0F172A] hover:bg-[#cbd5e1] border-none shadow-none">
-                          {userRow.role.replace('_', ' ')}
+                          {userRow.role === "client_admin" ? "manager" : userRow.role.replace('_', ' ')}
                         </Badge>
                       </TableCell>
                       <TableCell className="align-middle px-6 py-5 text-[14px]">
@@ -344,7 +346,7 @@ export default function Users() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {isMaster && <SelectItem value="master">Master Admin</SelectItem>}
-                    <SelectItem value="client_admin">Client Admin</SelectItem>
+                    <SelectItem value="client_admin">Manager</SelectItem>
                     <SelectItem value="operator">Operator</SelectItem>
                   </SelectContent>
                 </Select>

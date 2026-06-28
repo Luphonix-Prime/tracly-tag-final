@@ -65,6 +65,8 @@ export interface Company {
   gstin: string | null;
   /** @nullable */
   companyUrl?: string | null;
+  /** @nullable */
+  apiKey?: string | null;
   createdAt: string;
 }
 
@@ -359,6 +361,11 @@ export interface MarkedByEntry {
   mappedByUsername: string;
   mappedAt: string;
 }
+
+export type UpdateMyCompanyBody = {
+  /** @nullable */
+  companyUrl?: string | null;
+};
 
 export type ListBatchesParams = {
 productId?: number;

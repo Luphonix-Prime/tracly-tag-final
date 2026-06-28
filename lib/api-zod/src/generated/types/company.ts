@@ -18,5 +18,7 @@ export interface Company {
   gstin: string | null;
   /** @nullable */
   companyUrl?: string | null;
+  /** @nullable */
+  apiKey?: string | null;
   createdAt: Date;
 }
