@@ -129,7 +129,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {navigation.map((item, i) => {
                 const isActive = location === item.href || location.startsWith(item.href + "/");
                 const required = getRequiredPlan(item.href);
-                const allowed = isPlanSufficient(required, currentPlan);
+                const allowed = isPlanSufficient(required, currentPlan) || userModules.includes(item.module);
 
                 if (!allowed) {
                   return (

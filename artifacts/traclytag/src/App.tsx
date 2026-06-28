@@ -130,7 +130,9 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   const requiredPlan = getRequiredPlan(path);
-  const isAllowed = isPlanSufficient(requiredPlan, currentPlan);
+  const userModules = (user.enabledModules || "").split(",");
+  const isModuleExplicitlyEnabled = requiredModule ? userModules.includes(requiredModule) : false;
+  const isAllowed = isPlanSufficient(requiredPlan, currentPlan) || isModuleExplicitlyEnabled;
 
   if (!isAllowed) {
     return (
