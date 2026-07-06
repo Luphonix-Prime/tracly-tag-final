@@ -61,7 +61,7 @@ Sources: [lib/api-client-react/src/generated/api.ts:127-137](), [lib/api-client-
 The `customFetch` function is the core execution engine for all API requests. It handles global configuration such as the base URL and authentication tokens.
 
 ### Configuration Functions
-*   **`setBaseUrl(url: string)`**: Sets the target API server address (e.g., `https://api.traclytag.com`).
+*   **`setBaseUrl(url: string)`**: Sets the target API server address (e.g., `https://api.tracelytag.com`).
 *   **`setAuthTokenGetter(fn: () => string | null)`**: Registers a callback that the client calls before every request to retrieve the current session token (usually from `localStorage`).
 
 ### Error Handling: `ApiError`

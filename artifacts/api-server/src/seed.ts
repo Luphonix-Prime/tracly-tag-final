@@ -39,7 +39,7 @@ async function main() {
   await db.insert(usersTable).values([
     {
       username: "master",
-      email: "master@traclytag.com",
+      email: "master@tracelytag.com",
       phone: "+91 9000000000",
       passwordHash: masterHash,
       role: "master",

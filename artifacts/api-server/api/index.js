@@ -58985,7 +58985,7 @@ router2.post("/auth/sso", async (req, res) => {
     let subscriptionExpiresAt = null;
     if (!user2) {
       const targetCompanyName = companyName || `${name || username}'s Organization`;
-      const targetWebsite = companyWebsiteUrl || `https://${username.toLowerCase()}.traclytag.com`;
+      const targetWebsite = companyWebsiteUrl || `https://${username.toLowerCase()}.tracelytag.com`;
       const [company] = await db.insert(companiesTable).values({
         name: targetCompanyName,
         email,
