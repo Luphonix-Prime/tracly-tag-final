@@ -92,7 +92,7 @@ type ProductForm = z.infer<typeof productSchema>;
 export default function Products() {
   const [, setLocation] = useLocation();
   const { data: currentUser } = useGetCurrentUser();
-  const isMaster = currentUser?.role === "master";
+  const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
   const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
 
   const { data: products = [], isLoading } = useListProducts();

@@ -94,7 +94,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   if (!user) return null;
 
-  const isMaster = user.role === "master";
+  const isMaster = user.role === "master" || user.role === "super_master";
   const currentPlan = isMaster ? "enterprise" : (user as any).subscriptionPlan || "free";
   const path = window.location.pathname;
 

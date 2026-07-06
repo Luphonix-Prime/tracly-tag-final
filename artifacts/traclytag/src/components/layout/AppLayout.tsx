@@ -40,6 +40,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const getAuthToken = () => {
     if (!user) return "";
+    if (user.role === "super_master") return "supermaster";
     if (user.role === "master") return "master";
     if (user.role === "client_admin") return "demo_admin";
     return "demo_op";
@@ -60,7 +61,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!user) return null;
 
-  const isMaster = user.role === "master";
+  const isMaster = user.role === "master" || user.role === "super_master";
   const currentPlan = isMaster ? "enterprise" : (user as any).subscriptionPlan || "free";
 
   const getRequiredPlan = (href: string) => {

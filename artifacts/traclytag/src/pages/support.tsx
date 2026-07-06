@@ -97,7 +97,7 @@ export default function Support() {
     }
   };
 
-  const isMaster = currentUser?.role === "master";
+  const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
 
   // Widget Code Generation
   const appOrigin = window.location.origin;

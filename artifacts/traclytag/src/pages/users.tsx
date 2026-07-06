@@ -33,7 +33,7 @@ const userSchema = z.object({
   email: z.string().email("Invalid email"),
   phone: z.string().optional().or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["master", "client_admin", "operator"]),
+  role: z.enum(["super_master", "master", "client_admin", "operator"]),
   companyId: z.coerce.number().optional(),
 });
 
@@ -69,12 +69,12 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
-  const [editRole, setEditRole] = useState<"master" | "client_admin" | "operator">("operator");
+  const [editRole, setEditRole] = useState<"super_master" | "master" | "client_admin" | "operator">("operator");
   const [editIsActive, setEditIsActive] = useState(true);
   const [editModules, setEditModules] = useState<string[]>([]);
   const [editPassword, setEditPassword] = useState("");
 
-  const isMaster = currentUser?.role === "master";
+  const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
 
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
@@ -345,6 +345,7 @@ export default function Users() {
                 <Select onValueChange={(val: any) => setEditRole(val)} value={editRole}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    {currentUser?.role === "super_master" && <SelectItem value="super_master">Super Master</SelectItem>}
                     {isMaster && <SelectItem value="master">Master Admin</SelectItem>}
                     <SelectItem value="client_admin">Manager</SelectItem>
                     <SelectItem value="operator">Operator</SelectItem>

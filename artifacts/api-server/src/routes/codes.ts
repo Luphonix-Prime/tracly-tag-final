@@ -295,7 +295,7 @@ const requireGenerateOrMapCodes = (req: any, res: any, next: any) => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  if (req.user.role === "master") {
+  if (req.user.role === "master" || req.user.role === "super_master") {
     next();
     return;
   }
@@ -326,7 +326,7 @@ router.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res): P
     conds.push(eq(codesTable.batchId, batchId));
   if (productId && !Number.isNaN(productId))
     conds.push(eq(codesTable.productId, productId));
-  if (req.user!.role !== "master") {
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
     conds.push(eq(productsTable.companyId, req.user!.companyId!));
   }
   const where =
@@ -398,6 +398,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
 
   if (
     req.user!.role !== "master" &&
+    req.user!.role !== "super_master" &&
     batch.companyId !== req.user!.companyId
   ) {
     res.status(403).json({ error: "Forbidden" });

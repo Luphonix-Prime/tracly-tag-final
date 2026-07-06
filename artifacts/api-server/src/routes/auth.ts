@@ -143,7 +143,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
-  if (user.role !== "master") {
+  if (user.role !== "master" && user.role !== "super_master") {
     // Generate random 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     try {

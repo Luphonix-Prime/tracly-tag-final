@@ -15,7 +15,7 @@ router.post("/subscription/set", async (req, res): Promise<void> => {
     return;
   }
 
-  if (req.user.role !== "master") {
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
     res.status(403).json({ error: "Only the master account can manage subscriptions" });
     return;
   }

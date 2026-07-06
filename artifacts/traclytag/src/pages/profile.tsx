@@ -267,7 +267,7 @@ export default function Profile() {
                   <div>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">User Role Scope</p>
                     <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      {user.role === "master" ? "Full system capabilities" : "Standard operations permissions"}
+                      {user.role === "master" || user.role === "super_master" ? "Full system capabilities" : "Standard operations permissions"}
                     </p>
                   </div>
                 </div>

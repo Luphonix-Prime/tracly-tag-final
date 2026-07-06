@@ -18768,14 +18768,14 @@ var require_etag = __commonJS({
   "../../node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports, module) {
     "use strict";
     module.exports = etag;
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     var Stats = __require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash2 = crypto3.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash2 = crypto4.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash2 + '"';
     }
@@ -22250,17 +22250,17 @@ var require_content_disposition = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js"(exports) {
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(input, secret2) {
       if ("string" != typeof input) throw new TypeError("Signed cookie string must be provided.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
       var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret2), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
-      return expectedBuffer.length === inputBuffer.length && crypto3.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
+      return expectedBuffer.length === inputBuffer.length && crypto4.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
     };
   }
 });
@@ -28453,11 +28453,11 @@ var require_logger = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js
 var require_cookie_signature2 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js"(exports) {
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if ("string" != typeof secret2) throw new TypeError("Secret string must be provided.");
-      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(val, secret2) {
       if ("string" != typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -28466,7 +28466,7 @@ var require_cookie_signature2 = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto3.createHash("sha1").update(str).digest("hex");
+      return crypto4.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -28637,7 +28637,7 @@ var require_main = __commonJS({
     var fs4 = __require("fs");
     var path4 = __require("path");
     var os = __require("os");
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     var packageJson = require_package2();
     var version2 = packageJson.version;
     var LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg;
@@ -28856,7 +28856,7 @@ var require_main = __commonJS({
       const authTag = ciphertext.subarray(-16);
       ciphertext = ciphertext.subarray(12, -16);
       try {
-        const aesgcm = crypto3.createDecipheriv("aes-256-gcm", key, nonce);
+        const aesgcm = crypto4.createDecipheriv("aes-256-gcm", key, nonce);
         aesgcm.setAuthTag(authTag);
         return `${aesgcm.update(ciphertext)}${aesgcm.final()}`;
       } catch (error) {
@@ -29504,11 +29504,11 @@ var require_on_headers = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js
 var require_cookie_signature3 = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js"(exports) {
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     exports.sign = function(val, secret2) {
       if ("string" !== typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret2) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto3.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto4.createHmac("sha256", secret2).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(val, secret2) {
       if ("string" !== typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -29517,7 +29517,7 @@ var require_cookie_signature3 = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto3.createHash("sha1").update(str).digest("hex");
+      return crypto4.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -29526,8 +29526,8 @@ var require_cookie_signature3 = __commonJS({
 var require_random_bytes = __commonJS({
   "../../node_modules/.pnpm/random-bytes@1.0.0/node_modules/random-bytes/index.js"(exports, module) {
     "use strict";
-    var crypto3 = __require("crypto");
-    var generateAttempts = crypto3.randomBytes === crypto3.pseudoRandomBytes ? 1 : 3;
+    var crypto4 = __require("crypto");
+    var generateAttempts = crypto4.randomBytes === crypto4.pseudoRandomBytes ? 1 : 3;
     module.exports = randomBytes3;
     module.exports.sync = randomBytesSync;
     function randomBytes3(size, callback) {
@@ -29551,7 +29551,7 @@ var require_random_bytes = __commonJS({
       var err = null;
       for (var i = 0; i < generateAttempts; i++) {
         try {
-          return crypto3.randomBytes(size);
+          return crypto4.randomBytes(size);
         } catch (e) {
           err = e;
         }
@@ -29559,7 +29559,7 @@ var require_random_bytes = __commonJS({
       throw err;
     }
     function generateRandomBytes(size, attempts, callback) {
-      crypto3.randomBytes(size, function onRandomBytes(err, buf) {
+      crypto4.randomBytes(size, function onRandomBytes(err, buf) {
         if (!err) return callback(null, buf);
         if (!--attempts) return callback(err);
         setTimeout(generateRandomBytes.bind(null, size, attempts, callback), 10);
@@ -29901,7 +29901,7 @@ var require_express_session = __commonJS({
     "use strict";
     var Buffer2 = require_safe_buffer().Buffer;
     var cookie = require_cookie();
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     var debug = require_src2()("express-session");
     var deprecate = require_depd()("express-session");
     var onHeaders = require_on_headers();
@@ -30274,7 +30274,7 @@ var require_express_session = __commonJS({
         }
         return val;
       });
-      return crypto3.createHash("sha1").update(str, "utf8").digest("hex");
+      return crypto4.createHash("sha1").update(str, "utf8").digest("hex");
     }
     function issecure(req, trustProxy) {
       if (req.connection && req.connection.encrypted) {
@@ -43393,9 +43393,9 @@ var require_disk = __commonJS({
     var fs4 = __require("fs");
     var os = __require("os");
     var path4 = __require("path");
-    var crypto3 = __require("crypto");
+    var crypto4 = __require("crypto");
     function getFilename(req, file, cb) {
-      crypto3.randomBytes(16, function(err, raw) {
+      crypto4.randomBytes(16, function(err, raw) {
         cb(err, err ? void 0 : raw.toString("hex"));
       });
     }
@@ -50808,7 +50808,7 @@ var LoginResponse = objectType({
   "id": numberType(),
   "username": stringType(),
   "email": stringType(),
-  "role": enumType(["master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
   "companyUrl": stringType().nullish(),
@@ -50828,7 +50828,7 @@ var GetCurrentUserResponse = objectType({
   "id": numberType(),
   "username": stringType(),
   "email": stringType(),
-  "role": enumType(["master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
   "companyUrl": stringType().nullish(),
@@ -50843,6 +50843,7 @@ var ListCompaniesResponseItem = objectType({
   "address": stringType(),
   "gstin": stringType().regex(listCompaniesResponseGstinRegExp).nullable(),
   "companyUrl": stringType().nullish(),
+  "apiKey": stringType().nullish(),
   "createdAt": coerce.date()
 });
 var ListCompaniesResponse = arrayType(ListCompaniesResponseItem);
@@ -50854,6 +50855,42 @@ var CreateCompanyBody = objectType({
   "gstin": stringType().regex(createCompanyBodyGstinRegExp).nullish(),
   "companyUrl": stringType().nullish()
 });
+var getMyCompanyResponseGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
+var GetMyCompanyResponse = objectType({
+  "id": numberType(),
+  "name": stringType(),
+  "email": stringType(),
+  "address": stringType(),
+  "gstin": stringType().regex(getMyCompanyResponseGstinRegExp).nullable(),
+  "companyUrl": stringType().nullish(),
+  "apiKey": stringType().nullish(),
+  "createdAt": coerce.date()
+});
+var UpdateMyCompanyBody = objectType({
+  "companyUrl": stringType().nullish()
+});
+var updateMyCompanyResponseGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
+var UpdateMyCompanyResponse = objectType({
+  "id": numberType(),
+  "name": stringType(),
+  "email": stringType(),
+  "address": stringType(),
+  "gstin": stringType().regex(updateMyCompanyResponseGstinRegExp).nullable(),
+  "companyUrl": stringType().nullish(),
+  "apiKey": stringType().nullish(),
+  "createdAt": coerce.date()
+});
+var regenerateCompanyApiKeyResponseGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
+var RegenerateCompanyApiKeyResponse = objectType({
+  "id": numberType(),
+  "name": stringType(),
+  "email": stringType(),
+  "address": stringType(),
+  "gstin": stringType().regex(regenerateCompanyApiKeyResponseGstinRegExp).nullable(),
+  "companyUrl": stringType().nullish(),
+  "apiKey": stringType().nullish(),
+  "createdAt": coerce.date()
+});
 var DeleteCompanyParams = objectType({
   "id": coerce.number()
 });
@@ -50862,7 +50899,7 @@ var ListUsersResponseItem = objectType({
   "username": stringType(),
   "email": stringType(),
   "phone": stringType().nullable(),
-  "role": enumType(["master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
   "isActive": booleanType(),
@@ -50875,7 +50912,7 @@ var CreateUserBody = objectType({
   "email": stringType(),
   "phone": stringType().nullish(),
   "password": stringType(),
-  "role": enumType(["master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "client_admin", "operator"]),
   "companyId": numberType().nullish(),
   "isActive": booleanType().optional(),
   "enabledModules": stringType().optional()
@@ -50889,7 +50926,7 @@ var UpdateUserParams = objectType({
 var UpdateUserBody = objectType({
   "email": stringType().optional(),
   "phone": stringType().nullish(),
-  "role": enumType(["master", "client_admin", "operator"]).optional(),
+  "role": enumType(["super_master", "master", "client_admin", "operator"]).optional(),
   "isActive": booleanType().optional(),
   "enabledModules": stringType().optional(),
   "password": stringType().optional()
@@ -50899,7 +50936,7 @@ var UpdateUserResponse = objectType({
   "username": stringType(),
   "email": stringType(),
   "phone": stringType().nullable(),
-  "role": enumType(["master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
   "isActive": booleanType(),
@@ -58479,6 +58516,7 @@ var companiesTable = sqliteTable("companies", {
   razorpayOrderId: text("razorpay_order_id"),
   razorpayPaymentId: text("razorpay_payment_id"),
   companyUrl: text("company_url"),
+  apiKey: text("api_key"),
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
@@ -58802,7 +58840,7 @@ router2.post("/auth/login", async (req, res) => {
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
   }
   const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
-  if (user2.role !== "master") {
+  if (user2.role !== "master" && user2.role !== "super_master") {
     const otpCode = Math.floor(1e5 + Math.random() * 9e5).toString();
     try {
       await sendOtpEmail(user2.email, otpCode);
@@ -59445,7 +59483,7 @@ function requireModule(moduleName) {
       res.status(401).json({ error: "Not authenticated" });
       return;
     }
-    if (req.user.role === "master") {
+    if (req.user.role === "master" || req.user.role === "super_master") {
       next();
       return;
     }
@@ -59459,6 +59497,7 @@ function requireModule(moduleName) {
 }
 
 // src/routes/companies.ts
+import crypto3 from "crypto";
 var router3 = (0, import_express3.Router)();
 router3.get("/companies/public/by-domain", async (req, res) => {
   const domain = req.query.domain;
@@ -59478,6 +59517,44 @@ router3.get("/companies/public/by-domain", async (req, res) => {
   res.json(company);
 });
 router3.use("/companies", requireAuth);
+router3.get("/companies/my-company", async (req, res) => {
+  if (!req.user || !req.user.companyId) {
+    res.status(404).json({ error: "No company associated with this account" });
+    return;
+  }
+  const [company] = await db.select().from(companiesTable).where(eq(companiesTable.id, req.user.companyId));
+  if (!company) {
+    res.status(404).json({ error: "Company not found" });
+    return;
+  }
+  res.json(company);
+});
+router3.put("/companies/my-company", async (req, res) => {
+  if (!req.user || !req.user.companyId) {
+    res.status(404).json({ error: "No company associated with this account" });
+    return;
+  }
+  const { companyUrl } = req.body;
+  const [updated] = await db.update(companiesTable).set({ companyUrl: companyUrl || null }).where(eq(companiesTable.id, req.user.companyId)).returning();
+  if (!updated) {
+    res.status(404).json({ error: "Company not found" });
+    return;
+  }
+  res.json(updated);
+});
+router3.post("/companies/my-company/regenerate-api-key", async (req, res) => {
+  if (!req.user || !req.user.companyId) {
+    res.status(404).json({ error: "No company associated with this account" });
+    return;
+  }
+  const newApiKey = `tt_live_${crypto3.randomBytes(32).toString("hex")}`;
+  const [updated] = await db.update(companiesTable).set({ apiKey: newApiKey }).where(eq(companiesTable.id, req.user.companyId)).returning();
+  if (!updated) {
+    res.status(404).json({ error: "Company not found" });
+    return;
+  }
+  res.json(updated);
+});
 router3.get("/companies", async (_req, res) => {
   const rows = await db.select().from(companiesTable).orderBy(desc(companiesTable.createdAt));
   res.json(rows);
@@ -59534,7 +59611,7 @@ router4.get("/users", async (req, res) => {
     enabledModules: usersTable.enabledModules,
     createdAt: usersTable.createdAt
   }).from(usersTable).leftJoin(companiesTable, eq(usersTable.companyId, companiesTable.id)).orderBy(desc(usersTable.createdAt));
-  const filtered = req.user.role === "master" ? rows : rows.filter((r) => r.companyId === req.user.companyId);
+  const filtered = req.user.role === "master" || req.user.role === "super_master" ? rows : rows.filter((r) => r.companyId === req.user.companyId);
   res.json(filtered);
 });
 router4.post("/users", async (req, res) => {
@@ -59543,13 +59620,21 @@ router4.post("/users", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (req.user.role === "operator") {
+    res.status(403).json({ error: "Forbidden: Operators cannot manage users" });
+    return;
+  }
   let companyId = parsed.data.companyId ?? null;
-  if (req.user.role !== "master") {
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
     companyId = req.user.companyId;
-    if (parsed.data.role === "master") {
-      res.status(403).json({ error: "Cannot create master users" });
+    if (parsed.data.role === "master" || parsed.data.role === "super_master") {
+      res.status(403).json({ error: "Cannot create master/super_master users" });
       return;
     }
+  }
+  if (parsed.data.role === "super_master" && req.user.role !== "super_master") {
+    res.status(403).json({ error: "Forbidden: Cannot create super master users" });
+    return;
   }
   const passwordHash = await bcryptjs_default.hash(parsed.data.password, 10);
   try {
@@ -59603,7 +59688,17 @@ router4.put("/users/:id", async (req, res) => {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    if (req.user.role !== "master") {
+    if (req.user.role === "operator") {
+      res.status(403).json({ error: "Forbidden: Operators cannot manage users" });
+      return;
+    }
+    if (req.user.role !== "super_master") {
+      if (targetUser.role === "super_master" || parsed.data.role === "super_master") {
+        res.status(403).json({ error: "Forbidden: Cannot edit super master users or change roles to super master" });
+        return;
+      }
+    }
+    if (req.user.role !== "master" && req.user.role !== "super_master") {
       if (targetUser.companyId !== req.user.companyId) {
         res.status(403).json({ error: "Forbidden: Cannot edit users outside your company" });
         return;
@@ -59656,9 +59751,32 @@ router4.delete("/users/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  if (req.user.role === "operator") {
+    res.status(403).json({ error: "Forbidden: Operators cannot manage users" });
+    return;
+  }
   if (id === req.user.id) {
     res.status(400).json({ error: "Cannot delete yourself" });
     return;
+  }
+  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!targetUser) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  if (req.user.role !== "super_master" && targetUser.role === "super_master") {
+    res.status(403).json({ error: "Forbidden: Cannot delete super master users" });
+    return;
+  }
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (targetUser.companyId !== req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot delete users outside your company" });
+      return;
+    }
+    if (targetUser.role === "master") {
+      res.status(403).json({ error: "Forbidden: Cannot delete master users" });
+      return;
+    }
   }
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.sendStatus(204);
@@ -59825,7 +59943,7 @@ function parseGs1Code(rawCode) {
 var router5 = (0, import_express5.Router)();
 router5.use("/products", requireAuth, requireModule("products"));
 function effectiveCompanyId(user2) {
-  if (user2.role === "master") return null;
+  if (user2.role === "master" || user2.role === "super_master") return null;
   return user2.companyId;
 }
 router5.get("/products", async (req, res) => {
@@ -59849,7 +59967,7 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: "Invalid GTIN check digit" });
     return;
   }
-  let companyId = req.user.companyId || (req.user.role === "master" ? req.body.companyId || req.query.companyId : null);
+  let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId : null);
   if (!companyId) {
     res.status(400).json({ error: "Master must select a company context to add products" });
     return;
@@ -59894,7 +60012,7 @@ var import_express6 = __toESM(require_express2(), 1);
 var router6 = (0, import_express6.Router)();
 router6.use("/locations", requireAuth, requireModule("locations"));
 router6.get("/locations", async (req, res) => {
-  const rows = req.user.role === "master" ? await db.select().from(locationsTable).orderBy(desc(locationsTable.createdAt)) : await db.select().from(locationsTable).where(eq(locationsTable.companyId, req.user.companyId)).orderBy(desc(locationsTable.createdAt));
+  const rows = req.user.role === "master" || req.user.role === "super_master" ? await db.select().from(locationsTable).orderBy(desc(locationsTable.createdAt)) : await db.select().from(locationsTable).where(eq(locationsTable.companyId, req.user.companyId)).orderBy(desc(locationsTable.createdAt));
   res.json(rows);
 });
 router6.post("/locations", async (req, res) => {
@@ -59943,7 +60061,7 @@ router7.get("/batches", async (req, res) => {
   if (productId && !Number.isNaN(productId)) {
     conds.push(eq(batchesTable.productId, productId));
   }
-  if (req.user.role !== "master") {
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
     conds.push(eq(productsTable.companyId, req.user.companyId));
   }
   const where = conds.length === 0 ? void 0 : conds.length === 1 ? conds[0] : and(...conds);
@@ -60226,7 +60344,7 @@ var requireGenerateOrMapCodes = (req, res, next) => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  if (req.user.role === "master") {
+  if (req.user.role === "master" || req.user.role === "super_master") {
     next();
     return;
   }
@@ -60248,7 +60366,7 @@ router8.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res) =
     conds.push(eq(codesTable.batchId, batchId));
   if (productId && !Number.isNaN(productId))
     conds.push(eq(codesTable.productId, productId));
-  if (req.user.role !== "master") {
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
     conds.push(eq(productsTable.companyId, req.user.companyId));
   }
   const where = conds.length === 0 ? void 0 : conds.length === 1 ? conds[0] : and(...conds);
@@ -60297,7 +60415,7 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
     res.status(404).json({ error: "Batch not found" });
     return;
   }
-  if (req.user.role !== "master" && batch.companyId !== req.user.companyId) {
+  if (req.user.role !== "master" && req.user.role !== "super_master" && batch.companyId !== req.user.companyId) {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
@@ -60433,7 +60551,7 @@ var import_express9 = __toESM(require_express2(), 1);
 var router9 = (0, import_express9.Router)();
 router9.use("/reports", requireAuth);
 function companyScope(user2) {
-  return user2.role === "master" ? void 0 : eq(productsTable.companyId, user2.companyId);
+  return user2.role === "master" || user2.role === "super_master" ? void 0 : eq(productsTable.companyId, user2.companyId);
 }
 function dateRangeConds(from, to) {
   const conds = [];
@@ -60453,7 +60571,7 @@ function dateRangeConds(from, to) {
 router9.get("/reports/dashboard", requireModule("dashboard"), async (req, res) => {
   const scope = companyScope(req.user);
   const [productsAgg] = await db.select({ count: count() }).from(productsTable).where(
-    req.user.role === "master" ? void 0 : eq(productsTable.companyId, req.user.companyId)
+    req.user.role === "master" || req.user.role === "super_master" ? void 0 : eq(productsTable.companyId, req.user.companyId)
   );
   const [batchesAgg] = await db.select({ count: count() }).from(batchesTable).innerJoin(productsTable, eq(batchesTable.productId, productsTable.id)).where(scope);
   const [codesAgg] = await db.select({
@@ -60462,10 +60580,10 @@ router9.get("/reports/dashboard", requireModule("dashboard"), async (req, res) =
     unmapped: sql`sum(case when ${codesTable.mapped} then 0 else 1 end)`
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).where(scope);
   const [locsAgg] = await db.select({ count: count() }).from(locationsTable).where(
-    req.user.role === "master" ? void 0 : eq(locationsTable.companyId, req.user.companyId)
+    req.user.role === "master" || req.user.role === "super_master" ? void 0 : eq(locationsTable.companyId, req.user.companyId)
   );
   const [usersAgg] = await db.select({ count: count() }).from(usersTable).where(
-    req.user.role === "master" ? void 0 : eq(usersTable.companyId, req.user.companyId)
+    req.user.role === "master" || req.user.role === "super_master" ? void 0 : eq(usersTable.companyId, req.user.companyId)
   );
   const [companiesAgg] = await db.select({ count: count() }).from(companiesTable);
   const recent = await db.select({
@@ -60643,7 +60761,7 @@ router11.post("/subscription/set", async (req, res) => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  if (req.user.role !== "master") {
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
     res.status(403).json({ error: "Only the master account can manage subscriptions" });
     return;
   }
@@ -60721,7 +60839,9 @@ var loadUser = async (req, res, next) => {
       const token = authHeader.substring(7).trim();
       if (token) {
         let username = "demo_op";
-        if (token.toLowerCase().includes("master")) {
+        if (token.toLowerCase().includes("supermaster") || token.toLowerCase().includes("super_master")) {
+          username = "supermaster";
+        } else if (token.toLowerCase().includes("master")) {
           username = "master";
         } else if (token.toLowerCase().includes("admin")) {
           username = "demo_admin";

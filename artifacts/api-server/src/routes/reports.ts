@@ -16,7 +16,7 @@ const router: IRouter = Router();
 router.use("/reports", requireAuth);
 
 function companyScope(user: NonNullable<typeof globalThis> extends never ? never : { role: string; companyId: number | null }) {
-  return user.role === "master"
+  return (user.role === "master" || user.role === "super_master")
     ? undefined
     : eq(productsTable.companyId, user.companyId!);
 }
@@ -45,7 +45,7 @@ router.get("/reports/dashboard", requireModule("dashboard"), async (req, res): P
     .select({ count: count() })
     .from(productsTable)
     .where(
-      req.user!.role === "master"
+      (req.user!.role === "master" || req.user!.role === "super_master")
         ? undefined
         : eq(productsTable.companyId, req.user!.companyId!),
     );
@@ -70,7 +70,7 @@ router.get("/reports/dashboard", requireModule("dashboard"), async (req, res): P
     .select({ count: count() })
     .from(locationsTable)
     .where(
-      req.user!.role === "master"
+      (req.user!.role === "master" || req.user!.role === "super_master")
         ? undefined
         : eq(locationsTable.companyId, req.user!.companyId!),
     );
@@ -79,7 +79,7 @@ router.get("/reports/dashboard", requireModule("dashboard"), async (req, res): P
     .select({ count: count() })
     .from(usersTable)
     .where(
-      req.user!.role === "master"
+      (req.user!.role === "master" || req.user!.role === "super_master")
         ? undefined
         : eq(usersTable.companyId, req.user!.companyId!),
     );

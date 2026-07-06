@@ -10,7 +10,7 @@ router.use("/locations", requireAuth, requireModule("locations"));
 
 router.get("/locations", async (req, res): Promise<void> => {
   const rows =
-    req.user!.role === "master"
+    (req.user!.role === "master" || req.user!.role === "super_master")
       ? await db
           .select()
           .from(locationsTable)

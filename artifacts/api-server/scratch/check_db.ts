@@ -37,11 +37,20 @@ async function run() {
   console.log("Company:", demoCo!.name);
 
   // Users
+  const superMasterHash = await bcrypt.hash("super123", 10);
   const masterHash = await bcrypt.hash("master123", 10);
   const adminHash = await bcrypt.hash("admin123", 10);
   const opHash = await bcrypt.hash("op123", 10);
 
-  const [master, admin, op] = await db.insert(usersTable).values([
+  const [supermaster, master, admin, op] = await db.insert(usersTable).values([
+    {
+      username: "supermaster",
+      email: "luphonix.prime@gmail.com",
+      phone: "+91 8000000000",
+      passwordHash: superMasterHash,
+      role: "super_master",
+      companyId: null,
+    },
     {
       username: "master",
       email: "master@tracelytag.com",
@@ -67,7 +76,7 @@ async function run() {
       companyId: demoCo!.id,
     },
   ]).returning();
-  console.log("Users: master, demo_admin, demo_op");
+  console.log("Users: supermaster, master, demo_admin, demo_op");
 
   // Locations
   const [warehouse] = await db
