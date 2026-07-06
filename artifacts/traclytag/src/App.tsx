@@ -72,6 +72,26 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     );
   }
 
+  if (error && (error as any).status !== 401) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center font-sans">
+        <div className="w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive shadow-md mb-6 animate-pulse">
+          <Lock className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">Connection Error</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed max-w-md">
+          Unable to connect to the backend server. Please check your internet connection or try again later.
+        </p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
+
   if (!user) return null;
 
   const isMaster = user.role === "master";
@@ -169,7 +189,7 @@ const isCustomDomain = () => {
     hostname !== "localhost" &&
     hostname !== "127.0.0.1" &&
     !hostname.endsWith(".vercel.app") &&
-    !hostname.endsWith("traclytag.com")
+    !hostname.endsWith("tracelytag.com")
   );
 };
 

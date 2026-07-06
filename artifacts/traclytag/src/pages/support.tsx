@@ -199,7 +199,7 @@ export default function Support() {
                     <span className="font-bold text-slate-400 uppercase text-[10px]">Status</span>
                   </div>
                   <div className="flex justify-between text-midnight-navy dark:text-white pt-1">
-                    <span>domains.traclytag.com</span>
+                    <span>domains.tracelytag.com</span>
                     <span>tracly-tag-final-traclytag-ruddy.vercel.app</span>
                     <span className="text-emerald-500 font-bold">ONLINE</span>
                   </div>
@@ -357,7 +357,7 @@ export default function Support() {
                     Configure Your Custom Domain
                   </CardTitle>
                   <CardDescription className="dark:text-slate-400">
-                    Host our secure verification page under your own custom domain name (e.g. <code className="font-mono">verify.demopharma.in</code>).
+                    Host our secure verification page under your own custom domain name (e.g. <code className="font-mono">verify.luphoni.com</code>).
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -366,7 +366,7 @@ export default function Support() {
                       <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Domain Name</label>
                       <div className="flex gap-2">
                         <Input 
-                          placeholder="e.g. verify.demopharma.in" 
+                          placeholder="e.g. verify.luphoni.com" 
                           value={domainInput}
                           onChange={(e) => setDomainInput(e.target.value)}
                           className="bg-slate-50 dark:bg-slate-950 max-w-md h-10 border-slate-200 dark:border-slate-800"
@@ -397,7 +397,7 @@ export default function Support() {
                       <div className="flex justify-between text-midnight-navy dark:text-white pt-1">
                         <span>CNAME</span>
                         <span>{domainInput.split('.')[0] || "verify"}</span>
-                        <span>domains.traclytag.com</span>
+                        <span>domains.tracelytag.com</span>
                       </div>
                     </div>
                   </div>
@@ -546,7 +546,7 @@ export default function Support() {
                   Our developer support team can help you map custom domains or build widgets.
                 </p>
                 <a 
-                  href="mailto:support@traclytag.com" 
+                  href="mailto:support@tracelytag.com" 
                   className="inline-flex items-center gap-1 text-xs font-bold text-safety-blue hover:underline pt-1"
                 >
                   <span>Contact Support Team</span>
