@@ -882,10 +882,11 @@ router.post("/auth/send-test-email", async (req, res): Promise<void> => {
 
   try {
     // 1. Fetch the supermaster user from the database
+    const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
     const [supermaster] = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.username, "supermaster"));
+      .where(eq(usersTable.username, supermasterUsername));
 
     if (!supermaster || supermaster.role !== "super_master") {
       res.status(403).json({ error: "Super Master account not found" });
