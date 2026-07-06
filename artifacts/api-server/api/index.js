@@ -59407,6 +59407,86 @@ router2.get("/auth/device/verify-code", async (req, res) => {
     res.status(500).json({ error: err.message || "Failed to verify code" });
   }
 });
+router2.post("/auth/send-test-email", async (req, res) => {
+  const { password, recipient } = req.body;
+  if (!password || !recipient) {
+    res.status(400).json({ error: "Password and recipient are required" });
+    return;
+  }
+  try {
+    const [supermaster] = await db.select().from(usersTable).where(eq(usersTable.username, "supermaster"));
+    if (!supermaster || supermaster.role !== "super_master") {
+      res.status(403).json({ error: "Super Master account not found" });
+      return;
+    }
+    const isPasswordCorrect = await bcryptjs_default.compare(password, supermaster.passwordHash);
+    if (!isPasswordCorrect) {
+      res.status(401).json({ error: "Invalid Super Master credentials" });
+      return;
+    }
+    const host2 = process.env.SMTP_HOST || "smtp.gmail.com";
+    const port2 = parseInt(process.env.SMTP_PORT || "587", 10);
+    const secure2 = process.env.SMTP_SECURE === "true";
+    const user2 = process.env.SMTP_USER;
+    const pass2 = process.env.SMTP_PASS;
+    if (!user2 || !pass2) {
+      res.status(400).json({
+        error: "SMTP configuration missing in environment variables. Please check SMTP_USER and SMTP_PASS."
+      });
+      return;
+    }
+    const nodemailer2 = await import("nodemailer");
+    const transporter2 = nodemailer2.createTransport({
+      host: host2,
+      port: port2,
+      secure: secure2,
+      auth: {
+        user: user2,
+        pass: pass2
+      },
+      connectionTimeout: 8e3
+    });
+    const mailOptions = {
+      from: `"TracelyTag SMTP Test" <${user2}>`,
+      to: recipient,
+      subject: "TracelyTag SMTP Mail Test - Success",
+      text: `Hello,
+
+This is a test email sent from the TracelyTag Industrial Security Panel.
+If you received this message, your SMTP settings are configured correctly!
+
+Details:
+Host: ${host2}
+Port: ${port2}
+Secure: ${secure2}
+SMTP User: ${user2}
+
+Automated System Test.`,
+      html: `
+        <div style="font-family: sans-serif; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 550px; margin: 0 auto; color: #1e293b; background: #ffffff;">
+          <h2 style="color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-top: 0;">SMTP Connection Verified!</h2>
+          <p>Hello,</p>
+          <p>This is a test email sent from your TracelyTag platform to verify email delivery. The connection is working correctly!</p>
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 13px;">
+            <strong>SMTP Configuration Details:</strong><br/>
+            \u2022 <strong>Host:</strong> ${host2}<br/>
+            \u2022 <strong>Port:</strong> ${port2}<br/>
+            \u2022 <strong>Secure:</strong> ${secure2 ? "Yes (SSL/TLS)" : "No (STARTTLS)"}<br/>
+            \u2022 <strong>SMTP User:</strong> ${user2}
+          </div>
+          <p style="font-size: 11px; color: #64748b;">This email was triggered manually by the Super Master account. No action is required.</p>
+        </div>
+      `
+    };
+    await transporter2.sendMail(mailOptions);
+    res.json({ success: true, message: `Test email successfully sent to ${recipient}` });
+  } catch (err) {
+    req.log.error({ err }, "SMTP Test send failed");
+    res.status(500).json({
+      error: `SMTP Error: ${err.message || "Unknown error occurred while connecting or sending."}`
+    });
+  }
+});
 router2.post("/auth/device/authorize", async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: "Not authenticated" });
@@ -59518,11 +59598,15 @@ router3.get("/companies/public/by-domain", async (req, res) => {
 });
 router3.use("/companies", requireAuth);
 router3.get("/companies/my-company", async (req, res) => {
-  if (!req.user || !req.user.companyId) {
+  let companyId = req.user?.companyId;
+  if (!companyId && req.user?.role === "super_master") {
+    companyId = Number(req.query.companyId) || 1;
+  }
+  if (!companyId) {
     res.status(404).json({ error: "No company associated with this account" });
     return;
   }
-  const [company] = await db.select().from(companiesTable).where(eq(companiesTable.id, req.user.companyId));
+  const [company] = await db.select().from(companiesTable).where(eq(companiesTable.id, companyId));
   if (!company) {
     res.status(404).json({ error: "Company not found" });
     return;
@@ -59530,12 +59614,16 @@ router3.get("/companies/my-company", async (req, res) => {
   res.json(company);
 });
 router3.put("/companies/my-company", async (req, res) => {
-  if (!req.user || !req.user.companyId) {
+  let companyId = req.user?.companyId;
+  if (!companyId && req.user?.role === "super_master") {
+    companyId = Number(req.body.companyId || req.query.companyId) || 1;
+  }
+  if (!companyId) {
     res.status(404).json({ error: "No company associated with this account" });
     return;
   }
   const { companyUrl } = req.body;
-  const [updated] = await db.update(companiesTable).set({ companyUrl: companyUrl || null }).where(eq(companiesTable.id, req.user.companyId)).returning();
+  const [updated] = await db.update(companiesTable).set({ companyUrl: companyUrl || null }).where(eq(companiesTable.id, companyId)).returning();
   if (!updated) {
     res.status(404).json({ error: "Company not found" });
     return;
@@ -59543,12 +59631,16 @@ router3.put("/companies/my-company", async (req, res) => {
   res.json(updated);
 });
 router3.post("/companies/my-company/regenerate-api-key", async (req, res) => {
-  if (!req.user || !req.user.companyId) {
+  let companyId = req.user?.companyId;
+  if (!companyId && req.user?.role === "super_master") {
+    companyId = Number(req.body.companyId || req.query.companyId) || 1;
+  }
+  if (!companyId) {
     res.status(404).json({ error: "No company associated with this account" });
     return;
   }
   const newApiKey = `tt_live_${crypto3.randomBytes(32).toString("hex")}`;
-  const [updated] = await db.update(companiesTable).set({ apiKey: newApiKey }).where(eq(companiesTable.id, req.user.companyId)).returning();
+  const [updated] = await db.update(companiesTable).set({ apiKey: newApiKey }).where(eq(companiesTable.id, companyId)).returning();
   if (!updated) {
     res.status(404).json({ error: "Company not found" });
     return;

@@ -33,14 +33,18 @@ router.use("/companies", requireAuth);
 import crypto from "crypto";
 
 router.get("/companies/my-company", async (req, res): Promise<void> => {
-  if (!req.user || !req.user.companyId) {
+  let companyId = req.user?.companyId;
+  if (!companyId && req.user?.role === "super_master") {
+    companyId = Number(req.query.companyId) || 1;
+  }
+  if (!companyId) {
     res.status(404).json({ error: "No company associated with this account" });
     return;
   }
   const [company] = await db
     .select()
     .from(companiesTable)
-    .where(eq(companiesTable.id, req.user.companyId));
+    .where(eq(companiesTable.id, companyId));
   if (!company) {
     res.status(404).json({ error: "Company not found" });
     return;
@@ -49,7 +53,11 @@ router.get("/companies/my-company", async (req, res): Promise<void> => {
 });
 
 router.put("/companies/my-company", async (req, res): Promise<void> => {
-  if (!req.user || !req.user.companyId) {
+  let companyId = req.user?.companyId;
+  if (!companyId && req.user?.role === "super_master") {
+    companyId = Number(req.body.companyId || req.query.companyId) || 1;
+  }
+  if (!companyId) {
     res.status(404).json({ error: "No company associated with this account" });
     return;
   }
@@ -57,7 +65,7 @@ router.put("/companies/my-company", async (req, res): Promise<void> => {
   const [updated] = await db
     .update(companiesTable)
     .set({ companyUrl: companyUrl || null })
-    .where(eq(companiesTable.id, req.user.companyId))
+    .where(eq(companiesTable.id, companyId))
     .returning();
   if (!updated) {
     res.status(404).json({ error: "Company not found" });
@@ -67,7 +75,11 @@ router.put("/companies/my-company", async (req, res): Promise<void> => {
 });
 
 router.post("/companies/my-company/regenerate-api-key", async (req, res): Promise<void> => {
-  if (!req.user || !req.user.companyId) {
+  let companyId = req.user?.companyId;
+  if (!companyId && req.user?.role === "super_master") {
+    companyId = Number(req.body.companyId || req.query.companyId) || 1;
+  }
+  if (!companyId) {
     res.status(404).json({ error: "No company associated with this account" });
     return;
   }
@@ -75,7 +87,7 @@ router.post("/companies/my-company/regenerate-api-key", async (req, res): Promis
   const [updated] = await db
     .update(companiesTable)
     .set({ apiKey: newApiKey })
-    .where(eq(companiesTable.id, req.user.companyId))
+    .where(eq(companiesTable.id, companyId))
     .returning();
   if (!updated) {
     res.status(404).json({ error: "Company not found" });

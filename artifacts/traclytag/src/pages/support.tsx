@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { 
   useGetMyCompany, 
-  useUpdateMyCompany, 
-  useRegenerateCompanyApiKey,
-  useGetCurrentUser
+  useGetCurrentUser,
+  useListCompanies
 } from "@workspace/api-client-react";
 import { toast } from "sonner";
 import { 
@@ -25,62 +24,114 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 export default function Support() {
   const { data: currentUser } = useGetCurrentUser();
-  const { data: company, refetch: refetchCompany, isLoading } = useGetMyCompany({
+  const isSuperMaster = currentUser?.role === "super_master";
+
+  const { data: companies = [] } = useListCompanies({
     query: {
-      enabled: !!currentUser?.companyId,
+      enabled: isSuperMaster,
     }
   } as any);
 
-  const { mutate: updateCompany, isPending: isUpdatingDomain } = useUpdateMyCompany({
-    mutation: {
-      onSuccess: () => {
-        toast.success("Custom domain configuration saved successfully!");
-        refetchCompany();
-      },
-      onError: (err: any) => {
-        toast.error(err?.data?.error || "Failed to update custom domain");
-      }
-    }
-  });
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number>(1);
+  const [adminCompany, setAdminCompany] = useState<any>(null);
+  const [isAdminCompanyLoading, setIsAdminCompanyLoading] = useState(false);
 
-  const { mutate: regenerateApiKey, isPending: isRegeneratingKey } = useRegenerateCompanyApiKey({
-    mutation: {
-      onSuccess: () => {
-        toast.success("New API key generated successfully!");
-        refetchCompany();
-      },
-      onError: (err: any) => {
-        toast.error(err?.data?.error || "Failed to regenerate API key");
+  const fetchAdminCompany = async (id: number) => {
+    setIsAdminCompanyLoading(true);
+    try {
+      const res = await fetch(`/api/companies/my-company?companyId=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAdminCompany(data);
       }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAdminCompanyLoading(false);
     }
-  });
+  };
 
+  useEffect(() => {
+    if (isSuperMaster) {
+      fetchAdminCompany(selectedCompanyId);
+    }
+  }, [selectedCompanyId, isSuperMaster]);
+
+  const { data: myCompany, refetch: refetchMyCompany, isLoading: isMyCompanyLoading } = useGetMyCompany({
+    query: {
+      enabled: !isSuperMaster && !!currentUser?.companyId,
+    }
+  } as any);
+
+  const company = isSuperMaster ? adminCompany : myCompany;
+  const isLoading = isSuperMaster ? isAdminCompanyLoading : isMyCompanyLoading;
+
+  const refetchCompany = () => {
+    if (isSuperMaster) {
+      fetchAdminCompany(selectedCompanyId);
+    } else {
+      refetchMyCompany();
+    }
+  };
+
+  const [supportMode, setSupportMode] = useState<"system" | "company">("system");
   const [domainInput, setDomainInput] = useState("");
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedWidget, setCopiedWidget] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
 
+  const [isUpdatingDomain, setIsUpdatingDomain] = useState(false);
+  const [isRegeneratingKey, setIsRegeneratingKey] = useState(false);
+
   useEffect(() => {
     if (company?.companyUrl) {
       setDomainInput(company.companyUrl);
+    } else {
+      setDomainInput("");
     }
   }, [company]);
 
-  const handleSaveDomain = (e: React.FormEvent) => {
+  const handleSaveDomain = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateCompany({
-      data: {
-        companyUrl: domainInput.trim() || null
-      }
-    });
+    setIsUpdatingDomain(true);
+    try {
+      const url = isSuperMaster ? `/api/companies/my-company?companyId=${selectedCompanyId}` : `/api/companies/my-company`;
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyUrl: domainInput.trim() || null })
+      });
+      if (!res.ok) throw new Error("Failed to save domain");
+      toast.success("Custom domain configuration saved successfully!");
+      refetchCompany();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update custom domain");
+    } finally {
+      setIsUpdatingDomain(false);
+    }
   };
 
-  const handleRegenerateKey = () => {
+  const handleRegenerateKey = async () => {
     if (confirm("Are you sure you want to regenerate your API Key? Any existing applications using this key will lose access immediately.")) {
-      regenerateApiKey();
+      setIsRegeneratingKey(true);
+      try {
+        const url = isSuperMaster ? `/api/companies/my-company/regenerate-api-key?companyId=${selectedCompanyId}` : `/api/companies/my-company/regenerate-api-key`;
+        const res = await fetch(url, {
+          method: "POST",
+        });
+        if (!res.ok) throw new Error("Failed to regenerate API key");
+        toast.success("New API key generated successfully!");
+        refetchCompany();
+      } catch (err: any) {
+        toast.error(err.message || "Failed to regenerate API key");
+      } finally {
+        setIsRegeneratingKey(false);
+      }
     }
   };
 
@@ -163,9 +214,38 @@ export default function Support() {
   })();
 </script>`;
 
-  if (isMaster) {
+  if (isMaster && (!isSuperMaster || supportMode === "system")) {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto font-sans">
+      <div className="space-y-6 max-w-6xl mx-auto font-sans pb-16">
+        {isSuperMaster && (
+          <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit mb-6">
+            <button
+              type="button"
+              onClick={() => setSupportMode("system")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-xs font-semibold transition-all",
+                supportMode === "system"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+              )}
+            >
+              System Console
+            </button>
+            <button
+              type="button"
+              onClick={() => setSupportMode("company")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-xs font-semibold transition-all",
+                supportMode === "company"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+              )}
+            >
+              Company Support Portal
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-4 text-outline font-bold text-[10px] uppercase tracking-widest mb-6">
           <span>Master Integrations Dashboard</span>
         </div>
@@ -276,6 +356,59 @@ export default function Support() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans pb-16">
+      {isSuperMaster && (
+        <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit mb-6">
+          <button
+            type="button"
+            onClick={() => setSupportMode("system")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-semibold transition-all",
+              supportMode === "system"
+                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+            )}
+          >
+            System Console
+          </button>
+          <button
+            type="button"
+            onClick={() => setSupportMode("company")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-semibold transition-all",
+              supportMode === "company"
+                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+            )}
+          >
+            Company Support Portal
+          </button>
+        </div>
+      )}
+
+      {isSuperMaster && supportMode === "company" && (
+        <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-4 mb-6">
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Company Context</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">Select target company node to view/manage its developer options</span>
+          </div>
+          <Select 
+            value={selectedCompanyId.toString()} 
+            onValueChange={(val) => setSelectedCompanyId(Number(val))}
+          >
+            <SelectTrigger className="w-[280px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+              <SelectValue placeholder="Select company" />
+            </SelectTrigger>
+            <SelectContent>
+              {companies.map((c: any) => (
+                <SelectItem key={c.id} value={c.id.toString()}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="flex items-center gap-4 text-outline font-bold text-[10px] uppercase tracking-widest mb-6">
         <span>Help, Support & Developer Integrations</span>
       </div>

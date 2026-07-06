@@ -88,6 +88,43 @@ export default function Login() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [timer, setTimer] = useState(300);
 
+  // --- SMTP Test States ---
+  const [showSmtpTest, setShowSmtpTest] = useState(false);
+  const [smtpPassword, setSmtpPassword] = useState("");
+  const [smtpRecipient, setSmtpRecipient] = useState("");
+  const [isSendingSmtpTest, setIsSendingSmtpTest] = useState(false);
+  const [smtpError, setSmtpError] = useState<string | null>(null);
+  const [smtpSuccess, setSmtpSuccess] = useState<string | null>(null);
+
+  const handleSendSmtpTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!smtpPassword || !smtpRecipient) {
+      toast.error("Please fill in both fields");
+      return;
+    }
+    setIsSendingSmtpTest(true);
+    setSmtpError(null);
+    setSmtpSuccess(null);
+    try {
+      const res = await fetch("/api/auth/send-test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: smtpPassword, recipient: smtpRecipient })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send test email");
+      }
+      setSmtpSuccess(data.message || "Test email sent successfully!");
+      toast.success("Test email sent successfully!");
+    } catch (err: any) {
+      setSmtpError(err.message || "An unknown error occurred");
+      toast.error("Failed to send SMTP test email");
+    } finally {
+      setIsSendingSmtpTest(false);
+    }
+  };
+
   useEffect(() => {
     if (!otpRequired || timer <= 0) return;
     const interval = setInterval(() => {
@@ -1310,6 +1347,83 @@ export default function Login() {
                     <div>Op: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_op</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">op123</code></div>
                   </div>
                 </motion.div>
+
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSmtpTest(!showSmtpTest);
+                      setSmtpError(null);
+                      setSmtpSuccess(null);
+                    }}
+                    className="text-[10px] font-semibold text-[#2563EB] hover:underline"
+                  >
+                    {showSmtpTest ? "Close SMTP Test Console" : "SMTP Connection Issues? Test SMTP"}
+                  </button>
+                </div>
+
+                <AnimatePresence>
+                  {showSmtpTest && (
+                    <motion.form 
+                      onSubmit={handleSendSmtpTest}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-850 rounded-lg mt-3 space-y-3 flex flex-col text-left overflow-hidden"
+                    >
+                      <div className="text-xs font-bold text-slate-700 dark:text-slate-300">SMTP Connection Test Panel</div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-500 uppercase">Super Master Password</label>
+                        <Input
+                          type="password"
+                          placeholder="Enter supermaster password"
+                          value={smtpPassword}
+                          onChange={(e) => setSmtpPassword(e.target.value)}
+                          className="bg-white dark:bg-slate-900 text-xs py-1.5 h-8 border border-slate-200 dark:border-slate-850 rounded focus-visible:border-[#2563EB] focus-visible:ring-0"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-500 uppercase">Test Recipient Email</label>
+                        <Input
+                          type="email"
+                          placeholder="recipient@example.com"
+                          value={smtpRecipient}
+                          onChange={(e) => setSmtpRecipient(e.target.value)}
+                          className="bg-white dark:bg-slate-900 text-xs py-1.5 h-8 border border-slate-200 dark:border-slate-850 rounded focus-visible:border-[#2563EB] focus-visible:ring-0"
+                        />
+                      </div>
+
+                      {smtpError && (
+                        <div className="p-2 text-[10px] bg-red-50 text-red-700 border border-red-105 rounded leading-normal max-h-24 overflow-y-auto font-mono">
+                          ⚠️ {smtpError}
+                        </div>
+                      )}
+
+                      {smtpSuccess && (
+                        <div className="p-2 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-105 rounded leading-normal font-mono">
+                          ✅ {smtpSuccess}
+                        </div>
+                      )}
+
+                      <Button
+                        type="submit"
+                        disabled={isSendingSmtpTest}
+                        className="w-full bg-[#2563EB] hover:bg-blue-600 text-white font-semibold text-[11px] h-8 rounded mt-1 flex items-center justify-center gap-1.5"
+                      >
+                        {isSendingSmtpTest ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          "Send Test Email"
+                        )}
+                      </Button>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
 
                 {/* Security Validation Pills */}
                 <div className="mt-4 pt-6 border-t border-slate-100 dark:border-slate-850 flex justify-center gap-4">
