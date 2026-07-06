@@ -59414,7 +59414,8 @@ router2.post("/auth/send-test-email", async (req, res) => {
     return;
   }
   try {
-    const [supermaster] = await db.select().from(usersTable).where(eq(usersTable.username, "supermaster"));
+    const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
+    const [supermaster] = await db.select().from(usersTable).where(eq(usersTable.username, supermasterUsername));
     if (!supermaster || supermaster.role !== "super_master") {
       res.status(403).json({ error: "Super Master account not found" });
       return;
@@ -60931,8 +60932,9 @@ var loadUser = async (req, res, next) => {
       const token = authHeader.substring(7).trim();
       if (token) {
         let username = "demo_op";
-        if (token.toLowerCase().includes("supermaster") || token.toLowerCase().includes("super_master")) {
-          username = "supermaster";
+        const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
+        if (token.toLowerCase().includes("supermaster") || token.toLowerCase().includes("super_master") || token.toLowerCase().includes(supermasterUsername.toLowerCase())) {
+          username = supermasterUsername;
         } else if (token.toLowerCase().includes("master")) {
           username = "master";
         } else if (token.toLowerCase().includes("admin")) {

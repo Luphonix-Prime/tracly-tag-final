@@ -468,6 +468,41 @@ export default function Support() {
                     </Card>
                   </div>
 
+                  <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <h5 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Next Steps: Hosting Products Under Your Custom Domain</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/10 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-xs text-[#2563EB]">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 font-bold text-[10px]">1</span>
+                          Point CNAME
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                          Go to your DNS manager (e.g. Cloudflare, GoDaddy) and point your subdomain CNAME (e.g. <code>verify.brand.com</code>) to <code>domains.tracelytag.com</code>.
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/10 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-xs text-[#2563EB]">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 font-bold text-[10px]">2</span>
+                          Save Custom Domain
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                          In the "Custom Domain" tab, enter your pointed subdomain URL and click save. The system will configure SSL certificates automatically.
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/10 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-xs text-[#2563EB]">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 font-bold text-[10px]">3</span>
+                          Automatic Isolation
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                          Visitors browsing your custom domain will only see your products. Verification workflows and scans isolate automatically under your brand context.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800 flex items-start gap-4">
                     <HelpCircle className="h-5 w-5 text-safety-blue flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
