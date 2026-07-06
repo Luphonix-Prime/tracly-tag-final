@@ -13,7 +13,9 @@ export const loadUser: RequestHandler = async (req, res, next) => {
       if (token) {
         // Map the token to a user in the database
         let username = "demo_op";
-        if (token.toLowerCase().includes("master")) {
+        if (token.toLowerCase().includes("supermaster") || token.toLowerCase().includes("super_master")) {
+          username = "supermaster";
+        } else if (token.toLowerCase().includes("master")) {
           username = "master";
         } else if (token.toLowerCase().includes("admin")) {
           username = "demo_admin";
@@ -31,7 +33,7 @@ export const loadUser: RequestHandler = async (req, res, next) => {
             id: user.id,
             username: user.username,
             email: user.email,
-            role: user.role as "master" | "client_admin" | "operator",
+            role: user.role as "super_master" | "master" | "client_admin" | "operator",
             companyId: user.companyId,
             isActive: user.isActive,
             enabledModules: user.enabledModules,
@@ -60,7 +62,7 @@ export const loadUser: RequestHandler = async (req, res, next) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role as "master" | "client_admin" | "operator",
+        role: user.role as "super_master" | "master" | "client_admin" | "operator",
         companyId: user.companyId,
         isActive: user.isActive,
         enabledModules: user.enabledModules,

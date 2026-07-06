@@ -29,7 +29,7 @@ router.get("/users", async (req, res): Promise<void> => {
 
   // Scope: non-master sees only own company
   const filtered =
-    req.user!.role === "master"
+    (req.user!.role === "master" || req.user!.role === "super_master")
       ? rows
       : rows.filter((r) => r.companyId === req.user!.companyId);
   res.json(filtered);
@@ -48,13 +48,19 @@ router.post("/users", async (req, res): Promise<void> => {
   }
 
   let companyId = parsed.data.companyId ?? null;
-  if (req.user!.role !== "master") {
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
     // Force company scope for non-masters
     companyId = req.user!.companyId;
-    if (parsed.data.role === "master") {
-      res.status(403).json({ error: "Cannot create master users" });
+    if (parsed.data.role === "master" || parsed.data.role === "super_master") {
+      res.status(403).json({ error: "Cannot create master/super_master users" });
       return;
     }
+  }
+
+  // Prevent standard master from creating super_master users
+  if (parsed.data.role === "super_master" && req.user!.role !== "super_master") {
+    res.status(403).json({ error: "Forbidden: Cannot create super master users" });
+    return;
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
@@ -131,8 +137,16 @@ router.put("/users/:id", async (req, res): Promise<void> => {
       return;
     }
 
+    // Prevent non-super_master from editing super_master users or setting role to super_master
+    if (req.user!.role !== "super_master") {
+      if (targetUser.role === "super_master" || parsed.data.role === "super_master") {
+        res.status(403).json({ error: "Forbidden: Cannot edit super master users or change roles to super master" });
+        return;
+      }
+    }
+
     // Security constraints
-    if (req.user!.role !== "master") {
+    if (req.user!.role !== "master" && req.user!.role !== "super_master") {
       if (targetUser.companyId !== req.user!.companyId) {
         res.status(403).json({ error: "Forbidden: Cannot edit users outside your company" });
         return;
@@ -218,7 +232,13 @@ router.delete("/users/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  if (req.user!.role !== "master") {
+  // Prevent deleting super_master users by non-super_master
+  if (req.user!.role !== "super_master" && targetUser.role === "super_master") {
+    res.status(403).json({ error: "Forbidden: Cannot delete super master users" });
+    return;
+  }
+
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
     if (targetUser.companyId !== req.user!.companyId) {
       res.status(403).json({ error: "Forbidden: Cannot delete users outside your company" });
       return;

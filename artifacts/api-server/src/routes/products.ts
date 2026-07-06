@@ -10,7 +10,7 @@ const router: IRouter = Router();
 router.use("/products", requireAuth, requireModule("products"));
 
 function effectiveCompanyId(user: NonNullable<typeof globalThis> extends never ? never : { role: string; companyId: number | null }): number | null {
-  if (user.role === "master") return null;
+  if (user.role === "master" || user.role === "super_master") return null;
   return user.companyId;
 }
 
@@ -47,7 +47,7 @@ router.post("/products", async (req, res): Promise<void> => {
     return;
   }
 
-  let companyId = req.user!.companyId || (req.user!.role === "master" ? (req.body.companyId || req.query.companyId) : null);
+  let companyId = req.user!.companyId || ((req.user!.role === "master" || req.user!.role === "super_master") ? (req.body.companyId || req.query.companyId) : null);
   if (!companyId) {
     res
       .status(400)

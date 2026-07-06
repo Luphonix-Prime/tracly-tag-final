@@ -41,7 +41,7 @@ export default function NewCompany() {
     defaultValues: { name: "", email: "", address: "", gstin: "", companyUrl: "" },
   });
 
-  if (user?.role !== "master") {
+  if (user?.role !== "master" && user?.role !== "super_master") {
     return <div className="p-8 text-center text-destructive">Access denied. Master role required.</div>;
   }
 

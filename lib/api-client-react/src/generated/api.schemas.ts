@@ -17,6 +17,7 @@ export type Role = typeof Role[keyof typeof Role];
 
 
 export const Role = {
+  super_master: 'super_master',
   master: 'master',
   client_admin: 'client_admin',
   operator: 'operator',

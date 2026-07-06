@@ -25,7 +25,7 @@ export interface AuthUser {
   id: number;
   username: string;
   email: string;
-  role: "master" | "client_admin" | "operator";
+  role: "super_master" | "master" | "client_admin" | "operator";
   companyId: number | null;
   isActive: boolean;
   enabledModules: string;
@@ -68,8 +68,8 @@ export function requireModule(moduleName: string): RequestHandler {
       res.status(401).json({ error: "Not authenticated" });
       return;
     }
-    // Master role has full access to all modules
-    if (req.user.role === "master") {
+    // Master/Super Master roles have full access to all modules
+    if (req.user.role === "master" || req.user.role === "super_master") {
       next();
       return;
     }

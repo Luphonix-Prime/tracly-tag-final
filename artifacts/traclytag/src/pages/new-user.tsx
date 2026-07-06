@@ -21,7 +21,7 @@ const userSchema = z.object({
   email: z.string().email("Invalid email address"),
   phone: z.string().optional().or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["master", "client_admin", "operator"]),
+  role: z.enum(["super_master", "master", "client_admin", "operator"]),
   companyId: z.coerce.number().optional(),
 });
 
@@ -31,7 +31,7 @@ export default function NewUser() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const isMaster = currentUser?.role === "master";
+  const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
 
   const { data: companies = [] } = useListCompanies({
     query: { enabled: isMaster },
@@ -237,6 +237,7 @@ export default function NewUser() {
                             <SelectItem value="operator">Operator</SelectItem>
                             <SelectItem value="client_admin">Manager</SelectItem>
                             {isMaster && <SelectItem value="master">Master</SelectItem>}
+                            {currentUser?.role === "super_master" && <SelectItem value="super_master">Super Master</SelectItem>}
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-[11px] text-[#EF4444]" />

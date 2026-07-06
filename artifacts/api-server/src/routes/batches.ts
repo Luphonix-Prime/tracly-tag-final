@@ -17,7 +17,7 @@ router.get("/batches", async (req, res): Promise<void> => {
   if (productId && !Number.isNaN(productId)) {
     conds.push(eq(batchesTable.productId, productId));
   }
-  if (req.user!.role !== "master") {
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
     conds.push(eq(productsTable.companyId, req.user!.companyId!));
   }
   const where = conds.length === 0 ? undefined : conds.length === 1 ? conds[0] : and(...conds);
