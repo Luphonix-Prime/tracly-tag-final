@@ -13,8 +13,9 @@ export const loadUser: RequestHandler = async (req, res, next) => {
       if (token) {
         // Map the token to a user in the database
         let username = "demo_op";
-        if (token.toLowerCase().includes("supermaster") || token.toLowerCase().includes("super_master")) {
-          username = "supermaster";
+        const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
+        if (token.toLowerCase().includes("supermaster") || token.toLowerCase().includes("super_master") || token.toLowerCase().includes(supermasterUsername.toLowerCase())) {
+          username = supermasterUsername;
         } else if (token.toLowerCase().includes("master")) {
           username = "master";
         } else if (token.toLowerCase().includes("admin")) {

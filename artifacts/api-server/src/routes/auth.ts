@@ -873,6 +873,92 @@ router.get("/auth/device/verify-code", async (req, res): Promise<void> => {
   }
 });
 
+router.post("/auth/send-test-email", async (req, res): Promise<void> => {
+  const { password, recipient } = req.body;
+  if (!password || !recipient) {
+    res.status(400).json({ error: "Password and recipient are required" });
+    return;
+  }
+
+  try {
+    // 1. Fetch the supermaster user from the database
+    const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
+    const [supermaster] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.username, supermasterUsername));
+
+    if (!supermaster || supermaster.role !== "super_master") {
+      res.status(403).json({ error: "Super Master account not found" });
+      return;
+    }
+
+    // 2. Validate password
+    const isPasswordCorrect = await bcrypt.compare(password, supermaster.passwordHash);
+    if (!isPasswordCorrect) {
+      res.status(401).json({ error: "Invalid Super Master credentials" });
+      return;
+    }
+
+    // 3. Try to send email using nodemailer configuration directly
+    const host = process.env.SMTP_HOST || "smtp.gmail.com";
+    const port = parseInt(process.env.SMTP_PORT || "587", 10);
+    const secure = process.env.SMTP_SECURE === "true";
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    if (!user || !pass) {
+      res.status(400).json({ 
+        error: "SMTP configuration missing in environment variables. Please check SMTP_USER and SMTP_PASS." 
+      });
+      return;
+    }
+
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: {
+        user,
+        pass,
+      },
+      connectionTimeout: 8000
+    });
+
+    const mailOptions = {
+      from: `"TracelyTag SMTP Test" <${user}>`,
+      to: recipient,
+      subject: "TracelyTag SMTP Mail Test - Success",
+      text: `Hello,\n\nThis is a test email sent from the TracelyTag Industrial Security Panel.\nIf you received this message, your SMTP settings are configured correctly!\n\nDetails:\nHost: ${host}\nPort: ${port}\nSecure: ${secure}\nSMTP User: ${user}\n\nAutomated System Test.`,
+      html: `
+        <div style="font-family: sans-serif; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 550px; margin: 0 auto; color: #1e293b; background: #ffffff;">
+          <h2 style="color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-top: 0;">SMTP Connection Verified!</h2>
+          <p>Hello,</p>
+          <p>This is a test email sent from your TracelyTag platform to verify email delivery. The connection is working correctly!</p>
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 13px;">
+            <strong>SMTP Configuration Details:</strong><br/>
+            • <strong>Host:</strong> ${host}<br/>
+            • <strong>Port:</strong> ${port}<br/>
+            • <strong>Secure:</strong> ${secure ? 'Yes (SSL/TLS)' : 'No (STARTTLS)'}<br/>
+            • <strong>SMTP User:</strong> ${user}
+          </div>
+          <p style="font-size: 11px; color: #64748b;">This email was triggered manually by the Super Master account. No action is required.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ success: true, message: `Test email successfully sent to ${recipient}` });
+  } catch (err: any) {
+    req.log.error({ err }, "SMTP Test send failed");
+    res.status(500).json({ 
+      error: `SMTP Error: ${err.message || "Unknown error occurred while connecting or sending."}` 
+    });
+  }
+});
+
 router.post("/auth/device/authorize", async (req, res): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: "Not authenticated" });
