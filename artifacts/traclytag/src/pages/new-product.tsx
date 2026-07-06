@@ -56,7 +56,7 @@ type ProductForm = z.infer<typeof productSchema>;
 
 export default function NewProduct() {
   const { data: currentUser } = useGetCurrentUser();
-  const isMaster = currentUser?.role === "master";
+  const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
   const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
 
   const createProduct = useCreateProduct();
@@ -143,6 +143,10 @@ export default function NewProduct() {
   };
 
   const onSubmit = (values: ProductForm) => {
+    if (isMaster && !values.companyId) {
+      toast.error("Please select a company to allocate this product to.");
+      return;
+    }
     const payload = {
       ...values,
       companyId: isMaster ? values.companyId : currentUser?.companyId || 1,
@@ -214,6 +218,38 @@ export default function NewProduct() {
               </div>
 
               <div className="space-y-5">
+                {isMaster && (
+                  <FormField
+                    control={form.control}
+                    name="companyId"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          COMPANY <span className="text-[#EF4444]">*</span>
+                        </FormLabel>
+                        <Select 
+                          onValueChange={(val) => field.onChange(Number(val))} 
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                              <SelectValue placeholder="Select target company node" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {companies.map((company: any) => (
+                              <SelectItem key={company.id} value={company.id.toString()}>
+                                {company.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
