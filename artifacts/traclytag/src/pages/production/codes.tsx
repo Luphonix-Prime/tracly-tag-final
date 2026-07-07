@@ -633,10 +633,10 @@ export default function Codes() {
           <DialogHeader className="border-b border-[#E2E8F0] pb-3 shrink-0 flex flex-row items-center justify-between gap-4">
             <div>
               <DialogTitle className="text-lg font-bold text-midnight-navy">
-                Batch QR Codes: {viewBatchNumber}
+                Batch Data Matrix Codes: {viewBatchNumber}
               </DialogTitle>
               <DialogDescription className="text-sm text-[#434655]">
-                Showing generated secure verification QR codes for this production batch.
+                Showing generated secure verification Data Matrix codes for this production batch.
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -695,7 +695,7 @@ export default function Codes() {
             {loadingViewCodes ? (
               <div className="flex flex-col items-center justify-center h-[300px] gap-2">
                 <Loader2 className="h-8 w-8 animate-spin text-safety-blue" />
-                <span className="text-sm text-[#434655] font-medium animate-pulse">Loading QR codes...</span>
+                <span className="text-sm text-[#434655] font-medium animate-pulse">Loading Data Matrix codes...</span>
               </div>
             ) : viewCodesList.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[300px] text-[#737686] text-sm">
@@ -736,14 +736,14 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
+                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=150&height=150`;
                   
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
                       <div className="p-1.5 bg-white rounded-lg border border-slate-200">
                         <img 
                           src={qrUrl} 
-                          alt="QR Code" 
+                          alt="Data Matrix Code" 
                           className="w-[120px] h-[120px]"
                           loading="lazy"
                         />
@@ -813,14 +813,14 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
+                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=90&height=90`;
 
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
                       <div className="p-1.5 bg-white rounded-lg border border-slate-200 shrink-0">
                         <img 
                           src={qrUrl} 
-                          alt="QR Code" 
+                          alt="Data Matrix Code" 
                           className="w-[90px] h-[90px]"
                           loading="lazy"
                         />
