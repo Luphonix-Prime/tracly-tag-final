@@ -13,11 +13,32 @@ export interface CreateProductBody {
   marketedBy: string;
   /** @nullable */
   sapDescription?: string | null;
-  /** 14 digit GTIN */
-  gtin: string;
+  /**
+     * 14 digit GTIN
+     * @nullable
+     */
+  gtin?: string | null;
   mrp: number;
   /** @nullable */
   registrationNo?: string | null;
+  /** @nullable */
+  hsnCode?: string | null;
+  /** @nullable */
+  gstRate?: number | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  weightValue?: number | null;
+  /** @nullable */
+  weightUnit?: string | null;
+  /** @nullable */
+  packagingType?: string | null;
+  /** @nullable */
+  shelfLifeDays?: number | null;
+  /** @nullable */
+  countryOfOrigin?: string | null;
+  /** @nullable */
+  isGs1Compliant?: boolean | null;
   l1Size: number;
   l2Size: number;
   shipperSize: number;

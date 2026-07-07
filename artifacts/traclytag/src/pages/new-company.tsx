@@ -28,6 +28,52 @@ const companySchema = z.object({
     .optional()
     .or(z.literal(""))
     .transform((val) => val?.trim().toLowerCase()),
+  pan: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => val?.trim().toUpperCase())
+    .refine(
+      (val) => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val),
+      "Invalid Indian PAN format. Expected: 5 letters, 4 digits, 1 letter (e.g., ABCDE1234F)."
+    ),
+  cin: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => val?.trim().toUpperCase()),
+  msmeRegistrationNo: z
+    .string()
+    .optional()
+    .or(z.literal("")),
+  fssaiLicenseNo: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || /^\d{14}$/.test(val),
+      "Invalid FSSAI License Number format. Expected standard 14 digits."
+    ),
+  drugLicenseNo: z
+    .string()
+    .optional()
+    .or(z.literal("")),
+  iecCode: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || /^\d{10}$/.test(val),
+      "Invalid IEC Code format. Expected standard 10 digits."
+    ),
+  companyPrefix: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || /^\d{7,11}$/.test(val),
+      "Invalid GS1 Company Prefix format. Expected 7 to 11 digits."
+    ),
 });
 
 export default function NewCompany() {
@@ -38,7 +84,20 @@ export default function NewCompany() {
 
   const form = useForm<z.infer<typeof companySchema>>({
     resolver: zodResolver(companySchema),
-    defaultValues: { name: "", email: "", address: "", gstin: "", companyUrl: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      address: "",
+      gstin: "",
+      companyUrl: "",
+      pan: "",
+      cin: "",
+      msmeRegistrationNo: "",
+      fssaiLicenseNo: "",
+      drugLicenseNo: "",
+      iecCode: "",
+      companyPrefix: "",
+    },
   });
 
   if (user?.role !== "master" && user?.role !== "super_master") {
@@ -178,27 +237,179 @@ export default function NewCompany() {
                 />
               </section>
 
-              {/* Section 3: Regulatory Information */}
+              {/* Section 3: Indian Corporate & Regulatory Information */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                   <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>assignment</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">Regulatory Information</h3>
+                  <h3 className="text-lg font-bold text-[#0F172A]">Indian Corporate & Regulatory Identifiers</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="gstin"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                          GSTIN (OPTIONAL)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="27AAAAA0000A1Z5" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all uppercase font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[11px] text-[#EF4444]" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="pan"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                          PAN (PERMANENT ACCOUNT NUMBER)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="ABCDE1234F" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all uppercase font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[11px] text-[#EF4444]" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cin"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                          CIN (CORPORATE IDENTIFICATION NUMBER)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="L21010MH1999PLC123456" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all uppercase font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[11px] text-[#EF4444]" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="msmeRegistrationNo"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                          MSME UDYAM REGISTRATION NUMBER
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="UDYAM-GJ-01-1234567" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[11px] text-[#EF4444]" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="fssaiLicenseNo"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                          FSSAI LICENSE NUMBER (14 DIGITS)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="12345678901234" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[11px] text-[#EF4444]" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="drugLicenseNo"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                          DRUG LICENSE NUMBER
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="G-28/1234-A" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[11px] text-[#EF4444]" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="iecCode"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                          IEC (IMPORT EXPORT CODE - 10 DIGITS)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="0123456789" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[11px] text-[#EF4444]" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </section>
+
+              {/* Section 4: GS1 Company Registry */}
+              <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>badge</span>
+                  <h3 className="text-lg font-bold text-[#0F172A]">GS1 Company Registry</h3>
                 </div>
                 <FormField
                   control={form.control}
-                  name="gstin"
+                  name="companyPrefix"
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
-                        GSTIN (OPTIONAL)
+                        GS1 COMPANY PREFIX (GCP)
                       </FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="27AAAAA0000A1Z5" 
-                          className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all uppercase font-mono"
+                          placeholder="e.g., 8901023 (7 to 11 digits numeric)" 
+                          className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono"
                           {...field} 
                         />
                       </FormControl>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Enter your official GS1 Company Prefix. This will enable automatic EAN-13/GTIN-14 parsing and GS1 barcode standards compliance throughout your profile products.
+                      </p>
                       <FormMessage className="text-[11px] text-[#EF4444]" />
                     </FormItem>
                   )}

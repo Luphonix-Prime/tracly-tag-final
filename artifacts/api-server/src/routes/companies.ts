@@ -61,10 +61,20 @@ router.put("/companies/my-company", async (req, res): Promise<void> => {
     res.status(404).json({ error: "No company associated with this account" });
     return;
   }
-  const { companyUrl } = req.body;
+  const { gstin, companyUrl, pan, cin, msmeRegistrationNo, fssaiLicenseNo, drugLicenseNo, iecCode, companyPrefix } = req.body;
   const [updated] = await db
     .update(companiesTable)
-    .set({ companyUrl: companyUrl || null })
+    .set({
+      gstin: gstin !== undefined ? (gstin || null) : undefined,
+      companyUrl: companyUrl !== undefined ? (companyUrl || null) : undefined,
+      pan: pan !== undefined ? (pan || null) : undefined,
+      cin: cin !== undefined ? (cin || null) : undefined,
+      msmeRegistrationNo: msmeRegistrationNo !== undefined ? (msmeRegistrationNo || null) : undefined,
+      fssaiLicenseNo: fssaiLicenseNo !== undefined ? (fssaiLicenseNo || null) : undefined,
+      drugLicenseNo: drugLicenseNo !== undefined ? (drugLicenseNo || null) : undefined,
+      iecCode: iecCode !== undefined ? (iecCode || null) : undefined,
+      companyPrefix: companyPrefix !== undefined ? (companyPrefix || null) : undefined,
+    })
     .where(eq(companiesTable.id, companyId))
     .returning();
   if (!updated) {
@@ -121,6 +131,13 @@ router.post(
         address: parsed.data.address,
         gstin: parsed.data.gstin ?? null,
         companyUrl: parsed.data.companyUrl ?? null,
+        pan: parsed.data.pan ?? null,
+        cin: parsed.data.cin ?? null,
+        msmeRegistrationNo: parsed.data.msmeRegistrationNo ?? null,
+        fssaiLicenseNo: parsed.data.fssaiLicenseNo ?? null,
+        drugLicenseNo: parsed.data.drugLicenseNo ?? null,
+        iecCode: parsed.data.iecCode ?? null,
+        companyPrefix: parsed.data.companyPrefix ?? null,
       })
       .returning();
     res.status(201).json(row);

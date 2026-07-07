@@ -42,9 +42,17 @@ router.post("/products", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!isValidGtin(parsed.data.gtin)) {
-    res.status(400).json({ error: "Invalid GTIN check digit" });
-    return;
+  const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
+
+  if (isGs1Compliant) {
+    if (!parsed.data.gtin) {
+      res.status(400).json({ error: "GTIN is required for GS1 compliant products" });
+      return;
+    }
+    if (!isValidGtin(parsed.data.gtin)) {
+      res.status(400).json({ error: "Invalid GTIN check digit" });
+      return;
+    }
   }
 
   let companyId = req.user!.companyId || ((req.user!.role === "master" || req.user!.role === "super_master") ? (req.body.companyId || req.query.companyId) : null);
@@ -64,9 +72,18 @@ router.post("/products", async (req, res): Promise<void> => {
       skuSize: parsed.data.skuSize,
       marketedBy: parsed.data.marketedBy,
       sapDescription: parsed.data.sapDescription ?? null,
-      gtin: parsed.data.gtin,
+      gtin: parsed.data.gtin ?? null,
       mrp: Number(parsed.data.mrp),
       registrationNo: parsed.data.registrationNo ?? null,
+      hsnCode: parsed.data.hsnCode ?? null,
+      gstRate: parsed.data.gstRate !== undefined && parsed.data.gstRate !== null ? Number(parsed.data.gstRate) : null,
+      unit: parsed.data.unit ?? null,
+      weightValue: parsed.data.weightValue !== undefined && parsed.data.weightValue !== null ? Number(parsed.data.weightValue) : null,
+      weightUnit: parsed.data.weightUnit ?? null,
+      packagingType: parsed.data.packagingType ?? null,
+      shelfLifeDays: parsed.data.shelfLifeDays !== undefined && parsed.data.shelfLifeDays !== null ? Number(parsed.data.shelfLifeDays) : null,
+      countryOfOrigin: parsed.data.countryOfOrigin ?? "IND",
+      isGs1Compliant,
       l1Size: parsed.data.l1Size,
       l2Size: parsed.data.l2Size,
       shipperSize: parsed.data.shipperSize,

@@ -190,7 +190,7 @@ async function main() {
 
   for (let i = 0; i < 30; i++) {
     const { raw, serial } = generateUnitCode({
-      gtin: paracet!.gtin,
+      gtin: paracet!.gtin!,
       expiry: paracet!.expiryDate,
       batch: batchA!.batchNumber,
     });
@@ -205,7 +205,7 @@ async function main() {
   }
   for (let i = 0; i < 20; i++) {
     const { raw, serial } = generateUnitCode({
-      gtin: vitaminC!.gtin,
+      gtin: vitaminC!.gtin!,
       expiry: vitaminC!.expiryDate,
       batch: batchB!.batchNumber,
     });

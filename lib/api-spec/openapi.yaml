@@ -708,6 +708,20 @@ components:
           type: ["string", "null"]
         apiKey:
           type: ["string", "null"]
+        pan:
+          type: ["string", "null"]
+        cin:
+          type: ["string", "null"]
+        msmeRegistrationNo:
+          type: ["string", "null"]
+        fssaiLicenseNo:
+          type: ["string", "null"]
+        drugLicenseNo:
+          type: ["string", "null"]
+        iecCode:
+          type: ["string", "null"]
+        companyPrefix:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -726,6 +740,20 @@ components:
           type: ["string", "null"]
           pattern: "^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$"
         companyUrl:
+          type: ["string", "null"]
+        pan:
+          type: ["string", "null"]
+        cin:
+          type: ["string", "null"]
+        msmeRegistrationNo:
+          type: ["string", "null"]
+        fssaiLicenseNo:
+          type: ["string", "null"]
+        drugLicenseNo:
+          type: ["string", "null"]
+        iecCode:
+          type: ["string", "null"]
+        companyPrefix:
           type: ["string", "null"]
       required: [name, email, address]
 
@@ -811,11 +839,29 @@ components:
         sapDescription:
           type: ["string", "null"]
         gtin:
-          type: string
+          type: ["string", "null"]
         mrp:
           type: number
         registrationNo:
           type: ["string", "null"]
+        hsnCode:
+          type: ["string", "null"]
+        gstRate:
+          type: ["number", "null"]
+        unit:
+          type: ["string", "null"]
+        weightValue:
+          type: ["number", "null"]
+        weightUnit:
+          type: ["string", "null"]
+        packagingType:
+          type: ["string", "null"]
+        shelfLifeDays:
+          type: ["integer", "null"]
+        countryOfOrigin:
+          type: ["string", "null"]
+        isGs1Compliant:
+          type: ["boolean", "null"]
         l1Size:
           type: integer
           description: Units per 1st level inner pack
@@ -844,16 +890,10 @@ components:
         - name
         - skuSize
         - marketedBy
-        - sapDescription
-        - gtin
         - mrp
-        - registrationNo
         - l1Size
         - l2Size
         - shipperSize
-        - cautionLogoUrl
-        - productLogoUrl
-        - labelPdfUrl
         - expiryDate
         - createdAt
 
@@ -871,12 +911,30 @@ components:
         sapDescription:
           type: ["string", "null"]
         gtin:
-          type: string
+          type: ["string", "null"]
           description: 14 digit GTIN
         mrp:
           type: number
         registrationNo:
           type: ["string", "null"]
+        hsnCode:
+          type: ["string", "null"]
+        gstRate:
+          type: ["number", "null"]
+        unit:
+          type: ["string", "null"]
+        weightValue:
+          type: ["number", "null"]
+        weightUnit:
+          type: ["string", "null"]
+        packagingType:
+          type: ["string", "null"]
+        shelfLifeDays:
+          type: ["integer", "null"]
+        countryOfOrigin:
+          type: ["string", "null"]
+        isGs1Compliant:
+          type: ["boolean", "null"]
         l1Size:
           type: integer
         l2Size:
@@ -897,7 +955,6 @@ components:
         - name
         - skuSize
         - marketedBy
-        - gtin
         - mrp
         - l1Size
         - l2Size
@@ -925,6 +982,8 @@ components:
           type: string
         address:
           type: string
+        gln:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -957,6 +1016,8 @@ components:
           type: string
         address:
           type: string
+        gln:
+          type: ["string", "null"]
       required:
         - locationType
         - uniqueName

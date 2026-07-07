@@ -20,5 +20,19 @@ export interface Company {
   companyUrl?: string | null;
   /** @nullable */
   apiKey?: string | null;
+  /** @nullable */
+  pan?: string | null;
+  /** @nullable */
+  cin?: string | null;
+  /** @nullable */
+  msmeRegistrationNo?: string | null;
+  /** @nullable */
+  fssaiLicenseNo?: string | null;
+  /** @nullable */
+  drugLicenseNo?: string | null;
+  /** @nullable */
+  iecCode?: string | null;
+  /** @nullable */
+  companyPrefix?: string | null;
   createdAt: Date;
 }

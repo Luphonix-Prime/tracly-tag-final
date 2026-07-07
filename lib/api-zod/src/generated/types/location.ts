@@ -16,5 +16,7 @@ export interface Location {
   state: string;
   city: string;
   address: string;
+  /** @nullable */
+  gln?: string | null;
   createdAt: Date;
 }

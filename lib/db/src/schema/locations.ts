@@ -11,6 +11,7 @@ export const locationsTable = sqliteTable("locations", {
   state: text("state").notNull(),
   city: text("city").notNull(),
   address: text("address").notNull(),
+  gln: text("gln"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 

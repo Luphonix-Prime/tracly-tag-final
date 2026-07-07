@@ -34,6 +34,15 @@ router.post("/locations", async (req, res): Promise<void> => {
     res.status(400).json({ error: "User has no company" });
     return;
   }
+
+  if (parsed.data.gln) {
+    const { validateGs1CheckDigit } = await import("../lib/gs1-validation");
+    if (!validateGs1CheckDigit(parsed.data.gln)) {
+      res.status(400).json({ error: "Invalid GLN checksum. Must be standard 13-digit GS1 location code." });
+      return;
+    }
+  }
+
   const [row] = await db
     .insert(locationsTable)
     .values({
@@ -45,6 +54,7 @@ router.post("/locations", async (req, res): Promise<void> => {
       state: parsed.data.state,
       city: parsed.data.city,
       address: parsed.data.address,
+      gln: parsed.data.gln ?? null,
     })
     .returning();
   res.status(201).json(row);
