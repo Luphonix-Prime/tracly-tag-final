@@ -725,7 +725,16 @@ export default function Codes() {
                     console.error(e);
                   }
                   const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
-                  const baseOrigin = user?.companyUrl ? `https://${user.companyUrl}` : window.location.origin;
+                  let baseOrigin = window.location.origin;
+                  const rawUrl = code.companyUrl || user?.companyUrl;
+                  if (rawUrl) {
+                    let cleaned = rawUrl.trim();
+                    if (!/^https?:\/\//i.test(cleaned)) {
+                      cleaned = `https://${cleaned}`;
+                    }
+                    cleaned = cleaned.replace(/\/+$/, "");
+                    baseOrigin = cleaned;
+                  }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
                   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
                   
@@ -793,7 +802,16 @@ export default function Codes() {
                     console.error(e);
                   }
                   const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
-                  const baseOrigin = user?.companyUrl ? `https://${user.companyUrl}` : window.location.origin;
+                  let baseOrigin = window.location.origin;
+                  const rawUrl = code.companyUrl || user?.companyUrl;
+                  if (rawUrl) {
+                    let cleaned = rawUrl.trim();
+                    if (!/^https?:\/\//i.test(cleaned)) {
+                      cleaned = `https://${cleaned}`;
+                    }
+                    cleaned = cleaned.replace(/\/+$/, "");
+                    baseOrigin = cleaned;
+                  }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
                   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
 

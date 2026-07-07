@@ -1064,6 +1064,8 @@ components:
           type: ["string", "null"]
         companyAddress:
           type: ["string", "null"]
+        companyUrl:
+          type: ["string", "null"]
       required:
         - id
         - productId

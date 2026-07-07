@@ -357,6 +357,7 @@ router.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res): P
       companyName: companiesTable.name,
       companyAddress: companiesTable.address,
       companyGstin: companiesTable.gstin,
+      companyUrl: companiesTable.companyUrl,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))

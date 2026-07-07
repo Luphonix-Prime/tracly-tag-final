@@ -346,7 +346,8 @@ export const ListCodesResponseItem = zod.object({
   "marketedBy": zod.string().nullish(),
   "registrationNo": zod.string().nullish(),
   "companyName": zod.string().nullish(),
-  "companyAddress": zod.string().nullish()
+  "companyAddress": zod.string().nullish(),
+  "companyUrl": zod.string().nullish()
 })
 export const ListCodesResponse = zod.array(ListCodesResponseItem)
 
@@ -398,7 +399,8 @@ export const MapCodeResponse = zod.object({
   "marketedBy": zod.string().nullish(),
   "registrationNo": zod.string().nullish(),
   "companyName": zod.string().nullish(),
-  "companyAddress": zod.string().nullish()
+  "companyAddress": zod.string().nullish(),
+  "companyUrl": zod.string().nullish()
 })
 
 
@@ -433,7 +435,8 @@ export const GetDashboardSummaryResponse = zod.object({
   "marketedBy": zod.string().nullish(),
   "registrationNo": zod.string().nullish(),
   "companyName": zod.string().nullish(),
-  "companyAddress": zod.string().nullish()
+  "companyAddress": zod.string().nullish(),
+  "companyUrl": zod.string().nullish()
 })),
   "codesByLevel": zod.array(zod.object({
   "level": zod.enum(['unit', 'l1', 'l2', 'shipper', 'pallet']),
