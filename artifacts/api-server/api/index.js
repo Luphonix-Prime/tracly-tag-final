@@ -51060,7 +51060,8 @@ var ListCodesResponseItem = objectType({
   "marketedBy": stringType().nullish(),
   "registrationNo": stringType().nullish(),
   "companyName": stringType().nullish(),
-  "companyAddress": stringType().nullish()
+  "companyAddress": stringType().nullish(),
+  "companyUrl": stringType().nullish()
 });
 var ListCodesResponse = arrayType(ListCodesResponseItem);
 var generateCodesBodyQuantityMax = 5e3;
@@ -51097,7 +51098,8 @@ var MapCodeResponse = objectType({
   "marketedBy": stringType().nullish(),
   "registrationNo": stringType().nullish(),
   "companyName": stringType().nullish(),
-  "companyAddress": stringType().nullish()
+  "companyAddress": stringType().nullish(),
+  "companyUrl": stringType().nullish()
 });
 var GetDashboardSummaryResponse = objectType({
   "totalProducts": numberType(),
@@ -51130,7 +51132,8 @@ var GetDashboardSummaryResponse = objectType({
     "marketedBy": stringType().nullish(),
     "registrationNo": stringType().nullish(),
     "companyName": stringType().nullish(),
-    "companyAddress": stringType().nullish()
+    "companyAddress": stringType().nullish(),
+    "companyUrl": stringType().nullish()
   })),
   "codesByLevel": arrayType(objectType({
     "level": enumType(["unit", "l1", "l2", "shipper", "pallet"]),
@@ -60486,7 +60489,8 @@ router8.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res) =
     registrationNo: productsTable.registrationNo,
     companyName: companiesTable.name,
     companyAddress: companiesTable.address,
-    companyGstin: companiesTable.gstin
+    companyGstin: companiesTable.gstin,
+    companyUrl: companiesTable.companyUrl
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).leftJoin(aliasUser, eq(codesTable.mappedByUserId, aliasUser.id)).leftJoin(locationsTable, eq(codesTable.locationId, locationsTable.id)).leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id)).where(where).orderBy(desc(codesTable.createdAt)).limit(Math.min(Math.max(limit, 1), 5e3));
   res.json(rows);
 });

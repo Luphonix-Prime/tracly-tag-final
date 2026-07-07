@@ -46,4 +46,6 @@ export interface Code {
   companyName?: string | null;
   /** @nullable */
   companyAddress?: string | null;
+  /** @nullable */
+  companyUrl?: string | null;
 }
