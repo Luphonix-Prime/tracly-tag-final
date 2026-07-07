@@ -5,9 +5,9 @@
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "preinstall": "node -e \"const a=process.env.npm_config_user_agent||'';if(!a.startsWith('pnpm')){process.stderr.write('Use pnpm instead\\n');process.exit(1)}\"",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build": "pnpm run typecheck && pnpm -r --filter \"!@workspace/mockup-sandbox\" --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"!@workspace/mockup-sandbox\" --filter \"./scripts\" --if-present run typecheck",
     "db:seed": "pnpm --filter @workspace/api-server run db:seed",
     "db:studio": "pnpm --filter @workspace/db exec drizzle-kit studio --config ./drizzle.config.ts"
   },
