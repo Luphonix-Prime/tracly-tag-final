@@ -20501,27 +20501,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router13;
+    module.exports = Router14;
     module.exports.Route = Route;
-    function Router13(options) {
-      if (!(this instanceof Router13)) {
-        return new Router13(options);
+    function Router14(options) {
+      if (!(this instanceof Router14)) {
+        return new Router14(options);
       }
       const opts = options || {};
-      function router13(req, res, next) {
-        router13.handle(req, res, next);
+      function router14(req, res, next) {
+        router14.handle(req, res, next);
       }
-      Object.setPrototypeOf(router13, this);
-      router13.caseSensitive = opts.caseSensitive;
-      router13.mergeParams = opts.mergeParams;
-      router13.params = {};
-      router13.strict = opts.strict;
-      router13.stack = [];
-      return router13;
+      Object.setPrototypeOf(router14, this);
+      router14.caseSensitive = opts.caseSensitive;
+      router14.mergeParams = opts.mergeParams;
+      router14.params = {};
+      router14.strict = opts.strict;
+      router14.stack = [];
+      return router14;
     }
-    Router13.prototype = function() {
+    Router14.prototype = function() {
     };
-    Router13.prototype.param = function param(name, fn) {
+    Router14.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20541,7 +20541,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router13.prototype.handle = function handle(req, res, callback) {
+    Router14.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20668,7 +20668,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router13.prototype.use = function use(handler) {
+    Router14.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20701,7 +20701,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router13.prototype.route = function route(path4) {
+    Router14.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20716,7 +20716,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router13.prototype[method] = function(path4) {
+      Router14.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20899,13 +20899,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router13 = require_router();
+    var Router14 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router13 = null;
+      var router14 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20914,13 +20914,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router13 === null) {
-            router13 = new Router13({
+          if (router14 === null) {
+            router14 = new Router14({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router13;
+          return router14;
         }
       });
     };
@@ -20991,15 +20991,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router13 = this.router;
+      var router14 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router13.use(path4, fn2);
+          return router14.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router13.use(path4, function mounted_app(req, res, next) {
+        router14.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23572,7 +23572,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router13 = require_router();
+    var Router14 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23594,8 +23594,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router13.Route;
-    exports.Router = Router13;
+    exports.Route = Router14.Route;
+    exports.Router = Router14;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -46931,13 +46931,13 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express13 = __toESM(require_express2(), 1);
+var import_express14 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 var import_cookie_parser = __toESM(require_cookie_parser(), 1);
 
 // src/routes/index.ts
-var import_express12 = __toESM(require_express2(), 1);
+var import_express13 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -58752,8 +58752,8 @@ dotenv.config({ path: path.resolve(resolvedDirname, "../../../.env") });
 dotenv.config({ path: path.resolve(resolvedDirname, "../../.env") });
 dotenv.config({ path: path.resolve(resolvedDirname, "../.env") });
 dotenv.config();
-var dbUrl = process.env.DATABASE_URL;
-var dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
+var dbUrl = "libsql://temp-db-tracely-tag-luphonix.aws-ap-south-1.turso.io";
+var dbAuthToken = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODM0MjEwOTcsImlkIjoiMDE5ZjNjMmQtYjAwMS03MGU4LWI0ZmYtM2NlNTU4YzdiODJlIiwia2lkIjoiTDh0aGtVbkRscHhEZ1c0bmRzRldQcTNXOFhZdFJGcnpBREE0QUZ0S2dmSSIsInJpZCI6Ijg5ZDBjOGNhLWM0NTItNDAyMi05M2FjLTY4NmNhZmZlM2RkZiJ9.z3Tz6pwrMrGRMgDcpltwf6iwWF3NpvmpjWhKUP_SLUh_HN_N4k0JAfk1Uymxc7DxbiEMCMZORHVkWFfL5P5TAg";
 if (!dbUrl) {
   const dbFile = path.resolve(resolvedDirname, "..", "traclytag.db");
   const isVercel = !!process.env.VERCEL || process.env.NODE_ENV === "production";
@@ -59632,7 +59632,7 @@ var import_express3 = __toESM(require_express2(), 1);
 
 // src/lib/session.ts
 var import_express_session = __toESM(require_express_session(), 1);
-var secret = "traclytag-production-secure-session-key-xyz-987654321";
+var secret = "traclytag-production-secure-session-key-xyz-987654987";
 var sessionMiddleware = (0, import_express_session.default)({
   secret,
   resave: false,
@@ -61067,20 +61067,306 @@ router11.post("/subscription/set", async (req, res) => {
 });
 var subscription_default = router11;
 
-// src/routes/index.ts
+// src/routes/system.ts
+var import_express12 = __toESM(require_express2(), 1);
+
+// src/lib/db-reset.ts
+async function seedDatabase(dbInstance) {
+  const [demoCo] = await dbInstance.insert(companiesTable).values({
+    name: "Demo Pharma Pvt Ltd",
+    email: "ops@demopharma.in",
+    address: "Plot 14, MIDC Industrial Area, Pune, Maharashtra 411019",
+    gstin: "27AABCD1234E1Z5"
+  }).returning();
+  const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
+  const supermasterPassword = process.env.SUPERMASTER_PASSWORD || "super123";
+  const superMasterHash = await bcryptjs_default.hash(supermasterPassword, 10);
+  const masterHash = await bcryptjs_default.hash("master123", 10);
+  const adminHash = await bcryptjs_default.hash("admin123", 10);
+  const opHash = await bcryptjs_default.hash("op123", 10);
+  const users = await dbInstance.insert(usersTable).values([
+    {
+      username: supermasterUsername,
+      email: process.env.SUPERMASTER_EMAIL || "supermaster@tracelytag.com",
+      phone: "+91 8000000000",
+      passwordHash: superMasterHash,
+      role: "super_master",
+      companyId: null
+    },
+    {
+      username: "master",
+      email: "master@tracelytag.com",
+      phone: "+91 9000000000",
+      passwordHash: masterHash,
+      role: "master",
+      companyId: null
+    },
+    {
+      username: "demo_admin",
+      email: "admin@demopharma.in",
+      phone: "+91 9111111111",
+      passwordHash: adminHash,
+      role: "client_admin",
+      companyId: demoCo.id
+    },
+    {
+      username: "demo_op",
+      email: "op@demopharma.in",
+      phone: "+91 9222222222",
+      passwordHash: opHash,
+      role: "operator",
+      companyId: demoCo.id
+    }
+  ]).returning();
+  const [warehouse] = await dbInstance.insert(locationsTable).values([
+    {
+      companyId: demoCo.id,
+      locationType: "Warehouse",
+      uniqueName: "WH-PUNE-01",
+      locationName: "Pune Central Warehouse",
+      contactNo: "+91 2027451234",
+      state: "Maharashtra",
+      city: "Pune",
+      address: "Plot 14, MIDC Industrial Area, Pune 411019"
+    },
+    {
+      companyId: demoCo.id,
+      locationType: "Distributor",
+      uniqueName: "DST-MUM-04",
+      locationName: "Mumbai Distributor Hub",
+      contactNo: "+91 2261234500",
+      state: "Maharashtra",
+      city: "Mumbai",
+      address: "Andheri East, Mumbai 400069"
+    },
+    {
+      companyId: demoCo.id,
+      locationType: "Retailer",
+      uniqueName: "RTL-DEL-12",
+      locationName: "Connaught Place Pharmacy",
+      contactNo: "+91 1141234567",
+      state: "Delhi",
+      city: "New Delhi",
+      address: "Block A, Connaught Place, New Delhi 110001"
+    }
+  ]).returning();
+  const [paracet, vitaminC] = await dbInstance.insert(productsTable).values([
+    {
+      companyId: demoCo.id,
+      skuId: "PARA-500-10S",
+      name: "Paracetamol 500mg",
+      skuSize: "10x10 Tablets",
+      marketedBy: "Demo Pharma Pvt Ltd",
+      sapDescription: "PARACETAMOL TABLETS IP 500MG",
+      gtin: "08901234567896",
+      mrp: 45,
+      registrationNo: "MH/DRUGS/2023/0451",
+      l1Size: 10,
+      l2Size: 100,
+      shipperSize: 1e3,
+      cautionLogoUrl: null,
+      productLogoUrl: null,
+      labelPdfUrl: null,
+      expiryDate: "2028-04-30"
+    },
+    {
+      companyId: demoCo.id,
+      skuId: "VITC-1000-30S",
+      name: "Vitamin C 1000mg Effervescent",
+      skuSize: "30 Tablets Tube",
+      marketedBy: "Demo Pharma Pvt Ltd",
+      sapDescription: "ASCORBIC ACID 1000MG EFFERVESCENT",
+      gtin: "08907654321094",
+      mrp: 299,
+      registrationNo: "MH/DRUGS/2023/0892",
+      l1Size: 6,
+      l2Size: 36,
+      shipperSize: 216,
+      cautionLogoUrl: null,
+      productLogoUrl: null,
+      labelPdfUrl: null,
+      expiryDate: "2027-12-31"
+    }
+  ]).returning();
+  const [batchA, batchB] = await dbInstance.insert(batchesTable).values([
+    {
+      productId: paracet.id,
+      batchNumber: "PCM2604A",
+      mfgDate: "2026-04-01",
+      expiryDate: "2028-04-30"
+    },
+    {
+      productId: vitaminC.id,
+      batchNumber: "VTC2604B",
+      mfgDate: "2026-04-15",
+      expiryDate: "2027-12-31"
+    }
+  ]).returning();
+  const codeRows = [];
+  for (let i = 0; i < 30; i++) {
+    const { raw, serial } = generateUnitCode({
+      gtin: paracet.gtin,
+      expiry: paracet.expiryDate,
+      batch: batchA.batchNumber
+    });
+    codeRows.push({
+      productId: paracet.id,
+      batchId: batchA.id,
+      level: "unit",
+      rawString: raw,
+      serialNumber: serial,
+      ssccCode: null
+    });
+  }
+  for (let i = 0; i < 20; i++) {
+    const { raw, serial } = generateUnitCode({
+      gtin: vitaminC.gtin,
+      expiry: vitaminC.expiryDate,
+      batch: batchB.batchNumber
+    });
+    codeRows.push({
+      productId: vitaminC.id,
+      batchId: batchB.id,
+      level: "unit",
+      rawString: raw,
+      serialNumber: serial,
+      ssccCode: null
+    });
+  }
+  for (let i = 0; i < 5; i++) {
+    const { raw, sscc } = generateSsccCode("8901234", i);
+    codeRows.push({
+      productId: paracet.id,
+      batchId: batchA.id,
+      level: "shipper",
+      rawString: raw,
+      serialNumber: null,
+      ssccCode: sscc
+    });
+  }
+  for (let i = 0; i < 2; i++) {
+    const { raw, sscc } = generateSsccCode("8901234", 100 + i);
+    codeRows.push({
+      productId: paracet.id,
+      batchId: batchA.id,
+      level: "pallet",
+      rawString: raw,
+      serialNumber: null,
+      ssccCode: sscc
+    });
+  }
+  const insertedCodes = await dbInstance.insert(codesTable).values(codeRows).returning();
+  const opUser = users.find((u) => u.username === "demo_op");
+  const opUserId = opUser ? opUser.id : 4;
+  const toMap = insertedCodes.slice(0, 12);
+  for (const c of toMap) {
+    await dbInstance.update(codesTable).set({
+      mapped: true,
+      mappedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      mappedByUserId: opUserId,
+      locationId: warehouse.id
+    }).where(eq(codesTable.id, c.id));
+  }
+  const customerScans = [
+    {
+      codeId: insertedCodes[0].id,
+      customerName: "Aravind Sharma",
+      mobileNumber: "+91 98765 00121",
+      zipCode: "400001",
+      city: "Mumbai",
+      scanTime: "14:22:10",
+      scanDate: "15 Jun 2024"
+    },
+    ...Array.from({ length: 12 }).map((_, idx) => ({
+      codeId: insertedCodes[1].id,
+      customerName: "Michael Chang",
+      mobileNumber: "+65 8299 1192",
+      zipCode: "039794",
+      city: "Singapore",
+      scanTime: `13:${10 + idx}:45`,
+      scanDate: "15 Jun 2024"
+    })),
+    {
+      codeId: insertedCodes[2].id,
+      customerName: "Elena Petrova",
+      mobileNumber: "+971 50 123 441",
+      zipCode: "DXB-992",
+      city: "Dubai",
+      scanTime: "11:40:02",
+      scanDate: "14 Jun 2024"
+    },
+    ...Array.from({ length: 4 }).map((_, idx) => ({
+      codeId: insertedCodes[3].id,
+      customerName: "Rajesh Kumar",
+      mobileNumber: "+91 99123 88123",
+      zipCode: "110001",
+      city: "New Delhi",
+      scanTime: `09:${15 + idx * 5}:33`,
+      scanDate: "14 Jun 2024"
+    }))
+  ];
+  await dbInstance.insert(customerScansTable).values(customerScans);
+}
+async function resetAndSeedDatabase(dbInstance) {
+  await dbInstance.delete(customerScansTable);
+  await dbInstance.delete(deviceCodesTable);
+  await dbInstance.delete(passkeysTable);
+  await dbInstance.delete(codesTable);
+  await dbInstance.delete(batchesTable);
+  await dbInstance.delete(productsTable);
+  await dbInstance.delete(locationsTable);
+  await dbInstance.delete(usersTable);
+  await dbInstance.delete(companiesTable);
+  await seedDatabase(dbInstance);
+}
+
+// src/routes/system.ts
 var router12 = (0, import_express12.Router)();
-router12.use(health_default);
-router12.use(auth_default);
-router12.use(companies_default);
-router12.use(users_default);
-router12.use(products_default);
-router12.use(locations_default);
-router12.use(batches_default);
-router12.use(codes_default);
-router12.use(reports_default);
-router12.use(upload_default);
-router12.use(subscription_default);
-var routes_default = router12;
+router12.use("/system", requireAuth, requireRole("super_master"));
+router12.post("/system/reset-database", async (req, res) => {
+  try {
+    req.log.info("Supermaster database reset requested...");
+    await resetAndSeedDatabase(db);
+    req.log.info("Database reset completed successfully");
+    res.json({ success: true, message: "Database reset and seeded successfully." });
+  } catch (err) {
+    req.log.error({ err }, "Database reset failed");
+    res.status(500).json({ error: err.message || "Failed to reset database" });
+  }
+});
+router12.get("/system/info", async (req, res) => {
+  try {
+    res.json({
+      env: process.env,
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      cwd: process.cwd()
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch system info");
+    res.status(500).json({ error: err.message || "Failed to fetch system info" });
+  }
+});
+var system_default = router12;
+
+// src/routes/index.ts
+var router13 = (0, import_express13.Router)();
+router13.use(health_default);
+router13.use(auth_default);
+router13.use(companies_default);
+router13.use(users_default);
+router13.use(products_default);
+router13.use(locations_default);
+router13.use(batches_default);
+router13.use(codes_default);
+router13.use(reports_default);
+router13.use(upload_default);
+router13.use(subscription_default);
+router13.use(system_default);
+var routes_default = router13;
 
 // src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
@@ -61165,7 +61451,7 @@ var loadUser = async (req, res, next) => {
 // src/app.ts
 import path3 from "path";
 import fs3 from "fs";
-var app = (0, import_express13.default)();
+var app = (0, import_express14.default)();
 app.set("trust proxy", 1);
 app.use(
   (0, import_pino_http.pinoHttp)({
@@ -61192,16 +61478,16 @@ app.use(
     credentials: true
   })
 );
-app.use(import_express13.default.json({ limit: "1mb" }));
-app.use(import_express13.default.urlencoded({ extended: true }));
-app.use((0, import_cookie_parser.default)("traclytag-production-secure-session-key-xyz-987654321"));
+app.use(import_express14.default.json({ limit: "1mb" }));
+app.use(import_express14.default.urlencoded({ extended: true }));
+app.use((0, import_cookie_parser.default)("traclytag-production-secure-session-key-xyz-987654987"));
 app.use(loadUser);
 app.use("/api", routes_default);
 var uploadDir2 = process.env.VERCEL ? "/tmp" : path3.resolve(__dirname, "../uploads");
 if (!fs3.existsSync(uploadDir2)) {
   fs3.mkdirSync(uploadDir2, { recursive: true });
 }
-app.use("/api/uploads", import_express13.default.static(uploadDir2));
+app.use("/api/uploads", import_express14.default.static(uploadDir2));
 var app_default = app;
 export {
   app_default as default

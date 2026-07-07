@@ -36,6 +36,7 @@ import CustomerScan from "@/pages/customer-scan";
 import Settings from "@/pages/settings";
 import Support from "@/pages/support";
 import Profile from "@/pages/profile";
+import System from "@/pages/system";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -226,6 +227,7 @@ function Router() {
       <Route path="/settings"><ProtectedRoute component={Settings} /></Route>
       <Route path="/support"><ProtectedRoute component={Support} /></Route>
       <Route path="/profile"><ProtectedRoute component={Profile} /></Route>
+      <Route path="/system"><ProtectedRoute component={System} /></Route>
       <Route component={NotFound} />
     </Switch>
   );
