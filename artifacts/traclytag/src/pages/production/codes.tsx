@@ -109,6 +109,24 @@ const renderGs1Text = (raw: string) => {
   );
 };
 
+const getBarcodeUrl = (raw: string, size: number) => {
+  if (!raw) return "";
+  const parsed = parseGs1Raw(raw);
+  if (parsed.fallback || parsed.error) {
+    return `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(raw)}&width=${size}&height=${size}`;
+  }
+  
+  let text = "";
+  if (parsed.sscc) {
+    text = `(00)${parsed.sscc}`;
+  } else {
+    text = `(01)${parsed.gtin || ""}(21)${parsed.serial || ""}(10)${parsed.batch || ""}(17)${parsed.expiry || ""}`;
+  }
+  
+  return `https://quickchart.io/barcode?type=gs1datamatrix&text=${encodeURIComponent(text)}&width=${size}&height=${size}`;
+};
+
+
 const generateSchema = z.object({
   productId: z.coerce.number().min(1, "Product is required"),
   batchId: z.coerce.number().min(1, "Batch is required"),
@@ -806,7 +824,7 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(code.rawString)}&width=150&height=150`;
+                  const qrUrl = getBarcodeUrl(code.rawString, 150);
                   
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
@@ -883,7 +901,7 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(code.rawString)}&width=90&height=90`;
+                  const qrUrl = getBarcodeUrl(code.rawString, 90);
 
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
