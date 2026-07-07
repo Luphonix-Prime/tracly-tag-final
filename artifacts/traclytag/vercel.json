@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/uploads/:path*",
-      "destination": "https://tracly-tag-api-server.vercel.app/api/uploads/:path*"
+      "destination": "https://temp-api-tracly-tag-final-git-new-try-luphonixs-projects.vercel.app/api/uploads/:path*"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://tracly-tag-api-server.vercel.app/api/:path*"
+      "destination": "https://temp-api-tracly-tag-final-git-new-try-luphonixs-projects.vercel.app/api/:path*"
     },
     {
       "source": "/((?!assets|favicon.ico|.*\\..*).*)",
