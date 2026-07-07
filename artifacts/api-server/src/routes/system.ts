@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { requireAuth, requireRole } from "../lib/session";
-import { resetAndSeedDatabase } from "../lib/db-reset";
+import { requireAuth, requireRole } from '../lib/session.js';
+import { resetAndSeedDatabase } from '../lib/db-reset.js';
 
 const router: IRouter = Router();
 

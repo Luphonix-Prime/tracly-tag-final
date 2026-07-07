@@ -1,5 +1,5 @@
 import { db, usersTable } from "@workspace/db";
-import { seedDatabase } from "./lib/db-reset";
+import { seedDatabase } from './lib/db-reset.js';
 
 async function main() {
   console.log("Seeding TraclyTag database…");

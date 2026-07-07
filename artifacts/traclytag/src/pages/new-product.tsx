@@ -39,7 +39,6 @@ const productSchema = z.object({
   skuSize: z.string().min(1, "SKU size required"),
   marketedBy: z.string().min(1, "Marketed by required"),
   sapDescription: z.string().optional().or(z.literal("")),
-  gtin: z.string().optional().or(z.literal("")),
   mrp: z.coerce.number().positive("MRP must be positive"),
   registrationNo: z.string().optional().or(z.literal("")),
   hsnCode: z.string().optional().or(z.literal("")),
@@ -59,16 +58,6 @@ const productSchema = z.object({
   labelPdfUrl: z.string().optional().or(z.literal("")),
   expiryDate: z.date({ required_error: "Expiry date is required" }),
   companyId: z.coerce.number().optional(),
-}).superRefine((data, ctx) => {
-  if (data.isGs1Compliant) {
-    if (!data.gtin || !/^\d{13,14}$/.test(data.gtin)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "GTIN is required for GS1 compliant products and must be 13-14 digits.",
-        path: ["gtin"],
-      });
-    }
-  }
 });
 
 type ProductForm = z.infer<typeof productSchema>;
@@ -97,7 +86,6 @@ export default function NewProduct() {
       skuSize: "",
       marketedBy: "Tracely Global Logistics",
       sapDescription: "",
-      gtin: "",
       mrp: 0,
       registrationNo: "",
       hsnCode: "",
@@ -326,25 +314,17 @@ export default function NewProduct() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="gtin"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                          GTIN NUMBER {form.watch("isGs1Compliant") && <span className="text-[#EF4444]">*</span>}
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="08901234567890" 
-                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono placeholder:text-slate-400"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                      COMPANY GST
+                    </label>
+                    <Input 
+                      value={companies.find((c: any) => c.id === form.watch("companyId"))?.gstin || (currentUser as any)?.companyGstin || (currentUser as any)?.company?.gstin || ""}
+                      readOnly
+                      placeholder="Selected company GST" 
+                      className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-500 rounded-lg py-2.5 px-4 text-sm transition-all font-mono cursor-not-allowed focus-visible:ring-0"
+                    />
+                  </div>
                 </div>
 
                 <FormField

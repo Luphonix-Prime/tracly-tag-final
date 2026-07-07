@@ -11,7 +11,7 @@ import {
   deviceCodesTable,
   passkeysTable,
 } from "@workspace/db";
-import { generateUnitCode, generateSsccCode } from "./gs1";
+import { generateUnitCode, generateSsccCode } from './gs1.js';
 
 export async function seedDatabase(dbInstance: any) {
   // Company
