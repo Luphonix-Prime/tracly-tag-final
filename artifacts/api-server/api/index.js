@@ -58752,8 +58752,8 @@ dotenv.config({ path: path.resolve(resolvedDirname, "../../../.env") });
 dotenv.config({ path: path.resolve(resolvedDirname, "../../.env") });
 dotenv.config({ path: path.resolve(resolvedDirname, "../.env") });
 dotenv.config();
-var dbUrl = "libsql://tracelytag-luphonix.aws-ap-south-1.turso.io";
-var dbAuthToken = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODI0NTMyMDUsImlkIjoiMDE5ZjAyN2MtYTEwMS03MDFhLTg1NmUtZjQzZjRmODg2N2NmIiwicmlkIjoiYjNjNjAyNjQtNmFiZC00MzA2LTlmMjYtOTc0YmY5Y2M5YzdhIn0.miOwWS6XuTi4n-QOmkz57sTpbOcAneku4AcDbN_aKngttkTmW51fOafV2eAUBr8E8new-lZjQG6Imnh67iRLCg";
+var dbUrl = process.env.DATABASE_URL;
+var dbAuthToken = process.env.DATABASE_AUTH_TOKEN;
 if (!dbUrl) {
   const dbFile = path.resolve(resolvedDirname, "..", "traclytag.db");
   const isVercel = !!process.env.VERCEL || process.env.NODE_ENV === "production";
