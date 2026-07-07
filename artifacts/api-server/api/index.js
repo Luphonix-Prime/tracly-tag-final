@@ -18,6 +18,9 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -30311,6 +30314,35 @@ var require_express_session = __commonJS({
   }
 });
 
+// src/lib/gs1-validation.ts
+var gs1_validation_exports = {};
+__export(gs1_validation_exports, {
+  validateGs1CheckDigit: () => validateGs1CheckDigit
+});
+function validateGs1CheckDigit(code) {
+  if (!code || !/^\d+$/.test(code)) {
+    return false;
+  }
+  const digits = code.split("").map(Number);
+  if (digits.length < 8 || digits.length > 18) {
+    return false;
+  }
+  const expectedCheckDigit = digits[digits.length - 1];
+  let sum = 0;
+  let multiplier = 3;
+  for (let i = digits.length - 2; i >= 0; i--) {
+    sum += digits[i] * multiplier;
+    multiplier = multiplier === 3 ? 1 : 3;
+  }
+  const calculatedCheckDigit = (10 - sum % 10) % 10;
+  return calculatedCheckDigit === expectedCheckDigit;
+}
+var init_gs1_validation = __esm({
+  "src/lib/gs1-validation.ts"() {
+    "use strict";
+  }
+});
+
 // ../../node_modules/.pnpm/media-typer@0.3.0/node_modules/media-typer/index.js
 var require_media_typer2 = __commonJS({
   "../../node_modules/.pnpm/media-typer@0.3.0/node_modules/media-typer/index.js"(exports) {
@@ -50844,6 +50876,13 @@ var ListCompaniesResponseItem = objectType({
   "gstin": stringType().regex(listCompaniesResponseGstinRegExp).nullable(),
   "companyUrl": stringType().nullish(),
   "apiKey": stringType().nullish(),
+  "pan": stringType().nullish(),
+  "cin": stringType().nullish(),
+  "msmeRegistrationNo": stringType().nullish(),
+  "fssaiLicenseNo": stringType().nullish(),
+  "drugLicenseNo": stringType().nullish(),
+  "iecCode": stringType().nullish(),
+  "companyPrefix": stringType().nullish(),
   "createdAt": coerce.date()
 });
 var ListCompaniesResponse = arrayType(ListCompaniesResponseItem);
@@ -50853,7 +50892,14 @@ var CreateCompanyBody = objectType({
   "email": stringType(),
   "address": stringType(),
   "gstin": stringType().regex(createCompanyBodyGstinRegExp).nullish(),
-  "companyUrl": stringType().nullish()
+  "companyUrl": stringType().nullish(),
+  "pan": stringType().nullish(),
+  "cin": stringType().nullish(),
+  "msmeRegistrationNo": stringType().nullish(),
+  "fssaiLicenseNo": stringType().nullish(),
+  "drugLicenseNo": stringType().nullish(),
+  "iecCode": stringType().nullish(),
+  "companyPrefix": stringType().nullish()
 });
 var getMyCompanyResponseGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
 var GetMyCompanyResponse = objectType({
@@ -50864,6 +50910,13 @@ var GetMyCompanyResponse = objectType({
   "gstin": stringType().regex(getMyCompanyResponseGstinRegExp).nullable(),
   "companyUrl": stringType().nullish(),
   "apiKey": stringType().nullish(),
+  "pan": stringType().nullish(),
+  "cin": stringType().nullish(),
+  "msmeRegistrationNo": stringType().nullish(),
+  "fssaiLicenseNo": stringType().nullish(),
+  "drugLicenseNo": stringType().nullish(),
+  "iecCode": stringType().nullish(),
+  "companyPrefix": stringType().nullish(),
   "createdAt": coerce.date()
 });
 var UpdateMyCompanyBody = objectType({
@@ -50878,6 +50931,13 @@ var UpdateMyCompanyResponse = objectType({
   "gstin": stringType().regex(updateMyCompanyResponseGstinRegExp).nullable(),
   "companyUrl": stringType().nullish(),
   "apiKey": stringType().nullish(),
+  "pan": stringType().nullish(),
+  "cin": stringType().nullish(),
+  "msmeRegistrationNo": stringType().nullish(),
+  "fssaiLicenseNo": stringType().nullish(),
+  "drugLicenseNo": stringType().nullish(),
+  "iecCode": stringType().nullish(),
+  "companyPrefix": stringType().nullish(),
   "createdAt": coerce.date()
 });
 var regenerateCompanyApiKeyResponseGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
@@ -50889,6 +50949,13 @@ var RegenerateCompanyApiKeyResponse = objectType({
   "gstin": stringType().regex(regenerateCompanyApiKeyResponseGstinRegExp).nullable(),
   "companyUrl": stringType().nullish(),
   "apiKey": stringType().nullish(),
+  "pan": stringType().nullish(),
+  "cin": stringType().nullish(),
+  "msmeRegistrationNo": stringType().nullish(),
+  "fssaiLicenseNo": stringType().nullish(),
+  "drugLicenseNo": stringType().nullish(),
+  "iecCode": stringType().nullish(),
+  "companyPrefix": stringType().nullish(),
   "createdAt": coerce.date()
 });
 var DeleteCompanyParams = objectType({
@@ -50950,16 +51017,25 @@ var ListProductsResponseItem = objectType({
   "name": stringType(),
   "skuSize": stringType(),
   "marketedBy": stringType(),
-  "sapDescription": stringType().nullable(),
-  "gtin": stringType(),
+  "sapDescription": stringType().nullish(),
+  "gtin": stringType().nullish(),
   "mrp": numberType(),
-  "registrationNo": stringType().nullable(),
+  "registrationNo": stringType().nullish(),
+  "hsnCode": stringType().nullish(),
+  "gstRate": numberType().nullish(),
+  "unit": stringType().nullish(),
+  "weightValue": numberType().nullish(),
+  "weightUnit": stringType().nullish(),
+  "packagingType": stringType().nullish(),
+  "shelfLifeDays": numberType().nullish(),
+  "countryOfOrigin": stringType().nullish(),
+  "isGs1Compliant": booleanType().nullish(),
   "l1Size": numberType().describe("Units per 1st level inner pack"),
   "l2Size": numberType().describe("1st level packs per 2nd level inner pack"),
   "shipperSize": numberType().describe("2nd level packs per shipper"),
-  "cautionLogoUrl": stringType().nullable(),
-  "productLogoUrl": stringType().nullable(),
-  "labelPdfUrl": stringType().nullable(),
+  "cautionLogoUrl": stringType().nullish(),
+  "productLogoUrl": stringType().nullish(),
+  "labelPdfUrl": stringType().nullish(),
   "expiryDate": coerce.date(),
   "createdAt": coerce.date()
 });
@@ -50970,9 +51046,18 @@ var CreateProductBody = objectType({
   "skuSize": stringType(),
   "marketedBy": stringType(),
   "sapDescription": stringType().nullish(),
-  "gtin": stringType().describe("14 digit GTIN"),
+  "gtin": stringType().nullish().describe("14 digit GTIN"),
   "mrp": numberType(),
   "registrationNo": stringType().nullish(),
+  "hsnCode": stringType().nullish(),
+  "gstRate": numberType().nullish(),
+  "unit": stringType().nullish(),
+  "weightValue": numberType().nullish(),
+  "weightUnit": stringType().nullish(),
+  "packagingType": stringType().nullish(),
+  "shelfLifeDays": numberType().nullish(),
+  "countryOfOrigin": stringType().nullish(),
+  "isGs1Compliant": booleanType().nullish(),
   "l1Size": numberType(),
   "l2Size": numberType(),
   "shipperSize": numberType(),
@@ -50994,6 +51079,7 @@ var ListLocationsResponseItem = objectType({
   "state": stringType(),
   "city": stringType(),
   "address": stringType(),
+  "gln": stringType().nullish(),
   "createdAt": coerce.date()
 });
 var ListLocationsResponse = arrayType(ListLocationsResponseItem);
@@ -51004,7 +51090,8 @@ var CreateLocationBody = objectType({
   "contactNo": stringType(),
   "state": stringType(),
   "city": stringType(),
-  "address": stringType()
+  "address": stringType(),
+  "gln": stringType().nullish()
 });
 var DeleteLocationParams = objectType({
   "id": coerce.number()
@@ -58520,6 +58607,13 @@ var companiesTable = sqliteTable("companies", {
   razorpayPaymentId: text("razorpay_payment_id"),
   companyUrl: text("company_url"),
   apiKey: text("api_key"),
+  pan: text("pan"),
+  cin: text("cin"),
+  msmeRegistrationNo: text("msme_registration_no"),
+  fssaiLicenseNo: text("fssai_license_no"),
+  drugLicenseNo: text("drug_license_no"),
+  iecCode: text("iec_code"),
+  companyPrefix: text("company_prefix"),
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
@@ -58546,9 +58640,18 @@ var productsTable = sqliteTable("products", {
   skuSize: text("sku_size").notNull(),
   marketedBy: text("marketed_by").notNull(),
   sapDescription: text("sap_description"),
-  gtin: text("gtin").notNull(),
+  gtin: text("gtin"),
   mrp: real("mrp").notNull(),
   registrationNo: text("registration_no"),
+  hsnCode: text("hsn_code"),
+  gstRate: real("gst_rate"),
+  unit: text("unit"),
+  weightValue: real("weight_value"),
+  weightUnit: text("weight_unit"),
+  packagingType: text("packaging_type"),
+  shelfLifeDays: integer("shelf_life_days"),
+  countryOfOrigin: text("country_of_origin").$defaultFn(() => "IND"),
+  isGs1Compliant: integer("is_gs1_compliant", { mode: "boolean" }).default(false),
   l1Size: integer("l1_size").notNull(),
   l2Size: integer("l2_size").notNull(),
   shipperSize: integer("shipper_size").notNull(),
@@ -58570,6 +58673,7 @@ var locationsTable = sqliteTable("locations", {
   state: text("state").notNull(),
   city: text("city").notNull(),
   address: text("address").notNull(),
+  gln: text("gln"),
   createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
@@ -59626,8 +59730,18 @@ router3.put("/companies/my-company", async (req, res) => {
     res.status(404).json({ error: "No company associated with this account" });
     return;
   }
-  const { companyUrl } = req.body;
-  const [updated] = await db.update(companiesTable).set({ companyUrl: companyUrl || null }).where(eq(companiesTable.id, companyId)).returning();
+  const { gstin, companyUrl, pan, cin, msmeRegistrationNo, fssaiLicenseNo, drugLicenseNo, iecCode, companyPrefix } = req.body;
+  const [updated] = await db.update(companiesTable).set({
+    gstin: gstin !== void 0 ? gstin || null : void 0,
+    companyUrl: companyUrl !== void 0 ? companyUrl || null : void 0,
+    pan: pan !== void 0 ? pan || null : void 0,
+    cin: cin !== void 0 ? cin || null : void 0,
+    msmeRegistrationNo: msmeRegistrationNo !== void 0 ? msmeRegistrationNo || null : void 0,
+    fssaiLicenseNo: fssaiLicenseNo !== void 0 ? fssaiLicenseNo || null : void 0,
+    drugLicenseNo: drugLicenseNo !== void 0 ? drugLicenseNo || null : void 0,
+    iecCode: iecCode !== void 0 ? iecCode || null : void 0,
+    companyPrefix: companyPrefix !== void 0 ? companyPrefix || null : void 0
+  }).where(eq(companiesTable.id, companyId)).returning();
   if (!updated) {
     res.status(404).json({ error: "Company not found" });
     return;
@@ -59669,7 +59783,14 @@ router3.post(
       email: parsed.data.email,
       address: parsed.data.address,
       gstin: parsed.data.gstin ?? null,
-      companyUrl: parsed.data.companyUrl ?? null
+      companyUrl: parsed.data.companyUrl ?? null,
+      pan: parsed.data.pan ?? null,
+      cin: parsed.data.cin ?? null,
+      msmeRegistrationNo: parsed.data.msmeRegistrationNo ?? null,
+      fssaiLicenseNo: parsed.data.fssaiLicenseNo ?? null,
+      drugLicenseNo: parsed.data.drugLicenseNo ?? null,
+      iecCode: parsed.data.iecCode ?? null,
+      companyPrefix: parsed.data.companyPrefix ?? null
     }).returning();
     res.status(201).json(row);
   }
@@ -60059,9 +60180,16 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  if (!isValidGtin(parsed.data.gtin)) {
-    res.status(400).json({ error: "Invalid GTIN check digit" });
-    return;
+  const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
+  if (isGs1Compliant) {
+    if (!parsed.data.gtin) {
+      res.status(400).json({ error: "GTIN is required for GS1 compliant products" });
+      return;
+    }
+    if (!isValidGtin(parsed.data.gtin)) {
+      res.status(400).json({ error: "Invalid GTIN check digit" });
+      return;
+    }
   }
   let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId : null);
   if (!companyId) {
@@ -60075,9 +60203,18 @@ router5.post("/products", async (req, res) => {
     skuSize: parsed.data.skuSize,
     marketedBy: parsed.data.marketedBy,
     sapDescription: parsed.data.sapDescription ?? null,
-    gtin: parsed.data.gtin,
+    gtin: parsed.data.gtin ?? null,
     mrp: Number(parsed.data.mrp),
     registrationNo: parsed.data.registrationNo ?? null,
+    hsnCode: parsed.data.hsnCode ?? null,
+    gstRate: parsed.data.gstRate !== void 0 && parsed.data.gstRate !== null ? Number(parsed.data.gstRate) : null,
+    unit: parsed.data.unit ?? null,
+    weightValue: parsed.data.weightValue !== void 0 && parsed.data.weightValue !== null ? Number(parsed.data.weightValue) : null,
+    weightUnit: parsed.data.weightUnit ?? null,
+    packagingType: parsed.data.packagingType ?? null,
+    shelfLifeDays: parsed.data.shelfLifeDays !== void 0 && parsed.data.shelfLifeDays !== null ? Number(parsed.data.shelfLifeDays) : null,
+    countryOfOrigin: parsed.data.countryOfOrigin ?? "IND",
+    isGs1Compliant,
     l1Size: parsed.data.l1Size,
     l2Size: parsed.data.l2Size,
     shipperSize: parsed.data.shipperSize,
@@ -60122,6 +60259,13 @@ router6.post("/locations", async (req, res) => {
     res.status(400).json({ error: "User has no company" });
     return;
   }
+  if (parsed.data.gln) {
+    const { validateGs1CheckDigit: validateGs1CheckDigit2 } = await Promise.resolve().then(() => (init_gs1_validation(), gs1_validation_exports));
+    if (!validateGs1CheckDigit2(parsed.data.gln)) {
+      res.status(400).json({ error: "Invalid GLN checksum. Must be standard 13-digit GS1 location code." });
+      return;
+    }
+  }
   const [row] = await db.insert(locationsTable).values({
     companyId,
     locationType: parsed.data.locationType,
@@ -60130,7 +60274,8 @@ router6.post("/locations", async (req, res) => {
     contactNo: parsed.data.contactNo,
     state: parsed.data.state,
     city: parsed.data.city,
-    address: parsed.data.address
+    address: parsed.data.address,
+    gln: parsed.data.gln ?? null
   }).returning();
   res.status(201).json(row);
 });
@@ -60506,6 +60651,7 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
     batchNumber: batchesTable.batchNumber,
     expiryDate: batchesTable.expiryDate,
     gtin: productsTable.gtin,
+    isGs1Compliant: productsTable.isGs1Compliant,
     companyId: productsTable.companyId
   }).from(batchesTable).innerJoin(productsTable, eq(batchesTable.productId, productsTable.id)).where(eq(batchesTable.id, parsed.data.batchId));
   if (!batch) {
@@ -60520,29 +60666,56 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
   const inserts = [];
   for (let i = 0; i < parsed.data.quantity; i++) {
     if (isUnitLevel) {
-      const { raw, serial } = generateUnitCode({
-        gtin: batch.gtin,
-        expiry: batch.expiryDate,
-        batch: batch.batchNumber
-      });
-      inserts.push({
-        productId: batch.productId,
-        batchId: batch.id,
-        level: parsed.data.level,
-        rawString: raw,
-        serialNumber: serial,
-        ssccCode: null
-      });
+      if (batch.isGs1Compliant && batch.gtin) {
+        const { raw, serial } = generateUnitCode({
+          gtin: batch.gtin,
+          expiry: batch.expiryDate,
+          batch: batch.batchNumber
+        });
+        inserts.push({
+          productId: batch.productId,
+          batchId: batch.id,
+          level: parsed.data.level,
+          rawString: raw,
+          serialNumber: serial,
+          ssccCode: null
+        });
+      } else {
+        const crypto4 = await import("crypto");
+        const serial = crypto4.randomBytes(6).toString("hex").toUpperCase();
+        inserts.push({
+          productId: batch.productId,
+          batchId: batch.id,
+          level: parsed.data.level,
+          rawString: serial,
+          serialNumber: serial,
+          ssccCode: null
+        });
+      }
     } else {
-      const { raw, sscc } = generateSsccCode(batch.gtin.slice(1, 8), i);
-      inserts.push({
-        productId: batch.productId,
-        batchId: batch.id,
-        level: parsed.data.level,
-        rawString: raw,
-        serialNumber: null,
-        ssccCode: sscc
-      });
+      if (batch.isGs1Compliant && batch.gtin) {
+        const { raw, sscc } = generateSsccCode(batch.gtin.slice(1, 8), i);
+        inserts.push({
+          productId: batch.productId,
+          batchId: batch.id,
+          level: parsed.data.level,
+          rawString: raw,
+          serialNumber: null,
+          ssccCode: sscc
+        });
+      } else {
+        const crypto4 = await import("crypto");
+        const serial = crypto4.randomBytes(8).toString("hex").toUpperCase();
+        const sscc = `SH-${serial}`;
+        inserts.push({
+          productId: batch.productId,
+          batchId: batch.id,
+          level: parsed.data.level,
+          rawString: sscc,
+          serialNumber: null,
+          ssccCode: sscc
+        });
+      }
     }
   }
   const inserted = await db.insert(codesTable).values(inserts).returning();

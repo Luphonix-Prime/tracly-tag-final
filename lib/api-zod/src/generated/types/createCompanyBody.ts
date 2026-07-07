@@ -17,4 +17,18 @@ export interface CreateCompanyBody {
   gstin?: string | null;
   /** @nullable */
   companyUrl?: string | null;
+  /** @nullable */
+  pan?: string | null;
+  /** @nullable */
+  cin?: string | null;
+  /** @nullable */
+  msmeRegistrationNo?: string | null;
+  /** @nullable */
+  fssaiLicenseNo?: string | null;
+  /** @nullable */
+  drugLicenseNo?: string | null;
+  /** @nullable */
+  iecCode?: string | null;
+  /** @nullable */
+  companyPrefix?: string | null;
 }

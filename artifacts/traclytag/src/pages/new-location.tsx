@@ -23,6 +23,14 @@ const locationSchema = z.object({
   address: z.string().min(1, "Address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
+  gln: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || /^\d{13}$/.test(val),
+      "Invalid GLN format. Expected standard 13 digits."
+    ),
 });
 
 type LocationForm = z.infer<typeof locationSchema>;
@@ -50,6 +58,7 @@ export default function NewLocation() {
       address: "",
       city: "",
       state: "",
+      gln: "",
     },
   });
 
@@ -185,6 +194,31 @@ export default function NewLocation() {
                             {...field} 
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="mt-6">
+                  <FormField
+                    control={form.control}
+                    name="gln"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
+                          GLOBAL LOCATION NUMBER (GLN - 13 DIGITS)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., 8901023000017 (13 digits numeric)" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Optional GS1 GLN code assigned to this factory, plant, or warehouse.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}

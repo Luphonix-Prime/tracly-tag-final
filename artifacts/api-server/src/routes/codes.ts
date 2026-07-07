@@ -386,6 +386,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
       batchNumber: batchesTable.batchNumber,
       expiryDate: batchesTable.expiryDate,
       gtin: productsTable.gtin,
+      isGs1Compliant: productsTable.isGs1Compliant,
       companyId: productsTable.companyId,
     })
     .from(batchesTable)
@@ -411,29 +412,56 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
   const inserts = [];
   for (let i = 0; i < parsed.data.quantity; i++) {
     if (isUnitLevel) {
-      const { raw, serial } = generateUnitCode({
-        gtin: batch.gtin,
-        expiry: batch.expiryDate,
-        batch: batch.batchNumber,
-      });
-      inserts.push({
-        productId: batch.productId,
-        batchId: batch.id,
-        level: parsed.data.level,
-        rawString: raw,
-        serialNumber: serial,
-        ssccCode: null,
-      });
+      if (batch.isGs1Compliant && batch.gtin) {
+        const { raw, serial } = generateUnitCode({
+          gtin: batch.gtin,
+          expiry: batch.expiryDate,
+          batch: batch.batchNumber,
+        });
+        inserts.push({
+          productId: batch.productId,
+          batchId: batch.id,
+          level: parsed.data.level,
+          rawString: raw,
+          serialNumber: serial,
+          ssccCode: null,
+        });
+      } else {
+        const crypto = await import("crypto");
+        const serial = crypto.randomBytes(6).toString("hex").toUpperCase();
+        inserts.push({
+          productId: batch.productId,
+          batchId: batch.id,
+          level: parsed.data.level,
+          rawString: serial,
+          serialNumber: serial,
+          ssccCode: null,
+        });
+      }
     } else {
-      const { raw, sscc } = generateSsccCode(batch.gtin.slice(1, 8), i);
-      inserts.push({
-        productId: batch.productId,
-        batchId: batch.id,
-        level: parsed.data.level,
-        rawString: raw,
-        serialNumber: null,
-        ssccCode: sscc,
-      });
+      if (batch.isGs1Compliant && batch.gtin) {
+        const { raw, sscc } = generateSsccCode(batch.gtin.slice(1, 8), i);
+        inserts.push({
+          productId: batch.productId,
+          batchId: batch.id,
+          level: parsed.data.level,
+          rawString: raw,
+          serialNumber: null,
+          ssccCode: sscc,
+        });
+      } else {
+        const crypto = await import("crypto");
+        const serial = crypto.randomBytes(8).toString("hex").toUpperCase();
+        const sscc = `SH-${serial}`;
+        inserts.push({
+          productId: batch.productId,
+          batchId: batch.id,
+          level: parsed.data.level,
+          rawString: sscc,
+          serialNumber: null,
+          ssccCode: sscc,
+        });
+      }
     }
   }
 

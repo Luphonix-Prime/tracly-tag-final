@@ -14,4 +14,6 @@ export interface CreateLocationBody {
   state: string;
   city: string;
   address: string;
+  /** @nullable */
+  gln?: string | null;
 }

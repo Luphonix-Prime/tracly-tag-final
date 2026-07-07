@@ -39,9 +39,18 @@ const productSchema = z.object({
   skuSize: z.string().min(1, "SKU size required"),
   marketedBy: z.string().min(1, "Marketed by required"),
   sapDescription: z.string().optional().or(z.literal("")),
-  gtin: z.string().regex(/^\d{13,14}$/, "GTIN must be 13–14 digits"),
+  gtin: z.string().optional().or(z.literal("")),
   mrp: z.coerce.number().positive("MRP must be positive"),
   registrationNo: z.string().optional().or(z.literal("")),
+  hsnCode: z.string().optional().or(z.literal("")),
+  gstRate: z.coerce.number().min(0).max(100).optional().or(z.null()),
+  unit: z.string().optional().or(z.literal("")),
+  weightValue: z.coerce.number().min(0).optional().or(z.null()),
+  weightUnit: z.string().optional().or(z.literal("")),
+  packagingType: z.string().optional().or(z.literal("")),
+  shelfLifeDays: z.coerce.number().int().min(0).optional().or(z.null()),
+  countryOfOrigin: z.string().default("IND"),
+  isGs1Compliant: z.boolean().default(false),
   l1Size: z.coerce.number().int().min(1),
   l2Size: z.coerce.number().int().min(1),
   shipperSize: z.coerce.number().int().min(1),
@@ -50,6 +59,16 @@ const productSchema = z.object({
   labelPdfUrl: z.string().optional().or(z.literal("")),
   expiryDate: z.date({ required_error: "Expiry date is required" }),
   companyId: z.coerce.number().optional(),
+}).superRefine((data, ctx) => {
+  if (data.isGs1Compliant) {
+    if (!data.gtin || !/^\d{13,14}$/.test(data.gtin)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "GTIN is required for GS1 compliant products and must be 13-14 digits.",
+        path: ["gtin"],
+      });
+    }
+  }
 });
 
 type ProductForm = z.infer<typeof productSchema>;
@@ -81,6 +100,15 @@ export default function NewProduct() {
       gtin: "",
       mrp: 0,
       registrationNo: "",
+      hsnCode: "",
+      gstRate: 18,
+      unit: "Piece",
+      weightValue: 0,
+      weightUnit: "g",
+      packagingType: "Bottle",
+      shelfLifeDays: 365,
+      countryOfOrigin: "IND",
+      isGs1Compliant: false,
       l1Size: 10,
       l2Size: 100,
       shipperSize: 5,
@@ -253,6 +281,33 @@ export default function NewProduct() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
+                    name="isGs1Compliant"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5 col-span-2">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          SERIALIZATION COMPLIANCE MODE
+                        </FormLabel>
+                        <Select 
+                          onValueChange={(val) => field.onChange(val === "true")} 
+                          value={String(field.value)}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                              <SelectValue placeholder="Select serialization mode" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="false">TracelyTag Internal Compliance (Generates secure non-GS1 serial codes)</SelectItem>
+                            <SelectItem value="true">Official GS1 Compliant Mode (Requires 13/14-digit GTIN checks)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="skuId"
                     render={({ field }) => (
                       <FormItem className="space-y-1.5">
@@ -277,7 +332,7 @@ export default function NewProduct() {
                     render={({ field }) => (
                       <FormItem className="space-y-1.5">
                         <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                          GTIN NUMBER
+                          GTIN NUMBER {form.watch("isGs1Compliant") && <span className="text-[#EF4444]">*</span>}
                         </FormLabel>
                         <FormControl>
                           <Input 
@@ -495,6 +550,210 @@ export default function NewProduct() {
                     </FormItem>
                   )}
                 />
+              </div>
+            </section>
+
+            {/* Card 3: Tax, Physical Metrics & Packaging */}
+            <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <h3 className="text-[16px] font-bold text-[#0F172A]">Tax, Physical Metrics & Packaging</h3>
+              </div>
+
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="hsnCode"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          HSN CODE (TAX CLASSIFICATION)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g. 38089190" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="gstRate"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          GST RATE (%)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            placeholder="e.g. 18" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all"
+                            {...field} 
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="unit"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          UNIT OF MEASUREMENT
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                              <SelectValue placeholder="Select Unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Piece">Piece (Pc)</SelectItem>
+                            <SelectItem value="Box">Box (Bx)</SelectItem>
+                            <SelectItem value="Bottle">Bottle (Bt)</SelectItem>
+                            <SelectItem value="Kg">Kilogram (Kg)</SelectItem>
+                            <SelectItem value="Litre">Litre (L)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="weightValue"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          WEIGHT / VOLUME VALUE
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            placeholder="e.g. 500" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all"
+                            {...field} 
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="weightUnit"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          WEIGHT / VOLUME UNIT
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                              <SelectValue placeholder="Select Unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="g">Grams (g)</SelectItem>
+                            <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                            <SelectItem value="ml">Millilitres (ml)</SelectItem>
+                            <SelectItem value="l">Litres (L)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="packagingType"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          PACKAGING TYPE
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                              <SelectValue placeholder="Select Type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Bottle">Bottle</SelectItem>
+                            <SelectItem value="Can">Can</SelectItem>
+                            <SelectItem value="Carton">Carton</SelectItem>
+                            <SelectItem value="Pouch">Pouch</SelectItem>
+                            <SelectItem value="Jar">Jar</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="shelfLifeDays"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          SHELF LIFE (DAYS)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            placeholder="e.g. 365" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all"
+                            {...field} 
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="countryOfOrigin"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          COUNTRY OF ORIGIN
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="IND" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all uppercase font-mono"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </section>
           </div>

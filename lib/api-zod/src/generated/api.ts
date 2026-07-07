@@ -78,6 +78,13 @@ export const ListCompaniesResponseItem = zod.object({
   "gstin": zod.string().regex(listCompaniesResponseGstinRegExp).nullable(),
   "companyUrl": zod.string().nullish(),
   "apiKey": zod.string().nullish(),
+  "pan": zod.string().nullish(),
+  "cin": zod.string().nullish(),
+  "msmeRegistrationNo": zod.string().nullish(),
+  "fssaiLicenseNo": zod.string().nullish(),
+  "drugLicenseNo": zod.string().nullish(),
+  "iecCode": zod.string().nullish(),
+  "companyPrefix": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListCompaniesResponse = zod.array(ListCompaniesResponseItem)
@@ -91,7 +98,14 @@ export const CreateCompanyBody = zod.object({
   "email": zod.string(),
   "address": zod.string(),
   "gstin": zod.string().regex(createCompanyBodyGstinRegExp).nullish(),
-  "companyUrl": zod.string().nullish()
+  "companyUrl": zod.string().nullish(),
+  "pan": zod.string().nullish(),
+  "cin": zod.string().nullish(),
+  "msmeRegistrationNo": zod.string().nullish(),
+  "fssaiLicenseNo": zod.string().nullish(),
+  "drugLicenseNo": zod.string().nullish(),
+  "iecCode": zod.string().nullish(),
+  "companyPrefix": zod.string().nullish()
 })
 
 
@@ -106,6 +120,13 @@ export const GetMyCompanyResponse = zod.object({
   "gstin": zod.string().regex(getMyCompanyResponseGstinRegExp).nullable(),
   "companyUrl": zod.string().nullish(),
   "apiKey": zod.string().nullish(),
+  "pan": zod.string().nullish(),
+  "cin": zod.string().nullish(),
+  "msmeRegistrationNo": zod.string().nullish(),
+  "fssaiLicenseNo": zod.string().nullish(),
+  "drugLicenseNo": zod.string().nullish(),
+  "iecCode": zod.string().nullish(),
+  "companyPrefix": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -125,6 +146,13 @@ export const UpdateMyCompanyResponse = zod.object({
   "gstin": zod.string().regex(updateMyCompanyResponseGstinRegExp).nullable(),
   "companyUrl": zod.string().nullish(),
   "apiKey": zod.string().nullish(),
+  "pan": zod.string().nullish(),
+  "cin": zod.string().nullish(),
+  "msmeRegistrationNo": zod.string().nullish(),
+  "fssaiLicenseNo": zod.string().nullish(),
+  "drugLicenseNo": zod.string().nullish(),
+  "iecCode": zod.string().nullish(),
+  "companyPrefix": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -140,6 +168,13 @@ export const RegenerateCompanyApiKeyResponse = zod.object({
   "gstin": zod.string().regex(regenerateCompanyApiKeyResponseGstinRegExp).nullable(),
   "companyUrl": zod.string().nullish(),
   "apiKey": zod.string().nullish(),
+  "pan": zod.string().nullish(),
+  "cin": zod.string().nullish(),
+  "msmeRegistrationNo": zod.string().nullish(),
+  "fssaiLicenseNo": zod.string().nullish(),
+  "drugLicenseNo": zod.string().nullish(),
+  "iecCode": zod.string().nullish(),
+  "companyPrefix": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -215,16 +250,25 @@ export const ListProductsResponseItem = zod.object({
   "name": zod.string(),
   "skuSize": zod.string(),
   "marketedBy": zod.string(),
-  "sapDescription": zod.string().nullable(),
-  "gtin": zod.string(),
+  "sapDescription": zod.string().nullish(),
+  "gtin": zod.string().nullish(),
   "mrp": zod.number(),
-  "registrationNo": zod.string().nullable(),
+  "registrationNo": zod.string().nullish(),
+  "hsnCode": zod.string().nullish(),
+  "gstRate": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "weightValue": zod.number().nullish(),
+  "weightUnit": zod.string().nullish(),
+  "packagingType": zod.string().nullish(),
+  "shelfLifeDays": zod.number().nullish(),
+  "countryOfOrigin": zod.string().nullish(),
+  "isGs1Compliant": zod.boolean().nullish(),
   "l1Size": zod.number().describe('Units per 1st level inner pack'),
   "l2Size": zod.number().describe('1st level packs per 2nd level inner pack'),
   "shipperSize": zod.number().describe('2nd level packs per shipper'),
-  "cautionLogoUrl": zod.string().nullable(),
-  "productLogoUrl": zod.string().nullable(),
-  "labelPdfUrl": zod.string().nullable(),
+  "cautionLogoUrl": zod.string().nullish(),
+  "productLogoUrl": zod.string().nullish(),
+  "labelPdfUrl": zod.string().nullish(),
   "expiryDate": zod.coerce.date(),
   "createdAt": zod.coerce.date()
 })
@@ -237,9 +281,18 @@ export const CreateProductBody = zod.object({
   "skuSize": zod.string(),
   "marketedBy": zod.string(),
   "sapDescription": zod.string().nullish(),
-  "gtin": zod.string().describe('14 digit GTIN'),
+  "gtin": zod.string().nullish().describe('14 digit GTIN'),
   "mrp": zod.number(),
   "registrationNo": zod.string().nullish(),
+  "hsnCode": zod.string().nullish(),
+  "gstRate": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "weightValue": zod.number().nullish(),
+  "weightUnit": zod.string().nullish(),
+  "packagingType": zod.string().nullish(),
+  "shelfLifeDays": zod.number().nullish(),
+  "countryOfOrigin": zod.string().nullish(),
+  "isGs1Compliant": zod.boolean().nullish(),
   "l1Size": zod.number(),
   "l2Size": zod.number(),
   "shipperSize": zod.number(),
@@ -265,6 +318,7 @@ export const ListLocationsResponseItem = zod.object({
   "state": zod.string(),
   "city": zod.string(),
   "address": zod.string(),
+  "gln": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListLocationsResponse = zod.array(ListLocationsResponseItem)
@@ -277,7 +331,8 @@ export const CreateLocationBody = zod.object({
   "contactNo": zod.string(),
   "state": zod.string(),
   "city": zod.string(),
-  "address": zod.string()
+  "address": zod.string(),
+  "gln": zod.string().nullish()
 })
 
 

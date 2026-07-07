@@ -111,7 +111,7 @@ export default function Products() {
       !search ||
       product.skuId.toLowerCase().includes(search.toLowerCase()) ||
       product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.gtin.toLowerCase().includes(search.toLowerCase()) ||
+      (product.gtin && product.gtin.toLowerCase().includes(search.toLowerCase())) ||
       (product.marketedBy && product.marketedBy.toLowerCase().includes(search.toLowerCase()));
     return matchesSearch;
   });

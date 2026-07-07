@@ -68,6 +68,20 @@ export interface Company {
   companyUrl?: string | null;
   /** @nullable */
   apiKey?: string | null;
+  /** @nullable */
+  pan?: string | null;
+  /** @nullable */
+  cin?: string | null;
+  /** @nullable */
+  msmeRegistrationNo?: string | null;
+  /** @nullable */
+  fssaiLicenseNo?: string | null;
+  /** @nullable */
+  drugLicenseNo?: string | null;
+  /** @nullable */
+  iecCode?: string | null;
+  /** @nullable */
+  companyPrefix?: string | null;
   createdAt: string;
 }
 
@@ -82,6 +96,20 @@ export interface CreateCompanyBody {
   gstin?: string | null;
   /** @nullable */
   companyUrl?: string | null;
+  /** @nullable */
+  pan?: string | null;
+  /** @nullable */
+  cin?: string | null;
+  /** @nullable */
+  msmeRegistrationNo?: string | null;
+  /** @nullable */
+  fssaiLicenseNo?: string | null;
+  /** @nullable */
+  drugLicenseNo?: string | null;
+  /** @nullable */
+  iecCode?: string | null;
+  /** @nullable */
+  companyPrefix?: string | null;
 }
 
 export interface User {
@@ -131,11 +159,30 @@ export interface Product {
   skuSize: string;
   marketedBy: string;
   /** @nullable */
-  sapDescription: string | null;
-  gtin: string;
+  sapDescription?: string | null;
+  /** @nullable */
+  gtin?: string | null;
   mrp: number;
   /** @nullable */
-  registrationNo: string | null;
+  registrationNo?: string | null;
+  /** @nullable */
+  hsnCode?: string | null;
+  /** @nullable */
+  gstRate?: number | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  weightValue?: number | null;
+  /** @nullable */
+  weightUnit?: string | null;
+  /** @nullable */
+  packagingType?: string | null;
+  /** @nullable */
+  shelfLifeDays?: number | null;
+  /** @nullable */
+  countryOfOrigin?: string | null;
+  /** @nullable */
+  isGs1Compliant?: boolean | null;
   /** Units per 1st level inner pack */
   l1Size: number;
   /** 1st level packs per 2nd level inner pack */
@@ -143,11 +190,11 @@ export interface Product {
   /** 2nd level packs per shipper */
   shipperSize: number;
   /** @nullable */
-  cautionLogoUrl: string | null;
+  cautionLogoUrl?: string | null;
   /** @nullable */
-  productLogoUrl: string | null;
+  productLogoUrl?: string | null;
   /** @nullable */
-  labelPdfUrl: string | null;
+  labelPdfUrl?: string | null;
   expiryDate: string;
   createdAt: string;
 }
@@ -159,11 +206,32 @@ export interface CreateProductBody {
   marketedBy: string;
   /** @nullable */
   sapDescription?: string | null;
-  /** 14 digit GTIN */
-  gtin: string;
+  /**
+     * 14 digit GTIN
+     * @nullable
+     */
+  gtin?: string | null;
   mrp: number;
   /** @nullable */
   registrationNo?: string | null;
+  /** @nullable */
+  hsnCode?: string | null;
+  /** @nullable */
+  gstRate?: number | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  weightValue?: number | null;
+  /** @nullable */
+  weightUnit?: string | null;
+  /** @nullable */
+  packagingType?: string | null;
+  /** @nullable */
+  shelfLifeDays?: number | null;
+  /** @nullable */
+  countryOfOrigin?: string | null;
+  /** @nullable */
+  isGs1Compliant?: boolean | null;
   l1Size: number;
   l2Size: number;
   shipperSize: number;
@@ -186,6 +254,8 @@ export interface Location {
   state: string;
   city: string;
   address: string;
+  /** @nullable */
+  gln?: string | null;
   createdAt: string;
 }
 
@@ -197,6 +267,8 @@ export interface CreateLocationBody {
   state: string;
   city: string;
   address: string;
+  /** @nullable */
+  gln?: string | null;
 }
 
 export interface Batch {
