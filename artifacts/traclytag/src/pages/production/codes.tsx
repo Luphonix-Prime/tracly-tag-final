@@ -179,7 +179,7 @@ function parseGs1Raw(raw: string) {
   return { gtin, serial, batch, expiry };
 }
 
-const renderGs1Text = (raw: string) => {
+const renderGs1Text = (raw: string, companyGstin?: string) => {
   const parsed = parseGs1Raw(raw);
   if (parsed.fallback) {
     return <div className="text-xs font-bold font-mono text-midnight-navy truncate">{parsed.fallback}</div>;
@@ -188,14 +188,23 @@ const renderGs1Text = (raw: string) => {
     return <div className="text-xs font-bold font-mono text-red-500 truncate">{parsed.error}</div>;
   }
   if (parsed.sscc) {
-    return <div className="text-xs font-bold font-mono text-midnight-navy">(00){parsed.sscc}</div>;
+    const validSscc = fixSsccCheckDigit(parsed.sscc);
+    return <div className="text-xs font-bold font-mono text-midnight-navy">(00){validSscc}</div>;
   }
+  
+  const displayGtin = companyGstin || (parsed.gtin ? fixGtinCheckDigit(parsed.gtin) : "");
+  const expiryYear = parsed.expiry && parsed.expiry.length >= 2 ? `20${parsed.expiry.substring(0, 2)}` : "";
+  const concatenated = `GTIN${displayGtin}-EX${expiryYear}-BT${parsed.batch || ""}-SR${parsed.serial || ""}`;
+
   return (
     <div className="text-[10px] font-bold font-mono text-midnight-navy text-left space-y-0.5 w-full leading-normal">
-      {parsed.gtin && <div>(01){parsed.gtin}</div>}
+      {displayGtin && <div>(01){displayGtin}</div>}
       {parsed.serial && <div>(21){parsed.serial}</div>}
       {parsed.batch && <div>(10){parsed.batch}</div>}
       {parsed.expiry && <div>(17){parsed.expiry}</div>}
+      <div className="mt-1 border-t border-slate-200/50 pt-0.5 text-[8.5px] text-[#434655] truncate" title={concatenated}>
+        {concatenated}
+      </div>
     </div>
   );
 };
@@ -908,7 +917,7 @@ export default function Codes() {
                       </div>
                       <div className="w-full flex items-start justify-between gap-1 px-1 mt-1">
                         <div className="flex-1 min-w-0">
-                          {renderGs1Text(code.rawString)}
+                          {renderGs1Text(code.rawString, code.companyGstin)}
                         </div>
                         <Button
                           variant="ghost"
@@ -979,7 +988,7 @@ export default function Codes() {
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            {renderGs1Text(code.rawString)}
+                            {renderGs1Text(code.rawString, code.companyGstin)}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#dae2fd] text-[#131b2e] uppercase">
