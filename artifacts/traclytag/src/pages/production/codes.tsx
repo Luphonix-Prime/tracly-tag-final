@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { 
   useGenerateCodes, 
@@ -38,6 +38,97 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import bwipjs from "bwip-js";
+
+function fixGtinCheckDigit(gtin: string): string {
+  if (!gtin) return "";
+  let digitsOnly = gtin.replace(/\D/g, "");
+  if (digitsOnly.length < 14) {
+    digitsOnly = digitsOnly.padStart(14, "0");
+  } else if (digitsOnly.length > 14) {
+    digitsOnly = digitsOnly.slice(0, 14);
+  }
+  
+  const digits = digitsOnly.slice(0, 13).split("").map(Number);
+  let sum = 0;
+  for (let i = 0; i < 13; i++) {
+    const weight = i % 2 === 0 ? 3 : 1;
+    sum += digits[i] * weight;
+  }
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return digitsOnly.slice(0, 13) + checkDigit;
+}
+
+function fixSsccCheckDigit(sscc: string): string {
+  if (!sscc) return "";
+  let digitsOnly = sscc.replace(/\D/g, "");
+  if (digitsOnly.length < 18) {
+    digitsOnly = digitsOnly.padStart(18, "0");
+  } else if (digitsOnly.length > 18) {
+    digitsOnly = digitsOnly.slice(0, 18);
+  }
+  
+  const digits = digitsOnly.slice(0, 17).split("").map(Number);
+  let sum = 0;
+  for (let i = 0; i < 17; i++) {
+    const weight = i % 2 === 0 ? 3 : 1;
+    sum += digits[i] * weight;
+  }
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return digitsOnly.slice(0, 17) + checkDigit;
+}
+
+function DataMatrixBarcode({ rawString, size }: { rawString: string; size: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    
+    try {
+      const parsed = parseGs1Raw(rawString);
+      let barcodeType = "datamatrix";
+      let barcodeText = rawString;
+
+      if (!parsed.fallback && !parsed.error) {
+        if (parsed.sscc) {
+          const validSscc = fixSsccCheckDigit(parsed.sscc);
+          barcodeText = `(00)${validSscc}`;
+          barcodeType = "gs1datamatrix";
+        } else if (parsed.gtin) {
+          const validGtin = fixGtinCheckDigit(parsed.gtin);
+          barcodeText = `(01)${validGtin}(21)${parsed.serial || ""}(10)${parsed.batch || ""}(17)${parsed.expiry || ""}`;
+          barcodeType = "gs1datamatrix";
+        }
+      }
+
+      bwipjs.toCanvas(canvasRef.current, {
+        bcid: barcodeType,
+        text: barcodeText,
+        scale: 3,
+        height: 10,
+        width: 10,
+        includetext: false,
+      });
+    } catch (err) {
+      console.error("Failed to render barcode locally via bwip-js:", err);
+      const ctx = canvasRef.current.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        ctx.fillStyle = "#ef4444";
+        ctx.font = "8px monospace";
+        ctx.fillText("Error", 5, 12);
+      }
+    }
+  }, [rawString]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="max-w-full aspect-square"
+      style={{ width: `${size}px`, height: `${size}px` }} 
+    />
+  );
+}
 
 function parseGs1Raw(raw: string) {
   if (!raw) return {};
@@ -109,22 +200,7 @@ const renderGs1Text = (raw: string) => {
   );
 };
 
-const getBarcodeUrl = (raw: string, size: number) => {
-  if (!raw) return "";
-  const parsed = parseGs1Raw(raw);
-  if (parsed.fallback || parsed.error) {
-    return `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(raw)}&width=${size}&height=${size}`;
-  }
-  
-  let text = "";
-  if (parsed.sscc) {
-    text = `(00)${parsed.sscc}`;
-  } else {
-    text = `(01)${parsed.gtin || ""}(21)${parsed.serial || ""}(10)${parsed.batch || ""}(17)${parsed.expiry || ""}`;
-  }
-  
-  return `https://quickchart.io/barcode?type=gs1datamatrix&text=${encodeURIComponent(text)}&width=${size}&height=${size}`;
-};
+// Helper function for building barcode URLs removed in favor of local client-side bwip-js rendering
 
 
 const generateSchema = z.object({
@@ -824,17 +900,11 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=150&height=150`;
                   
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-1.5 bg-white rounded-lg border border-slate-200">
-                        <img 
-                          src={qrUrl} 
-                          alt="Data Matrix Code" 
-                          className="w-[120px] h-[120px]"
-                          loading="lazy"
-                        />
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200 flex items-center justify-center w-[130px] h-[130px]">
+                        <DataMatrixBarcode rawString={code.rawString} size={120} />
                       </div>
                       <div className="w-full flex items-start justify-between gap-1 px-1 mt-1">
                         <div className="flex-1 min-w-0">
@@ -901,17 +971,10 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=90&height=90`;
-
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-1.5 bg-white rounded-lg border border-slate-200 shrink-0">
-                        <img 
-                          src={qrUrl} 
-                          alt="Data Matrix Code" 
-                          className="w-[90px] h-[90px]"
-                          loading="lazy"
-                        />
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200 shrink-0 flex items-center justify-center w-[100px] h-[100px]">
+                        <DataMatrixBarcode rawString={code.rawString} size={90} />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-start justify-between gap-3">
