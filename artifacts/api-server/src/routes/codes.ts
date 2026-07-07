@@ -14,6 +14,32 @@ import { GenerateCodesBody, MapCodeBody } from "@workspace/api-zod";
 import { requireAuth, requireModule } from '../lib/session.js';
 import { generateUnitCode, generateSsccCode, parseGs1Code } from '../lib/gs1.js';
 
+function gstinToGtin(input: string): string {
+  if (!input) return "00000000000000";
+  const clean = input.replace(/\D/g, "");
+  if (clean.length === 13 || clean.length === 14) {
+    const padded = clean.padStart(14, "0").slice(0, 14);
+    const digits = padded.slice(0, 13).split("").map(Number);
+    let sum = 0;
+    for (let i = 0; i < 13; i++) {
+      const weight = i % 2 === 0 ? 3 : 1;
+      sum += digits[i] * weight;
+    }
+    const checkDigit = (10 - (sum % 10)) % 10;
+    return padded.slice(0, 13) + checkDigit;
+  }
+  
+  const padded = clean.padEnd(13, "0").slice(0, 13);
+  const nums = padded.split("").map(Number);
+  let sum = 0;
+  for (let i = 0; i < 13; i++) {
+    const weight = i % 2 === 0 ? 3 : 1;
+    sum += nums[i] * weight;
+  }
+  const cd = (10 - (sum % 10)) % 10;
+  return padded + cd;
+}
+
 const router: IRouter = Router();
 
 // Debug endpoint - shows recent codes in database
@@ -384,13 +410,17 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
       id: batchesTable.id,
       productId: batchesTable.productId,
       batchNumber: batchesTable.batchNumber,
-      expiryDate: batchesTable.expiryDate,
+      batchExpiryDate: batchesTable.expiryDate,
+      productExpiryDate: productsTable.expiryDate,
       gtin: productsTable.gtin,
       isGs1Compliant: productsTable.isGs1Compliant,
       companyId: productsTable.companyId,
+      companyGstin: companiesTable.gstin,
+      companyPrefix: companiesTable.companyPrefix,
     })
     .from(batchesTable)
     .innerJoin(productsTable, eq(batchesTable.productId, productsTable.id))
+    .leftJoin(companiesTable, eq(productsTable.companyId, companiesTable.id))
     .where(eq(batchesTable.id, parsed.data.batchId));
 
   if (!batch) {
@@ -412,10 +442,13 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
   const inserts = [];
   for (let i = 0; i < parsed.data.quantity; i++) {
     if (isUnitLevel) {
-      if (batch.isGs1Compliant && batch.gtin) {
+      const gtinOrGst = batch.companyGstin || batch.gtin;
+      if (batch.isGs1Compliant && gtinOrGst) {
+        const gtinValue = gstinToGtin(gtinOrGst);
+        const expiryValue = batch.productExpiryDate || batch.batchExpiryDate || "";
         const { raw, serial } = generateUnitCode({
-          gtin: batch.gtin,
-          expiry: batch.expiryDate,
+          gtin: gtinValue,
+          expiry: expiryValue,
           batch: batch.batchNumber,
         });
         inserts.push({
@@ -439,8 +472,11 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
         });
       }
     } else {
-      if (batch.isGs1Compliant && batch.gtin) {
-        const { raw, sscc } = generateSsccCode(batch.gtin.slice(1, 8), i);
+      const gtinOrGst = batch.companyGstin || batch.gtin;
+      if (batch.isGs1Compliant && gtinOrGst) {
+        const gtinValue = gstinToGtin(gtinOrGst);
+        const prefixToUse = batch.companyPrefix || gtinValue.slice(1, 8) || "8901234";
+        const { raw, sscc } = generateSsccCode(prefixToUse, i);
         inserts.push({
           productId: batch.productId,
           batchId: batch.id,
