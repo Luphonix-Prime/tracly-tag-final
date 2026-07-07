@@ -8,7 +8,7 @@ import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
 import { 
   LayoutDashboard, Building2, Users, Package, MapPin, 
   Layers, QrCode, FileText, PackageCheck, BarChart3, ListOrdered, LogOut, Menu,
-  Link as LinkIcon, ScanBarcode, Settings, HelpCircle, Lock, Copy, User
+  Link as LinkIcon, ScanBarcode, Settings, HelpCircle, Lock, Copy, User, Terminal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +101,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const bottomNavigation = [
     { title: "Profile", href: "/profile", icon: User },
     { title: "Settings", href: "/settings", icon: Settings },
+    ...(user.role === "super_master" ? [{ title: "System", href: "/system", icon: Terminal }] : []),
     { title: "Support", href: "/support", icon: HelpCircle },
   ];
 

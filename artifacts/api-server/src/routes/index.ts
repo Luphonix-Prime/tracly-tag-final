@@ -10,6 +10,7 @@ import codesRouter from "./codes";
 import reportsRouter from "./reports";
 import uploadRouter from "./upload";
 import subscriptionRouter from "./subscription";
+import systemRouter from "./system";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(codesRouter);
 router.use(reportsRouter);
 router.use(uploadRouter);
 router.use(subscriptionRouter);
+router.use(systemRouter);
 
 export default router;

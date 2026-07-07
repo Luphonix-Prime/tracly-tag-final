@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import {
   useCreateLocation,
   getListLocationsQueryKey,
+  useGetMyCompany,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -37,6 +38,7 @@ type LocationForm = z.infer<typeof locationSchema>;
 
 export default function NewLocation() {
   const createLocation = useCreateLocation();
+  const { data: myCompany } = useGetMyCompany();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
@@ -46,7 +48,6 @@ export default function NewLocation() {
   const [country, setCountry] = useState("India");
   const [zipCode, setZipCode] = useState("");
   const [licenseNo, setLicenseNo] = useState("");
-  const [gstin, setGstin] = useState("");
 
   const form = useForm<LocationForm>({
     resolver: zodResolver(locationSchema),
@@ -411,13 +412,14 @@ export default function NewLocation() {
 
                   <div className="space-y-2">
                     <label className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-                      GSTIN (OPTIONAL)
+                      COMPANY GSTIN (READ ONLY)
                     </label>
                     <Input 
-                      placeholder="Tax Identification" 
-                      value={gstin}
-                      onChange={(e) => setGstin(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all font-mono uppercase"
+                      placeholder="No GSTIN registered" 
+                      value={myCompany?.gstin || "Not Registered"}
+                      readOnly
+                      disabled
+                      className="w-full bg-slate-100 border-[#E2E8F0] rounded-lg py-2.5 px-4 text-sm text-slate-500 font-mono uppercase cursor-not-allowed"
                     />
                   </div>
                 </div>
