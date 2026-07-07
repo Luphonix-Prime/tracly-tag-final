@@ -39,6 +39,76 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+function parseGs1Raw(raw: string) {
+  if (!raw) return {};
+  if (raw.startsWith("INVALID_") || raw.startsWith("SH-")) {
+    return { error: raw };
+  }
+  if (raw.startsWith("00")) {
+    return { sscc: raw.substring(2) };
+  }
+  
+  // Replace separators with a pipe for easy splitting
+  const clean = raw.replace(/<GS>/g, "|").replace(/\u001d/g, "|").replace(/\u00e8/g, "|");
+  
+  let gtin = "";
+  let serial = "";
+  let batch = "";
+  let expiry = "";
+  
+  let pos = 0;
+  while (pos < clean.length) {
+    const ai = clean.substring(pos, pos + 2);
+    pos += 2;
+    if (ai === "01") {
+      gtin = clean.substring(pos, pos + 14);
+      pos += 14;
+    } else if (ai === "21") {
+      const nextPipe = clean.indexOf("|", pos);
+      const end = nextPipe > -1 ? nextPipe : clean.length;
+      serial = clean.substring(pos, end);
+      pos = end + 1;
+    } else if (ai === "10") {
+      const nextPipe = clean.indexOf("|", pos);
+      const end = nextPipe > -1 ? nextPipe : clean.length;
+      batch = clean.substring(pos, end);
+      pos = end + 1;
+    } else if (ai === "17") {
+      expiry = clean.substring(pos, pos + 6);
+      pos += 6;
+    } else {
+      break;
+    }
+  }
+  
+  if (!gtin && !serial && !batch && !expiry) {
+    return { fallback: raw };
+  }
+  
+  return { gtin, serial, batch, expiry };
+}
+
+const renderGs1Text = (raw: string) => {
+  const parsed = parseGs1Raw(raw);
+  if (parsed.fallback) {
+    return <div className="text-xs font-bold font-mono text-midnight-navy truncate">{parsed.fallback}</div>;
+  }
+  if (parsed.error) {
+    return <div className="text-xs font-bold font-mono text-red-500 truncate">{parsed.error}</div>;
+  }
+  if (parsed.sscc) {
+    return <div className="text-xs font-bold font-mono text-midnight-navy">(00){parsed.sscc}</div>;
+  }
+  return (
+    <div className="text-[10px] font-bold font-mono text-midnight-navy text-left space-y-0.5 w-full leading-normal">
+      {parsed.gtin && <div>(01){parsed.gtin}</div>}
+      {parsed.serial && <div>(21){parsed.serial}</div>}
+      {parsed.batch && <div>(10){parsed.batch}</div>}
+      {parsed.expiry && <div>(17){parsed.expiry}</div>}
+    </div>
+  );
+};
+
 const generateSchema = z.object({
   productId: z.coerce.number().min(1, "Product is required"),
   batchId: z.coerce.number().min(1, "Batch is required"),
@@ -736,7 +806,7 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=150&height=150`;
+                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(code.rawString)}&width=150&height=150`;
                   
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
@@ -748,9 +818,9 @@ export default function Codes() {
                           loading="lazy"
                         />
                       </div>
-                      <div className="text-center w-full flex items-center justify-between gap-1 px-1">
-                        <div className="text-xs font-bold text-midnight-navy font-mono truncate max-w-[120px]" title={displayCode}>
-                          {displayCode}
+                      <div className="w-full flex items-start justify-between gap-1 px-1 mt-1">
+                        <div className="flex-1 min-w-0">
+                          {renderGs1Text(code.rawString)}
                         </div>
                         <Button
                           variant="ghost"
@@ -765,7 +835,7 @@ export default function Codes() {
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
-                      <div className="text-[9px] text-[#737686] font-semibold uppercase tracking-wider -mt-1.5 text-center w-full">
+                      <div className="text-[9px] text-[#737686] font-semibold uppercase tracking-wider text-center w-full mt-1.5">
                         {code.level}
                       </div>
 
@@ -813,7 +883,7 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=90&height=90`;
+                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(code.rawString)}&width=90&height=90`;
 
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
@@ -826,23 +896,27 @@ export default function Codes() {
                         />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-midnight-navy font-mono truncate">{displayCode}</span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#dae2fd] text-[#131b2e] uppercase shrink-0">
-                            {code.level}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-slate-400 hover:text-[#2563EB] hover:bg-slate-100 rounded-md shrink-0 cursor-pointer"
-                            title="Copy raw DataMatrix code"
-                            onClick={() => {
-                              navigator.clipboard.writeText(code.rawString);
-                              toast.success("Raw DataMatrix code copied!");
-                            }}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            {renderGs1Text(code.rawString)}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#dae2fd] text-[#131b2e] uppercase">
+                              {code.level}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-slate-400 hover:text-[#2563EB] hover:bg-slate-100 rounded-md cursor-pointer"
+                              title="Copy raw DataMatrix code"
+                              onClick={() => {
+                                navigator.clipboard.writeText(code.rawString);
+                                toast.success("Raw DataMatrix code copied!");
+                              }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                         
                         <div className="space-y-1">

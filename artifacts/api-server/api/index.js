@@ -60092,7 +60092,7 @@ function generateUnitCode(input) {
   const padded = input.gtin.length === 13 ? "0" + input.gtin : input.gtin;
   const expiry = formatExpiry(input.expiry);
   const serial = makeSerial();
-  const raw = `01${padded}17${expiry}10${input.batch}${FNC1}21${serial}`;
+  const raw = `01${padded}21${serial}${FNC1}10${input.batch}${FNC1}17${expiry}`;
   return { raw, serial };
 }
 function generateSsccCode(companyPrefix, _seq) {
