@@ -824,7 +824,7 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = getBarcodeUrl(code.rawString, 150);
+                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=150&height=150`;
                   
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
@@ -901,7 +901,7 @@ export default function Codes() {
                     baseOrigin = cleaned;
                   }
                   const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
-                  const qrUrl = getBarcodeUrl(code.rawString, 90);
+                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=90&height=90`;
 
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
