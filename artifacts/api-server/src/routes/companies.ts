@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, companiesTable } from "@workspace/db";
 import { CreateCompanyBody } from "@workspace/api-zod";
-import { requireAuth, requireRole } from "../lib/session";
+import { requireAuth, requireRole } from '../lib/session.js';
 
 const router: IRouter = Router();
 

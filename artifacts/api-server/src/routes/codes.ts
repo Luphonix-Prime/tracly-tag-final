@@ -11,8 +11,8 @@ import {
   customerScansTable,
 } from "@workspace/db";
 import { GenerateCodesBody, MapCodeBody } from "@workspace/api-zod";
-import { requireAuth, requireModule } from "../lib/session";
-import { generateUnitCode, generateSsccCode, parseGs1Code } from "../lib/gs1";
+import { requireAuth, requireModule } from '../lib/session.js';
+import { generateUnitCode, generateSsccCode, parseGs1Code } from '../lib/gs1.js';
 
 const router: IRouter = Router();
 

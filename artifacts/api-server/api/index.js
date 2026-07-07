@@ -60041,7 +60041,7 @@ var import_express5 = __toESM(require_express2(), 1);
 
 // src/lib/gs1.ts
 import { randomBytes as randomBytes2 } from "crypto";
-var FNC1 = String.fromCharCode(232);
+var FNC1 = "<GS>";
 function checkDigit(digits) {
   let sum = 0;
   const reversed = digits.split("").reverse();
@@ -60092,7 +60092,7 @@ function generateUnitCode(input) {
   const padded = input.gtin.length === 13 ? "0" + input.gtin : input.gtin;
   const expiry = formatExpiry(input.expiry);
   const serial = makeSerial();
-  const raw = `01${padded}17${expiry}10${input.batch}${FNC1}21${serial}`;
+  const raw = `01${padded}21${serial}${FNC1}10${input.batch}${FNC1}17${expiry}`;
   return { raw, serial };
 }
 function generateSsccCode(companyPrefix, _seq) {
@@ -60108,7 +60108,7 @@ function generateSsccCode(companyPrefix, _seq) {
 function parseGs1Code(rawCode) {
   const result = {};
   let i = 0;
-  const normalized = rawCode.replace(new RegExp(FNC1, "g"), "|");
+  const normalized = rawCode.replace(/<GS>/g, "|").replace(/\u001d/g, "|").replace(/\u00e8/g, "|");
   let pos = 0;
   while (pos < normalized.length) {
     const ai = normalized.substring(pos, pos + 2);

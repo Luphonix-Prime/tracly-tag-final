@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db, usersTable, companiesTable, passkeysTable, deviceCodesTable } from "@workspace/db";
 import { LoginBody, LoginResponse, RegisterBody } from "@workspace/api-zod";
 import crypto from "crypto";
-import { sendOtpEmail } from "../lib/mail";
+import { sendOtpEmail } from '../lib/mail.js';
 
 const router: IRouter = Router();
 

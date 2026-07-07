@@ -2,8 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, productsTable } from "@workspace/db";
 import { CreateProductBody } from "@workspace/api-zod";
-import { requireAuth, requireModule } from "../lib/session";
-import { isValidGtin } from "../lib/gs1";
+import { requireAuth, requireModule } from '../lib/session.js';
+import { isValidGtin } from '../lib/gs1.js';
 
 const router: IRouter = Router();
 
