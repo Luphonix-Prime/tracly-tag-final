@@ -7,6 +7,73 @@ import { requireAuth, requireModule } from '../lib/session.js';
 
 const router: IRouter = Router();
 
+router.put("/users/profile", requireAuth, async (req, res): Promise<void> => {
+  const { email, phone, currentPassword, password } = req.body;
+  if (!email) {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+
+  try {
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user!.id));
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const updateData: any = {
+      email,
+      phone: phone ?? null,
+    };
+
+    if (password && password.trim().length > 0) {
+      if (!currentPassword || currentPassword.trim().length === 0) {
+        res.status(400).json({ error: "Current password is required to set a new password" });
+        return;
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isMatch) {
+        res.status(400).json({ error: "Incorrect current password" });
+        return;
+      }
+
+      if (password.length < 6) {
+        res.status(400).json({ error: "Password must be at least 6 characters long" });
+        return;
+      }
+      updateData.passwordHash = await bcrypt.hash(password, 10);
+    }
+
+    const [updatedUser] = await db
+      .update(usersTable)
+      .set(updateData)
+      .where(eq(usersTable.id, req.user!.id))
+      .returning();
+
+    if (!updatedUser) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    res.json({
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      phone: updatedUser.phone,
+      role: updatedUser.role,
+      companyId: updatedUser.companyId,
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "Failed to update profile");
+    res.status(500).json({ error: err.message || "Failed to update profile" });
+  }
+});
+
 router.use("/users", requireAuth, requireModule("users"));
 
 router.get("/users", async (req, res): Promise<void> => {
@@ -253,50 +320,5 @@ router.delete("/users/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-router.put("/users/profile", async (req, res): Promise<void> => {
-  const { email, phone, password } = req.body;
-  if (!email) {
-    res.status(400).json({ error: "Email is required" });
-    return;
-  }
-
-  try {
-    const updateData: any = {
-      email,
-      phone: phone ?? null,
-    };
-
-    if (password && password.trim().length > 0) {
-      if (password.length < 6) {
-        res.status(400).json({ error: "Password must be at least 6 characters long" });
-        return;
-      }
-      updateData.passwordHash = await bcrypt.hash(password, 10);
-    }
-
-    const [updatedUser] = await db
-      .update(usersTable)
-      .set(updateData)
-      .where(eq(usersTable.id, req.user!.id))
-      .returning();
-
-    if (!updatedUser) {
-      res.status(404).json({ error: "User not found" });
-      return;
-    }
-
-    res.json({
-      id: updatedUser.id,
-      username: updatedUser.username,
-      email: updatedUser.email,
-      phone: updatedUser.phone,
-      role: updatedUser.role,
-      companyId: updatedUser.companyId,
-    });
-  } catch (err: any) {
-    req.log.error({ err }, "Failed to update profile");
-    res.status(500).json({ error: err.message || "Failed to update profile" });
-  }
-});
 
 export default router;

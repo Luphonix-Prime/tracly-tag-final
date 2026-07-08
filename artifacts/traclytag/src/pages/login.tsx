@@ -27,6 +27,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub, FaMicrosoft } from "react-icons/fa";
+import { useDevOptionsVisibility } from "@/hooks/use-dev-options-visibility";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -50,6 +51,7 @@ export default function Login() {
   const queryClient = useQueryClient();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
+  const { hideDevOptions, hideSsoOptions } = useDevOptionsVisibility();
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 
@@ -794,19 +796,21 @@ export default function Login() {
                         : "Register your account and company details to get started."}
                   </p>
                   
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setIsDeviceSimulatorOpen(true);
-                      startDeviceFlow();
-                    }}
-                    className="absolute right-0 top-0 h-8 text-[9px] rounded-full border-safety-blue/30 text-safety-blue hover:bg-safety-blue/10 bg-transparent cursor-pointer"
-                  >
-                    <Laptop className="h-3 w-3 mr-1" />
-                    Device Sim
-                  </Button>
+                  {!hideDevOptions && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsDeviceSimulatorOpen(true);
+                        startDeviceFlow();
+                      }}
+                      className="absolute right-0 top-0 h-8 text-[9px] rounded-full border-safety-blue/30 text-safety-blue hover:bg-safety-blue/10 bg-transparent cursor-pointer"
+                    >
+                      <Laptop className="h-3 w-3 mr-1" />
+                      Device Sim
+                    </Button>
+                  )}
                 </motion.div>
 
                 {/* Forms Area */}
@@ -985,15 +989,17 @@ export default function Login() {
                               </>
                             )}
                           </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handlePasskeyLogin(loginForm.getValues("username"))}
-                            className="w-full h-12 rounded-lg flex items-center justify-center gap-2 border-slate-200 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-safety-blue text-[18px]">fingerprint</span>
-                            <span>Sign In with Passkey</span>
-                          </Button>
+                          {!hideDevOptions && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handlePasskeyLogin(loginForm.getValues("username"))}
+                              className="w-full h-12 rounded-lg flex items-center justify-center gap-2 border-slate-200 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-safety-blue text-[18px]">fingerprint</span>
+                              <span>Sign In with Passkey</span>
+                            </Button>
+                          )}
                         </div>
 
                         <div className="relative my-3">
@@ -1007,7 +1013,7 @@ export default function Login() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className={`grid gap-2 ${hideSsoOptions ? "grid-cols-1" : "grid-cols-3"}`}>
                           <Button
                             type="button"
                             variant="outline"
@@ -1017,24 +1023,28 @@ export default function Login() {
                             <FcGoogle className="h-4.5 w-4.5" />
                             <span>Google</span>
                           </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleSsoLogin("Microsoft")}
-                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                          >
-                            <FaMicrosoft className="h-4 w-4 text-[#00a4ef]" />
-                            <span>Microsoft</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleSsoLogin("GitHub")}
-                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                          >
-                            <FaGithub className="h-4.5 w-4.5" />
-                            <span>GitHub</span>
-                          </Button>
+                          {!hideSsoOptions && (
+                            <>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleSsoLogin("Microsoft")}
+                                className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                              >
+                                <FaMicrosoft className="h-4 w-4 text-[#00a4ef]" />
+                                <span>Microsoft</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleSsoLogin("GitHub")}
+                                className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                              >
+                                <FaGithub className="h-4.5 w-4.5" />
+                                <span>GitHub</span>
+                              </Button>
+                            </>
+                          )}
                         </div>
 
                         <div className="flex justify-center pt-2">
@@ -1291,7 +1301,7 @@ export default function Login() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className={`grid gap-2 ${hideSsoOptions ? "grid-cols-1" : "grid-cols-3"}`}>
                           <Button
                             type="button"
                             variant="outline"
@@ -1301,24 +1311,28 @@ export default function Login() {
                             <FcGoogle className="h-4.5 w-4.5" />
                             <span>Google</span>
                           </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleSsoLogin("Microsoft")}
-                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                          >
-                            <FaMicrosoft className="h-4 w-4 text-[#00a4ef]" />
-                            <span>Microsoft</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleSsoLogin("GitHub")}
-                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                          >
-                            <FaGithub className="h-4.5 w-4.5" />
-                            <span>GitHub</span>
-                          </Button>
+                          {!hideSsoOptions && (
+                            <>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleSsoLogin("Microsoft")}
+                                className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                              >
+                                <FaMicrosoft className="h-4 w-4 text-[#00a4ef]" />
+                                <span>Microsoft</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleSsoLogin("GitHub")}
+                                className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
+                              >
+                                <FaGithub className="h-4.5 w-4.5" />
+                                <span>GitHub</span>
+                              </Button>
+                            </>
+                          )}
                         </div>
 
                         <div className="flex justify-center pt-2">
@@ -1335,107 +1349,113 @@ export default function Login() {
                   )}
                 </motion.div>
 
-                {/* Demo Credentials Footer */}
-                <motion.div 
-                  variants={itemVariants}
-                  className="bg-slate-50 dark:bg-slate-950 text-[9px] text-slate-500 dark:text-slate-400 flex flex-col items-start gap-1 p-3 rounded-lg border border-slate-200 dark:border-slate-850 mt-2"
-                >
-                  <div className="font-semibold text-slate-700 dark:text-slate-300">Demo Credentials:</div>
-                  <div className="grid grid-cols-1 gap-x-3 gap-y-1 w-full text-[9px] font-mono">
-                    {/* <div>Master: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">master</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">master123</code></div> */}
-                    <div>Admin: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_admin</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">admin123</code></div>
-                    <div>Op: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_op</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">op123</code></div>
-                  </div>
-                </motion.div>
-
-                <div className="mt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSmtpTest(!showSmtpTest);
-                      setSmtpError(null);
-                      setSmtpSuccess(null);
-                    }}
-                    className="text-[10px] font-semibold text-[#2563EB] hover:underline"
-                  >
-                    {showSmtpTest ? "Close SMTP Test Console" : "SMTP Connection Issues? Test SMTP"}
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {showSmtpTest && (
-                    <motion.form 
-                      onSubmit={handleSendSmtpTest}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-850 rounded-lg mt-3 space-y-3 flex flex-col text-left overflow-hidden"
+                {!hideDevOptions && (
+                  <>
+                    {/* Demo Credentials Footer */}
+                    <motion.div 
+                      variants={itemVariants}
+                      className="bg-slate-50 dark:bg-slate-950 text-[9px] text-slate-500 dark:text-slate-400 flex flex-col items-start gap-1 p-3 rounded-lg border border-slate-200 dark:border-slate-850 mt-2"
                     >
-                      <div className="text-xs font-bold text-slate-700 dark:text-slate-300">SMTP Connection Test Panel</div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-500 uppercase">Super Master Password</label>
-                        <Input
-                          type="password"
-                          placeholder="Enter supermaster password"
-                          value={smtpPassword}
-                          onChange={(e) => setSmtpPassword(e.target.value)}
-                          className="bg-white dark:bg-slate-900 text-xs py-1.5 h-8 border border-slate-200 dark:border-slate-850 rounded focus-visible:border-[#2563EB] focus-visible:ring-0"
-                        />
+                      <div className="font-semibold text-slate-700 dark:text-slate-300">Demo Credentials:</div>
+                      <div className="grid grid-cols-1 gap-x-3 gap-y-1 w-full text-[9px] font-mono">
+                        {/* <div>Master: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">master</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">master123</code></div> */}
+                        <div>Admin: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_admin</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">admin123</code></div>
+                        <div>Op: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_op</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">op123</code></div>
                       </div>
+                    </motion.div>
 
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-500 uppercase">Test Recipient Email</label>
-                        <Input
-                          type="email"
-                          placeholder="recipient@example.com"
-                          value={smtpRecipient}
-                          onChange={(e) => setSmtpRecipient(e.target.value)}
-                          className="bg-white dark:bg-slate-900 text-xs py-1.5 h-8 border border-slate-200 dark:border-slate-850 rounded focus-visible:border-[#2563EB] focus-visible:ring-0"
-                        />
-                      </div>
-
-                      {smtpError && (
-                        <div className="p-2 text-[10px] bg-red-50 text-red-700 border border-red-105 rounded leading-normal max-h-24 overflow-y-auto font-mono">
-                          ⚠️ {smtpError}
-                        </div>
-                      )}
-
-                      {smtpSuccess && (
-                        <div className="p-2 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-105 rounded leading-normal font-mono">
-                          ✅ {smtpSuccess}
-                        </div>
-                      )}
-
-                      <Button
-                        type="submit"
-                        disabled={isSendingSmtpTest}
-                        className="w-full bg-[#2563EB] hover:bg-blue-600 text-white font-semibold text-[11px] h-8 rounded mt-1 flex items-center justify-center gap-1.5"
+                    <div className="mt-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSmtpTest(!showSmtpTest);
+                          setSmtpError(null);
+                          setSmtpSuccess(null);
+                        }}
+                        className="text-[10px] font-semibold text-[#2563EB] hover:underline"
                       >
-                        {isSendingSmtpTest ? (
-                          <>
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            Sending...
-                          </>
-                        ) : (
-                          "Send Test Email"
-                        )}
-                      </Button>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
+                        {showSmtpTest ? "Close SMTP Test Console" : "SMTP Connection Issues? Test SMTP"}
+                      </button>
+                    </div>
+
+                    <AnimatePresence>
+                      {showSmtpTest && (
+                        <motion.form 
+                          onSubmit={handleSendSmtpTest}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-850 rounded-lg mt-3 space-y-3 flex flex-col text-left overflow-hidden"
+                        >
+                          <div className="text-xs font-bold text-slate-700 dark:text-slate-300">SMTP Connection Test Panel</div>
+                          
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-slate-500 uppercase">Super Master Password</label>
+                            <Input
+                              type="password"
+                              placeholder="Enter supermaster password"
+                              value={smtpPassword}
+                              onChange={(e) => setSmtpPassword(e.target.value)}
+                              className="bg-white dark:bg-slate-900 text-xs py-1.5 h-8 border border-slate-200 dark:border-slate-850 rounded focus-visible:border-[#2563EB] focus-visible:ring-0"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-slate-500 uppercase">Test Recipient Email</label>
+                            <Input
+                              type="email"
+                              placeholder="recipient@example.com"
+                              value={smtpRecipient}
+                              onChange={(e) => setSmtpRecipient(e.target.value)}
+                              className="bg-white dark:bg-slate-900 text-xs py-1.5 h-8 border border-slate-200 dark:border-slate-850 rounded focus-visible:border-[#2563EB] focus-visible:ring-0"
+                            />
+                          </div>
+
+                          {smtpError && (
+                            <div className="p-2 text-[10px] bg-red-50 text-red-700 border border-red-105 rounded leading-normal max-h-24 overflow-y-auto font-mono">
+                              ⚠️ {smtpError}
+                            </div>
+                          )}
+
+                          {smtpSuccess && (
+                            <div className="p-2 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-105 rounded leading-normal font-mono">
+                              ✅ {smtpSuccess}
+                            </div>
+                          )}
+
+                          <Button
+                            type="submit"
+                            disabled={isSendingSmtpTest}
+                            className="w-full bg-[#2563EB] hover:bg-blue-600 text-white font-semibold text-[11px] h-8 rounded mt-1 flex items-center justify-center gap-1.5"
+                          >
+                            {isSendingSmtpTest ? (
+                              <>
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              "Send Test Email"
+                            )}
+                          </Button>
+                        </motion.form>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
 
                 {/* Security Validation Pills */}
-                <div className="mt-4 pt-6 border-t border-slate-100 dark:border-slate-850 flex justify-center gap-4">
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-850 rounded-full border border-slate-200 dark:border-slate-800">
-                    <span className="material-symbols-outlined text-success-emerald text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
-                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">AES-256 ENCRYPTED</span>
+                {!hideDevOptions && (
+                  <div className="mt-4 pt-6 border-t border-slate-100 dark:border-slate-850 flex justify-center gap-4">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-850 rounded-full border border-slate-200 dark:border-slate-800">
+                      <span className="material-symbols-outlined text-success-emerald text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+                      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">AES-256 ENCRYPTED</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-850 rounded-full border border-slate-200 dark:border-slate-800">
+                      <span className="material-symbols-outlined text-warning-amber text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>security</span>
+                      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">GS1 COMPLIANT</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-850 rounded-full border border-slate-200 dark:border-slate-800">
-                    <span className="material-symbols-outlined text-warning-amber text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>security</span>
-                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">GS1 COMPLIANT</span>
-                  </div>
-                </div>
+                )}
 
               </motion.div>
             </div>
