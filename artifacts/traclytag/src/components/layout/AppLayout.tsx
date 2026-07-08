@@ -26,25 +26,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [requiredTier, setRequiredTier] = useState("");
   const { hideMappingCode } = useMappingCodeVisibility();
 
-  const getApiBaseUrl = () => {
-    if (typeof window === "undefined") return "";
-    const { protocol, hostname, port } = window.location;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return `${protocol}//${hostname}:3000/api`;
-    }
-    if (port && port !== "80" && port !== "443") {
-      return `${protocol}//${hostname}:3000/api`;
-    }
-    return `${window.location.origin}/api`;
-  };
-
-  const getAuthToken = () => {
-    if (!user) return "";
-    if (user.role === "super_master") return "supermaster";
-    if (user.role === "master") return "master";
-    if (user.role === "client_admin") return "demo_admin";
-    return "demo_op";
-  };
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -113,7 +94,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-background flex flex-col md:flex-row">
       <aside className={cn(
         "border-r border-white/10 bg-midnight-navy text-white flex-shrink-0 flex flex-col hidden md:flex transition-all duration-300 ease-in-out",
         isCollapsed ? "w-20" : "w-64"
@@ -187,89 +168,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         
-        {/* Node status indicator matching Mockup */}
-        <div className="p-3 border-t border-white/10">
-          {isCollapsed ? (
-            <div className="flex flex-col gap-2">
-              <div 
-                className="flex justify-center items-center bg-white/5 rounded-lg border border-white/10 w-10 h-10 mx-auto cursor-pointer hover:bg-white/10 text-white/40 hover:text-white transition-all" 
-                title="Copy Mobile API Endpoint"
-                onClick={() => {
-                  navigator.clipboard.writeText(getApiBaseUrl());
-                  toast({
-                    description: "Mobile API endpoint copied to clipboard",
-                  });
-                }}
-              >
-                <LinkIcon className="h-4 w-4 text-safety-blue shrink-0" />
-              </div>
-              <div 
-                className="flex justify-center items-center bg-white/5 rounded-lg border border-white/10 w-10 h-10 mx-auto cursor-pointer hover:bg-white/10 text-white/40 hover:text-white transition-all" 
-                title="Copy API Authorization Token"
-                onClick={() => {
-                  navigator.clipboard.writeText(getAuthToken());
-                  toast({
-                    description: "API Authorization Token copied to clipboard",
-                  });
-                }}
-              >
-                <Lock className="h-4 w-4 text-amber-500 shrink-0" />
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
-              <div>
-                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Instance</p>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-success-emerald animate-pulse"></div>
-                  <span className="text-xs text-white font-bold">Production Node 04</span>
-                </div>
-              </div>
-              <div className="pt-2.5 border-t border-white/5">
-                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Mobile API Endpoint</p>
-                <div className="flex items-center gap-1.5 bg-black/40 rounded-lg p-1.5 border border-white/5 overflow-hidden">
-                  <span className="text-[10px] font-mono text-white/70 truncate flex-1 select-all" title={getApiBaseUrl()}>
-                    {getApiBaseUrl()}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 hover:bg-white/10 text-white/40 hover:text-white shrink-0 cursor-pointer"
-                    onClick={() => {
-                      navigator.clipboard.writeText(getApiBaseUrl());
-                      toast({
-                        description: "Mobile API endpoint copied to clipboard",
-                      });
-                    }}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              <div className="pt-2.5 border-t border-white/5">
-                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1.5">API Authorization Token</p>
-                <div className="flex items-center gap-1.5 bg-black/40 rounded-lg p-1.5 border border-white/5 overflow-hidden">
-                  <span className="text-[10px] font-mono text-white/70 truncate flex-1 select-all" title={getAuthToken()}>
-                    {getAuthToken()}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 hover:bg-white/10 text-white/40 hover:text-white shrink-0 cursor-pointer"
-                    onClick={() => {
-                      navigator.clipboard.writeText(getAuthToken());
-                      toast({
-                        description: "API Authorization Token copied to clipboard",
-                      });
-                    }}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50/50 dark:bg-slate-950/20">

@@ -31,6 +31,26 @@ export default function Support() {
   const { data: currentUser } = useGetCurrentUser();
   const isSuperMaster = currentUser?.role === "super_master";
 
+  const getApiBaseUrl = () => {
+    if (typeof window === "undefined") return "";
+    const { protocol, hostname, port } = window.location;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `${protocol}//${hostname}:3000/api`;
+    }
+    if (port && port !== "80" && port !== "443") {
+      return `${protocol}//${hostname}:3000/api`;
+    }
+    return `${window.location.origin}/api`;
+  };
+
+  const getAuthToken = () => {
+    if (!currentUser) return "";
+    if (currentUser.role === "super_master") return "supermaster";
+    if (currentUser.role === "master") return "master";
+    if (currentUser.role === "client_admin") return "demo_admin";
+    return "demo_op";
+  };
+
   const { data: companies = [] } = useListCompanies({
     query: {
       enabled: isSuperMaster,
@@ -313,31 +333,82 @@ export default function Support() {
             </CardContent>
           </Card>
 
-          {/* Quick Config Card */}
-          <Card className="border border-border-subtle shadow-sm bg-white dark:bg-slate-900 rounded-2xl p-6 space-y-6">
-            <h3 className="font-bold text-sm text-midnight-navy dark:text-white uppercase tracking-wider">Master Actions</h3>
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg h-fit">
-                  <Server className="h-5 w-5" />
+          <div className="space-y-6">
+            {/* Quick Config Card */}
+            <Card className="border border-border-subtle shadow-sm bg-white dark:bg-slate-900 rounded-2xl p-6 space-y-6">
+              <h3 className="font-bold text-sm text-midnight-navy dark:text-white uppercase tracking-wider">Master Actions</h3>
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg h-fit">
+                    <Server className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Reverse Proxy SSL Status</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Wildcard TLS certificate verified active for domain endpoints.</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Reverse Proxy SSL Status</h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Wildcard TLS certificate verified active for domain endpoints.</p>
-                </div>
-              </div>
 
-              <div className="flex gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
-                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg h-fit">
-                  <Globe className="h-5 w-5" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">CNAME Validation Server</h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">DNS validation server running at 142.250.190.46.</p>
+                <div className="flex gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+                  <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg h-fit">
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">CNAME Validation Server</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">DNS validation server running at 142.250.190.46.</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+
+            {/* Instance Card */}
+            <Card className="border border-border-subtle bg-white dark:bg-slate-900 shadow-sm rounded-2xl p-6 space-y-4">
+              <div>
+                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Instance</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-success-emerald animate-pulse"></div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">Production Node 04</span>
+                </div>
+              </div>
+              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Mobile API Endpoint</p>
+                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 rounded-lg p-1.5 border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 truncate flex-1 select-all" title={getApiBaseUrl()}>
+                    {getApiBaseUrl()}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 shrink-0 cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(getApiBaseUrl());
+                      toast.success("Mobile API endpoint copied to clipboard");
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">API Authorization Token</p>
+                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 rounded-lg p-1.5 border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 truncate flex-1 select-all" title={getAuthToken()}>
+                    {getAuthToken()}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 shrink-0 cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(getAuthToken());
+                      toast.success("API Authorization Token copied to clipboard");
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     );
@@ -722,6 +793,55 @@ export default function Support() {
                 </a>
               </div>
             </CardContent>
+          </Card>
+
+          {/* Instance Card */}
+          <Card className="border border-border-subtle bg-white dark:bg-slate-900 shadow-sm rounded-2xl p-6 space-y-4">
+            <div>
+              <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Instance</p>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success-emerald animate-pulse"></div>
+                <span className="text-xs font-bold text-slate-900 dark:text-white">Production Node 04</span>
+              </div>
+            </div>
+            <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Mobile API Endpoint</p>
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 rounded-lg p-1.5 border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 truncate flex-1 select-all" title={getApiBaseUrl()}>
+                  {getApiBaseUrl()}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 shrink-0 cursor-pointer"
+                  onClick={() => {
+                    navigator.clipboard.writeText(getApiBaseUrl());
+                    toast.success("Mobile API endpoint copied to clipboard");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+            <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">API Authorization Token</p>
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 rounded-lg p-1.5 border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 truncate flex-1 select-all" title={getAuthToken()}>
+                  {getAuthToken()}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 shrink-0 cursor-pointer"
+                  onClick={() => {
+                    navigator.clipboard.writeText(getAuthToken());
+                    toast.success("API Authorization Token copied to clipboard");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
           </Card>
         </div>
       </div>
