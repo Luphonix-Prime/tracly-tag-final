@@ -1,11 +1,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings as SettingsIcon, Link2 } from "lucide-react";
+import { Settings as SettingsIcon, Link2, ShieldAlert } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
+import { useDevOptionsVisibility } from "@/hooks/use-dev-options-visibility";
+import { useGetCurrentUser } from "@workspace/api-client-react";
 
 export default function Settings() {
   const { hideMappingCode, toggleVisibility } = useMappingCodeVisibility();
+  const { hideDevOptions, hideSsoOptions, setDevVisibility, setSsoVisibility } = useDevOptionsVisibility();
+  const { data: currentUser } = useGetCurrentUser();
+
+  const isSuperMaster = currentUser?.role === "super_master";
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans">
@@ -43,6 +49,52 @@ export default function Settings() {
               onCheckedChange={toggleVisibility}
             />
           </div>
+
+          {isSuperMaster && (
+            <>
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500 mt-0.5">
+                    <ShieldAlert className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="dev-options-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Hide Developer & Demo Options on Login Page
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      When enabled, the "Device Sim", "Passkey Sign In", "Demo Credentials", and "SMTP Test" options will be hidden from the login screen.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="dev-options-toggle"
+                  checked={hideDevOptions}
+                  onCheckedChange={setDevVisibility}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500 mt-0.5">
+                    <ShieldAlert className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="sso-options-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Hide Microsoft & GitHub SSO Options on Login Page
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      When enabled, the Microsoft and GitHub SSO buttons will be hidden from the login screen.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="sso-options-toggle"
+                  checked={hideSsoOptions}
+                  onCheckedChange={setSsoVisibility}
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
