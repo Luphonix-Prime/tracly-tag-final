@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   useGetCurrentUser,
@@ -108,6 +108,12 @@ export default function NewProduct() {
       companyId: undefined,
     },
   });
+
+  useEffect(() => {
+    if (currentUser?.companyName && !isMaster) {
+      form.setValue("marketedBy", currentUser.companyName);
+    }
+  }, [currentUser, isMaster, form]);
 
   const watchL1Size = form.watch("l1Size") || 10;
   const watchShipperSize = form.watch("shipperSize") || 5;
@@ -459,16 +465,26 @@ export default function NewProduct() {
                         <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
                           MARKETED BY
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
                           <FormControl>
                             <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-[42px]">
-                              <SelectValue placeholder="Select context" />
+                              <SelectValue placeholder="Select company" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Tracely Global Logistics">Tracely Global Logistics</SelectItem>
-                            <SelectItem value="Apex Pharmaceuticals">Apex Pharmaceuticals</SelectItem>
-                            <SelectItem value="Demo Pharma Pvt Ltd">Demo Pharma Pvt Ltd</SelectItem>
+                            {isMaster ? (
+                              companies.map((c) => (
+                                <SelectItem key={c.id} value={c.name}>
+                                  {c.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              currentUser?.companyName && (
+                                <SelectItem value={currentUser.companyName}>
+                                  {currentUser.companyName}
+                                </SelectItem>
+                              )
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
