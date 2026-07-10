@@ -60588,6 +60588,17 @@ router8.get("/codes/public/:serial", async (req, res) => {
       const parts = searchSerial.split(":");
       searchSerial = parts[parts.length - 1] || searchSerial;
     }
+    if (searchSerial.includes("(21)")) {
+      const match = searchSerial.match(/\(21\)([^()]+)/);
+      if (match && match[1]) {
+        searchSerial = match[1];
+      }
+    } else if (searchSerial.includes("(00)")) {
+      const match = searchSerial.match(/\(00\)([^()]+)/);
+      if (match && match[1]) {
+        searchSerial = match[1];
+      }
+    }
     console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);
     let rows = await buildQuery(
       or(

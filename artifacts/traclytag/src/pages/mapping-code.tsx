@@ -200,6 +200,17 @@ export default function MappingCode() {
             const parts = searchSerial.split(":");
             searchSerial = parts[parts.length - 1] || searchSerial;
           }
+          if (searchSerial.includes("(21)")) {
+            const match = searchSerial.match(/\(21\)([^()]+)/);
+            if (match && match[1]) {
+              searchSerial = match[1];
+            }
+          } else if (searchSerial.includes("(00)")) {
+            const match = searchSerial.match(/\(00\)([^()]+)/);
+            if (match && match[1]) {
+              searchSerial = match[1];
+            }
+          }
 
           // Match code in current batch list
           const matchedCode = codesList.find(c => 
@@ -988,6 +999,17 @@ export default function MappingCode() {
                             } else if (searchSerial.includes(":")) {
                               const parts = searchSerial.split(":");
                               searchSerial = parts[parts.length - 1] || searchSerial;
+                            }
+                            if (searchSerial.includes("(21)")) {
+                              const match = searchSerial.match(/\(21\)([^()]+)/);
+                              if (match && match[1]) {
+                                searchSerial = match[1];
+                              }
+                            } else if (searchSerial.includes("(00)")) {
+                              const match = searchSerial.match(/\(00\)([^()]+)/);
+                              if (match && match[1]) {
+                                searchSerial = match[1];
+                              }
                             }
                             const matchedCode = codesList.find(c => 
                               c.serialNumber === searchSerial || 

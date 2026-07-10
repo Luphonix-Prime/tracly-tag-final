@@ -21,6 +21,7 @@ import {
   Skull, 
   Leaf, 
   Snowflake,
+  Ban,
   Loader2,
   Trash2,
   Plus
@@ -497,8 +498,9 @@ export default function NewProduct() {
                       <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
                         CAUTION LOGO SELECTION
                       </FormLabel>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         {[
+                          { name: "N/A", icon: Ban, color: "text-slate-400", bg: "bg-slate-100" },
                           { name: "Flammable", icon: Flame, color: "text-red-500", bg: "bg-red-50" },
                           { name: "Toxic", icon: Skull, color: "text-slate-600", bg: "bg-slate-50" },
                           { name: "Eco-Hazard", icon: Leaf, color: "text-emerald-500", bg: "bg-emerald-50" },
