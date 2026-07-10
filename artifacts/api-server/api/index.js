@@ -50961,6 +50961,42 @@ var RegenerateCompanyApiKeyResponse = objectType({
 var DeleteCompanyParams = objectType({
   "id": coerce.number()
 });
+var UpdateCompanyParams = objectType({
+  "id": coerce.number()
+});
+var updateCompanyBodyGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
+var UpdateCompanyBody = objectType({
+  "name": stringType(),
+  "email": stringType(),
+  "address": stringType(),
+  "gstin": stringType().regex(updateCompanyBodyGstinRegExp).nullish(),
+  "companyUrl": stringType().nullish(),
+  "pan": stringType().nullish(),
+  "cin": stringType().nullish(),
+  "msmeRegistrationNo": stringType().nullish(),
+  "fssaiLicenseNo": stringType().nullish(),
+  "drugLicenseNo": stringType().nullish(),
+  "iecCode": stringType().nullish(),
+  "companyPrefix": stringType().nullish()
+});
+var updateCompanyResponseGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
+var UpdateCompanyResponse = objectType({
+  "id": numberType(),
+  "name": stringType(),
+  "email": stringType(),
+  "address": stringType(),
+  "gstin": stringType().regex(updateCompanyResponseGstinRegExp).nullable(),
+  "companyUrl": stringType().nullish(),
+  "apiKey": stringType().nullish(),
+  "pan": stringType().nullish(),
+  "cin": stringType().nullish(),
+  "msmeRegistrationNo": stringType().nullish(),
+  "fssaiLicenseNo": stringType().nullish(),
+  "drugLicenseNo": stringType().nullish(),
+  "iecCode": stringType().nullish(),
+  "companyPrefix": stringType().nullish(),
+  "createdAt": coerce.date()
+});
 var ListUsersResponseItem = objectType({
   "id": numberType(),
   "username": stringType(),
@@ -59795,6 +59831,42 @@ router3.post(
     res.status(201).json(row);
   }
 );
+router3.put(
+  "/companies/:id",
+  requireRole("master"),
+  async (req, res) => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw ?? "", 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = CreateCompanyBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const [updated] = await db.update(companiesTable).set({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      address: parsed.data.address,
+      gstin: parsed.data.gstin !== void 0 ? parsed.data.gstin || null : void 0,
+      companyUrl: parsed.data.companyUrl !== void 0 ? parsed.data.companyUrl || null : void 0,
+      pan: parsed.data.pan !== void 0 ? parsed.data.pan || null : void 0,
+      cin: parsed.data.cin !== void 0 ? parsed.data.cin || null : void 0,
+      msmeRegistrationNo: parsed.data.msmeRegistrationNo !== void 0 ? parsed.data.msmeRegistrationNo || null : void 0,
+      fssaiLicenseNo: parsed.data.fssaiLicenseNo !== void 0 ? parsed.data.fssaiLicenseNo || null : void 0,
+      drugLicenseNo: parsed.data.drugLicenseNo !== void 0 ? parsed.data.drugLicenseNo || null : void 0,
+      iecCode: parsed.data.iecCode !== void 0 ? parsed.data.iecCode || null : void 0,
+      companyPrefix: parsed.data.companyPrefix !== void 0 ? parsed.data.companyPrefix || null : void 0
+    }).where(eq(companiesTable.id, id)).returning();
+    if (!updated) {
+      res.status(404).json({ error: "Company not found" });
+      return;
+    }
+    res.json(updated);
+  }
+);
 router3.delete(
   "/companies/:id",
   requireRole("master"),
@@ -60515,6 +60587,17 @@ router8.get("/codes/public/:serial", async (req, res) => {
     } else if (searchSerial.includes(":")) {
       const parts = searchSerial.split(":");
       searchSerial = parts[parts.length - 1] || searchSerial;
+    }
+    if (searchSerial.includes("(21)")) {
+      const match = searchSerial.match(/\(21\)([^()]+)/);
+      if (match && match[1]) {
+        searchSerial = match[1];
+      }
+    } else if (searchSerial.includes("(00)")) {
+      const match = searchSerial.match(/\(00\)([^()]+)/);
+      if (match && match[1]) {
+        searchSerial = match[1];
+      }
     }
     console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);
     let rows = await buildQuery(

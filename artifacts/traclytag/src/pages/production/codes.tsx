@@ -179,6 +179,26 @@ function parseGs1Raw(raw: string) {
   return { gtin, serial, batch, expiry };
 }
 
+const getProductString = (raw: string, companyGstin?: string) => {
+  const parsed = parseGs1Raw(raw);
+  if (parsed.fallback || parsed.error) {
+    return raw;
+  }
+  if (parsed.sscc) {
+    const validSscc = fixSsccCheckDigit(parsed.sscc);
+    return `(00)${validSscc}`;
+  }
+  const displayGtin = companyGstin || (parsed.gtin ? fixGtinCheckDigit(parsed.gtin) : "");
+  const expiryYear = parsed.expiry && parsed.expiry.length >= 2 ? `20${parsed.expiry.substring(0, 2)}` : "";
+  const parts = [
+    displayGtin ? `${displayGtin}` : "",
+    parsed.batch ? `${parsed.batch}` : "",
+    expiryYear ? `${expiryYear}` : "",
+    parsed.serial ? `${parsed.serial}` : ""
+  ].filter(Boolean);
+  return parts.join("-");
+};
+
 const renderGs1Text = (raw: string, companyGstin?: string) => {
   const parsed = parseGs1Raw(raw);
   if (parsed.fallback) {
@@ -194,7 +214,15 @@ const renderGs1Text = (raw: string, companyGstin?: string) => {
   
   const displayGtin = companyGstin || (parsed.gtin ? fixGtinCheckDigit(parsed.gtin) : "");
   const expiryYear = parsed.expiry && parsed.expiry.length >= 2 ? `20${parsed.expiry.substring(0, 2)}` : "";
-  const concatenated = `${displayGtin}-${expiryYear}-${parsed.batch || ""}-${parsed.serial || ""}`;
+  
+  const parts = [
+    displayGtin ? `(01)${displayGtin}` : "",
+    parsed.batch ? `(10)${parsed.batch}` : "",
+    expiryYear ? `(17)${expiryYear}` : "",
+    parsed.serial ? `(21)${parsed.serial}` : ""
+  ].filter(Boolean);
+
+  const concatenated = parts.join("-");
 
   return (
     <div className="text-[10px] font-bold font-mono text-midnight-navy text-left space-y-0.5 w-full leading-normal">
@@ -202,8 +230,14 @@ const renderGs1Text = (raw: string, companyGstin?: string) => {
       {parsed.serial && <div>(21){parsed.serial}</div>}
       {parsed.batch && <div>(10){parsed.batch}</div>}
       {parsed.expiry && <div>(17){parsed.expiry}</div>}
-      <div className="mt-1 border-t border-slate-200/50 pt-0.5 text-[8.5px] text-[#434655] truncate" title={concatenated}>
-        {concatenated}
+      <div className="mt-1 border-t border-slate-200/50 pt-0.5 text-[8.5px] text-[#434655] whitespace-normal" title={concatenated}>
+        Product string:{" "}
+        {parts.map((part, idx) => (
+          <span key={idx} className="inline-block whitespace-nowrap">
+            {part}
+            {idx < parts.length - 1 && "-\u200B"}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -884,7 +918,7 @@ export default function Codes() {
                 "grid-cols-6"
               }`}>
                 {viewCodesList.map((code) => {
-                  const displayCode = code.serialNumber || code.ssccCode || "";
+                  const displayCode = getProductString(code.rawString, code.companyGstin);
                   let prefix = "";
                   try {
                     if (code.createdAt) {
@@ -897,7 +931,8 @@ export default function Codes() {
                   } catch (e) {
                     console.error(e);
                   }
-                  const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
+                 // const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
+                  const qrCodeString = prefix ? `${displayCode}` : displayCode;
                   let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
                   if (rawUrl) {
@@ -955,7 +990,7 @@ export default function Codes() {
               /* List View Mode */
               <div className="space-y-3">
                 {viewCodesList.map((code) => {
-                  const displayCode = code.serialNumber || code.ssccCode || "";
+                  const displayCode = getProductString(code.rawString, code.companyGstin);
                   let prefix = "";
                   try {
                     if (code.createdAt) {

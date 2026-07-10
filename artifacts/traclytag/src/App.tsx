@@ -208,6 +208,7 @@ function Router() {
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/companies"><ProtectedRoute component={Companies} /></Route>
       <Route path="/companies/new"><ProtectedRoute component={NewCompany} /></Route>
+      <Route path="/companies/:id/edit"><ProtectedRoute component={NewCompany} /></Route>
       <Route path="/users"><ProtectedRoute component={Users} /></Route>
       <Route path="/users/new"><ProtectedRoute component={NewUser} /></Route>
       <Route path="/products"><ProtectedRoute component={Products} /></Route>
