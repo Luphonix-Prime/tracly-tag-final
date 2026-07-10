@@ -188,7 +188,18 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
     }
 
     // Extract actual serial/SSCC from concatenated product string if formatted with (21) or (00)
-    if (searchSerial.includes("(21)")) {
+    if (searchSerial.includes("-")) {
+      const parts = searchSerial.split("-");
+      const serialIndex = parts.findIndex(p => p.startsWith("21"));
+      if (serialIndex > -1) {
+        searchSerial = parts.slice(serialIndex).join("-").substring(2);
+      } else {
+        const ssccIndex = parts.findIndex(p => p.startsWith("00"));
+        if (ssccIndex > -1) {
+          searchSerial = parts.slice(ssccIndex).join("-").substring(2);
+        }
+      }
+    } else if (searchSerial.includes("(21)")) {
       const match = searchSerial.match(/\(21\)([^()]+)/);
       if (match && match[1]) {
         searchSerial = match[1];
@@ -198,6 +209,10 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
       if (match && match[1]) {
         searchSerial = match[1];
       }
+    } else if (searchSerial.startsWith("01") && searchSerial.length >= 18) {
+      searchSerial = searchSerial.substring(18);
+    } else if (searchSerial.startsWith("00") && searchSerial.length >= 20) {
+      searchSerial = searchSerial.substring(2);
     }
     
     console.log(`[Public Verify] Searching for: "${serial}" (normalized: "${searchSerial}")`);

@@ -191,10 +191,10 @@ const getProductString = (raw: string, companyGstin?: string) => {
   const displayGtin = companyGstin || (parsed.gtin ? fixGtinCheckDigit(parsed.gtin) : "");
   const expiryYear = parsed.expiry && parsed.expiry.length >= 2 ? `20${parsed.expiry.substring(0, 2)}` : "";
   const parts = [
-    displayGtin ? `(01)${displayGtin}` : "",
-    parsed.batch ? `(10)${parsed.batch}` : "",
-    expiryYear ? `(17)${expiryYear}` : "",
-    parsed.serial ? `(21)${parsed.serial}` : ""
+    displayGtin ? `${displayGtin}` : "",
+    parsed.batch ? `${parsed.batch}` : "",
+    expiryYear ? `${expiryYear}` : "",
+    parsed.serial ? `${parsed.serial}` : ""
   ].filter(Boolean);
   return parts.join("-");
 };
