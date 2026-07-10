@@ -94,7 +94,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen md:h-screen md:overflow-hidden bg-background flex flex-col md:flex-row">
+    <div className="relative min-h-screen md:h-screen md:overflow-hidden bg-background flex flex-col md:flex-row">
       <aside className={cn(
         "border-r border-white/10 bg-midnight-navy text-white flex-shrink-0 flex flex-col hidden md:flex transition-all duration-300 ease-in-out",
         isCollapsed ? "w-20" : "w-64"
