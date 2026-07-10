@@ -34,7 +34,7 @@ type BatchForm = z.infer<typeof batchSchema>;
 export default function NewBatch() {
   const { data: products = [] } = useListProducts();
   const { data: locations = [] } = useListLocations();
-  const factories = locations.filter(loc => loc.locationType?.toLowerCase() === "factory");
+  const factories = locations;
   const createBatch = useCreateBatch();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -284,22 +284,22 @@ export default function NewBatch() {
                   {/* Factory Location */}
                   <div className="space-y-2">
                     <label className="text-[11px] font-bold tracking-wider text-slate-500 uppercase block">
-                      Factory Location
+                      Facility Location
                     </label>
                     <Select onValueChange={setFactoryLocation} value={factoryLocation || ""}>
                       <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-3 px-4 text-sm text-slate-900 transition-all h-auto">
-                        <SelectValue placeholder="Select production facility..." />
+                        <SelectValue placeholder="Select facility location..." />
                       </SelectTrigger>
                       <SelectContent>
                         {factories.length > 0 ? (
                           factories.map((loc) => (
                             <SelectItem key={loc.id} value={loc.locationName}>
-                              {loc.locationName}
+                              {loc.locationName} ({loc.locationType})
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="" disabled>
-                            No factories registered. Please add one on the Locations page.
+                          <SelectItem value="none" disabled>
+                            No locations registered. Please add one on the Locations page.
                           </SelectItem>
                         )}
                       </SelectContent>
