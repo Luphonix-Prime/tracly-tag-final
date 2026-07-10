@@ -780,9 +780,8 @@ export default function Login() {
               >
                 {/* Logo branding block */}
                 <motion.div variants={itemVariants} className="flex flex-col items-center mb-4 w-full relative">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="material-symbols-outlined text-safety-blue text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>sensors</span>
-                    <span className="text-2xl font-bold tracking-tight text-midnight-navy dark:text-white">TracelyTag</span>
+                  <div className="flex items-center gap-2 mb-2 justify-center">
+                    <img src="/logo.png" alt="TracelyTag Logo" className="h-10 object-contain" />
                   </div>
                   <div className="h-px w-12 bg-safety-blue mb-4"></div>
                   <h1 className="text-sm font-bold text-midnight-navy dark:text-white uppercase tracking-widest">

@@ -182,8 +182,7 @@ export default function PublicVerify() {
       {/* TopAppBar */}
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center px-6 h-14 w-full z-50 sticky top-0 shadow-sm">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-safety-blue" />
-          <h1 className="text-md font-bold text-midnight-navy dark:text-white">TracelyTag</h1>
+          <img src="/logo.png" alt="Logo" className="h-6 object-contain" />
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -243,7 +242,7 @@ export default function PublicVerify() {
             <div className="text-center">
               <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
                 <div className="scan-viewfinder-corners absolute inset-0 pulse-animation"></div>
-                <QrCode className="h-12 w-12 text-safety-blue animate-pulse" />
+                <img src="/logo-icon.png" alt="Scan Icon" className="h-12 w-12 object-contain animate-pulse" />
               </div>
               <h2 className="text-xl font-bold text-midnight-navy dark:text-white mb-2">Final Verification</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 px-4">

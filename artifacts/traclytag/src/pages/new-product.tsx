@@ -109,11 +109,22 @@ export default function NewProduct() {
     },
   });
 
+  const watchName = form.watch("name");
+
   useEffect(() => {
     if (currentUser?.companyName && !isMaster) {
       form.setValue("marketedBy", currentUser.companyName);
     }
   }, [currentUser, isMaster, form]);
+
+  useEffect(() => {
+    const generatedSku = (watchName || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s-]/g, "")
+      .trim()
+      .replace(/[\s-]+/g, "-");
+    form.setValue("skuId", generatedSku, { shouldValidate: true });
+  }, [watchName, form]);
 
   const watchL1Size = form.watch("l1Size") || 10;
   const watchShipperSize = form.watch("shipperSize") || 5;
@@ -311,8 +322,9 @@ export default function NewProduct() {
                         </FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="e.g. SKU-88291-B" 
-                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all placeholder:text-slate-400"
+                            readOnly
+                            placeholder="Automatically generated from product name" 
+                            className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-500 rounded-lg py-2.5 px-4 text-sm transition-all cursor-not-allowed focus-visible:ring-0 placeholder:text-slate-400 font-semibold"
                             {...field} 
                           />
                         </FormControl>
