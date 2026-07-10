@@ -184,6 +184,50 @@ export const DeleteCompanyParams = zod.object({
 })
 
 
+export const UpdateCompanyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateCompanyBodyGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');
+
+
+export const UpdateCompanyBody = zod.object({
+  "name": zod.string(),
+  "email": zod.string(),
+  "address": zod.string(),
+  "gstin": zod.string().regex(updateCompanyBodyGstinRegExp).nullish(),
+  "companyUrl": zod.string().nullish(),
+  "pan": zod.string().nullish(),
+  "cin": zod.string().nullish(),
+  "msmeRegistrationNo": zod.string().nullish(),
+  "fssaiLicenseNo": zod.string().nullish(),
+  "drugLicenseNo": zod.string().nullish(),
+  "iecCode": zod.string().nullish(),
+  "companyPrefix": zod.string().nullish()
+})
+
+export const updateCompanyResponseGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');
+
+
+export const UpdateCompanyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "address": zod.string(),
+  "gstin": zod.string().regex(updateCompanyResponseGstinRegExp).nullable(),
+  "companyUrl": zod.string().nullish(),
+  "apiKey": zod.string().nullish(),
+  "pan": zod.string().nullish(),
+  "cin": zod.string().nullish(),
+  "msmeRegistrationNo": zod.string().nullish(),
+  "fssaiLicenseNo": zod.string().nullish(),
+  "drugLicenseNo": zod.string().nullish(),
+  "iecCode": zod.string().nullish(),
+  "companyPrefix": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
 export const ListUsersResponseItem = zod.object({
   "id": zod.number(),
   "username": zod.string(),
