@@ -50840,7 +50840,7 @@ var LoginResponse = objectType({
   "id": numberType(),
   "username": stringType(),
   "email": stringType(),
-  "role": enumType(["super_master", "master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "admin", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
   "companyUrl": stringType().nullish(),
@@ -50860,7 +50860,7 @@ var GetCurrentUserResponse = objectType({
   "id": numberType(),
   "username": stringType(),
   "email": stringType(),
-  "role": enumType(["super_master", "master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "admin", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
   "companyUrl": stringType().nullish(),
@@ -51002,7 +51002,7 @@ var ListUsersResponseItem = objectType({
   "username": stringType(),
   "email": stringType(),
   "phone": stringType().nullable(),
-  "role": enumType(["super_master", "master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "admin", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
   "isActive": booleanType(),
@@ -51015,7 +51015,7 @@ var CreateUserBody = objectType({
   "email": stringType(),
   "phone": stringType().nullish(),
   "password": stringType(),
-  "role": enumType(["super_master", "master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "admin", "client_admin", "operator"]),
   "companyId": numberType().nullish(),
   "isActive": booleanType().optional(),
   "enabledModules": stringType().optional()
@@ -51029,7 +51029,7 @@ var UpdateUserParams = objectType({
 var UpdateUserBody = objectType({
   "email": stringType().optional(),
   "phone": stringType().nullish(),
-  "role": enumType(["super_master", "master", "client_admin", "operator"]).optional(),
+  "role": enumType(["super_master", "master", "admin", "client_admin", "operator"]).optional(),
   "isActive": booleanType().optional(),
   "enabledModules": stringType().optional(),
   "password": stringType().optional()
@@ -51039,7 +51039,7 @@ var UpdateUserResponse = objectType({
   "username": stringType(),
   "email": stringType(),
   "phone": stringType().nullable(),
-  "role": enumType(["super_master", "master", "client_admin", "operator"]),
+  "role": enumType(["super_master", "master", "admin", "client_admin", "operator"]),
   "companyId": numberType().nullable(),
   "companyName": stringType().nullable(),
   "isActive": booleanType(),
@@ -61235,6 +61235,7 @@ async function seedDatabase(dbInstance) {
   const superMasterHash = await bcryptjs_default.hash(supermasterPassword, 10);
   const masterHash = await bcryptjs_default.hash("master123", 10);
   const adminHash = await bcryptjs_default.hash("admin123", 10);
+  const managerHash = await bcryptjs_default.hash("manager123", 10);
   const opHash = await bcryptjs_default.hash("op123", 10);
   const users = await dbInstance.insert(usersTable).values([
     {
@@ -61258,6 +61259,14 @@ async function seedDatabase(dbInstance) {
       email: "admin@demopharma.in",
       phone: "+91 9111111111",
       passwordHash: adminHash,
+      role: "admin",
+      companyId: demoCo.id
+    },
+    {
+      username: "demo_manager",
+      email: "manager@demopharma.in",
+      phone: "+91 9155555555",
+      passwordHash: managerHash,
       role: "client_admin",
       companyId: demoCo.id
     },

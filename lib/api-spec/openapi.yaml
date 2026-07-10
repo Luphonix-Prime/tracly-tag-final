@@ -660,7 +660,7 @@ components:
 
     Role:
       type: string
-      enum: [super_master, master, client_admin, operator]
+      enum: [super_master, master, admin, client_admin, operator]
 
     LoginBody:
       type: object
