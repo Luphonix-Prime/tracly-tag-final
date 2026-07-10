@@ -94,15 +94,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen md:h-screen md:overflow-hidden bg-background flex flex-col md:flex-row">
+    <div className="relative min-h-screen md:h-screen md:overflow-hidden bg-background flex flex-col md:flex-row">
       <aside className={cn(
         "border-r border-white/10 bg-midnight-navy text-white flex-shrink-0 flex flex-col hidden md:flex transition-all duration-300 ease-in-out",
         isCollapsed ? "w-20" : "w-64"
       )}>
-        <div className="h-14 border-b border-white/10 flex items-center px-4 font-semibold text-lg tracking-tight text-white justify-between overflow-hidden">
-          <div className="flex items-center gap-2">
-            <QrCode className="h-5 w-5 text-safety-blue shrink-0 animate-pulse" />
-            {!isCollapsed && <span className="font-bold tracking-tight">TracelyTag</span>}
+        <div className="h-14 border-b border-white/10 flex items-center px-4 justify-between overflow-hidden">
+          <div className="flex items-center gap-2 w-full justify-center md:justify-start">
+            <img 
+              src={isCollapsed ? "/logo-icon.png" : "/logo.png"} 
+              alt="Logo" 
+              className={cn("object-contain transition-all duration-300", isCollapsed ? "h-7 w-7" : "h-7")} 
+            />
           </div>
           {!isCollapsed && <span className="text-[10px] text-white/40 font-mono">v2.4</span>}
         </div>
@@ -182,8 +185,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Menu className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-4 md:hidden">
-              <QrCode className="h-5 w-5 text-safety-blue" />
-              <span className="font-semibold text-midnight-navy dark:text-white">TracelyTag</span>
+              <img src="/logo.png" alt="Logo" className="h-6 object-contain" />
             </div>
             <div className="hidden md:flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
               {user.companyName ? `Company: ${user.companyName}` : "Global Admin"}
