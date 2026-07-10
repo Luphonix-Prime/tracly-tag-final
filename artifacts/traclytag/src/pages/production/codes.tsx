@@ -194,7 +194,7 @@ const renderGs1Text = (raw: string, companyGstin?: string) => {
   
   const displayGtin = companyGstin || (parsed.gtin ? fixGtinCheckDigit(parsed.gtin) : "");
   const expiryYear = parsed.expiry && parsed.expiry.length >= 2 ? `20${parsed.expiry.substring(0, 2)}` : "";
-  const concatenated = `${displayGtin}-${expiryYear}-${parsed.batch || ""}-${parsed.serial || ""}`;
+  const concatenated = `(01)${displayGtin}-(10)${parsed.batch || ""}-(17)${expiryYear}-(21)${parsed.serial || ""}`;
 
   return (
     <div className="text-[10px] font-bold font-mono text-midnight-navy text-left space-y-0.5 w-full leading-normal">
