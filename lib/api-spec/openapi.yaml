@@ -842,6 +842,8 @@ components:
           type: string
         password:
           type: string
+        companyId:
+          type: ["integer", "null"]
 
 
     Product:

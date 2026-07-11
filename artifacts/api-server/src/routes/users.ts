@@ -230,6 +230,7 @@ router.put("/users/:id", async (req, res): Promise<void> => {
     if (parsed.data.role !== undefined) updateData.role = parsed.data.role;
     if (parsed.data.isActive !== undefined) updateData.isActive = parsed.data.isActive;
     if (parsed.data.enabledModules !== undefined) updateData.enabledModules = parsed.data.enabledModules;
+    if (parsed.data.companyId !== undefined) updateData.companyId = parsed.data.companyId ?? null;
 
     if (parsed.data.password && parsed.data.password.trim().length > 0) {
       if (parsed.data.password.length < 6) {

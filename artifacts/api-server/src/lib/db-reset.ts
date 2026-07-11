@@ -13,7 +13,157 @@ import {
 } from "@workspace/db";
 import { generateUnitCode, generateSsccCode } from './gs1.js';
 
-export async function seedDatabase(dbInstance: any) {
+export async function seedDatabase(dbInstance: any, seedData?: any) {
+  if (seedData) {
+    // 1. Insert company
+    const companyVal = seedData.company || {
+      name: "Demo Pharma Pvt Ltd",
+      email: "ops@demopharma.in",
+      address: "Plot 14, MIDC Industrial Area, Pune, Maharashtra 411019",
+      gstin: "27AABCD1234E1Z5",
+    };
+    const [insertedCo] = await dbInstance
+      .insert(companiesTable)
+      .values(companyVal)
+      .returning();
+
+    // 2. Insert users
+    const usersList = seedData.users || [];
+    const usersToInsert = [];
+    for (const u of usersList) {
+      const passwordHash = await bcrypt.hash(u.password || "password123", 10);
+      usersToInsert.push({
+        username: u.username,
+        email: u.email,
+        phone: u.phone || null,
+        passwordHash,
+        role: u.role,
+        companyId: (u.role === "super_master" || u.role === "master") ? null : insertedCo.id,
+      });
+    }
+    const insertedUsers = await dbInstance.insert(usersTable).values(usersToInsert).returning();
+
+    // 3. Insert locations
+    const locationsList = seedData.locations || [];
+    let warehouse: any = null;
+    if (locationsList.length > 0) {
+      const locationsToInsert = locationsList.map((loc: any) => ({
+        companyId: insertedCo.id,
+        locationType: loc.locationType,
+        uniqueName: loc.uniqueName,
+        locationName: loc.locationName,
+        contactNo: loc.contactNo || null,
+        state: loc.state || null,
+        city: loc.city || null,
+        address: loc.address || null,
+      }));
+      const insertedLocs = await dbInstance.insert(locationsTable).values(locationsToInsert).returning();
+      warehouse = insertedLocs[0];
+    }
+
+    // 4. Insert products
+    const productsList = seedData.products || [];
+    let insertedProds: any[] = [];
+    if (productsList.length > 0) {
+      const productsToInsert = productsList.map((prod: any) => ({
+        companyId: insertedCo.id,
+        skuId: prod.skuId,
+        name: prod.name,
+        skuSize: prod.skuSize || "",
+        marketedBy: prod.marketedBy || null,
+        sapDescription: prod.sapDescription || null,
+        gtin: prod.gtin || null,
+        mrp: prod.mrp ? Number(prod.mrp) : null,
+        registrationNo: prod.registrationNo || null,
+        l1Size: prod.l1Size ? Number(prod.l1Size) : null,
+        l2Size: prod.l2Size ? Number(prod.l2Size) : null,
+        shipperSize: prod.shipperSize ? Number(prod.shipperSize) : null,
+        cautionLogoUrl: prod.cautionLogoUrl || null,
+        productLogoUrl: prod.productLogoUrl || null,
+        labelPdfUrl: prod.labelPdfUrl || null,
+        expiryDate: prod.expiryDate || null,
+      }));
+      insertedProds = await dbInstance.insert(productsTable).values(productsToInsert).returning();
+    }
+
+    // 5. Insert batches
+    const batchesList = seedData.batches || [];
+    const batchesToInsert = [];
+    for (const bat of batchesList) {
+      const matchedProd = insertedProds.find((p: any) => p.skuId === bat.productSkuId);
+      if (matchedProd) {
+        batchesToInsert.push({
+          productId: matchedProd.id,
+          batchNumber: bat.batchNumber,
+          mfgDate: bat.mfgDate || null,
+          expiryDate: bat.expiryDate || null,
+        });
+      }
+    }
+    
+    let insertedBatches: any[] = [];
+    if (batchesToInsert.length > 0) {
+      insertedBatches = await dbInstance.insert(batchesTable).values(batchesToInsert).returning();
+    }
+
+    // 6. Generate codes & scans
+    const codeRows: any[] = [];
+    for (const batch of insertedBatches) {
+      const matchedProd = insertedProds.find((p: any) => p.id === batch.productId);
+      if (!matchedProd) continue;
+
+      for (let i = 0; i < 20; i++) {
+        const { raw, serial } = generateUnitCode({
+          gtin: matchedProd.gtin || "08901234567896",
+          expiry: matchedProd.expiryDate || "2028-12-31",
+          batch: batch.batchNumber,
+        });
+        codeRows.push({
+          productId: matchedProd.id,
+          batchId: batch.id,
+          level: "unit",
+          rawString: raw,
+          serialNumber: serial,
+          ssccCode: null,
+        });
+      }
+      
+      for (let i = 0; i < 2; i++) {
+        const { raw, sscc } = generateSsccCode("8901234", Math.floor(Math.random() * 100000));
+        codeRows.push({
+          productId: matchedProd.id,
+          batchId: batch.id,
+          level: "shipper",
+          rawString: raw,
+          serialNumber: null,
+          ssccCode: sscc,
+        });
+      }
+    }
+
+    if (codeRows.length > 0) {
+      const insertedCodes = await dbInstance.insert(codesTable).values(codeRows).returning();
+      const opUser = insertedUsers.find((u: any) => u.role === "operator");
+      const opUserId = opUser ? opUser.id : insertedUsers[0]?.id;
+
+      if (warehouse && insertedCodes.length > 0) {
+        const toMap = insertedCodes.slice(0, Math.min(insertedCodes.length, 5));
+        for (const c of toMap) {
+          await dbInstance
+            .update(codesTable)
+            .set({
+              mapped: true,
+              mappedAt: new Date().toISOString(),
+              mappedByUserId: opUserId,
+              locationId: warehouse.id,
+            })
+            .where(eq(codesTable.id, c.id));
+        }
+      }
+    }
+    return;
+  }
+
   // Company
   const [demoCo] = await dbInstance
     .insert(companiesTable)
@@ -301,7 +451,7 @@ export async function seedDatabase(dbInstance: any) {
   await dbInstance.insert(customerScansTable).values(customerScans);
 }
 
-export async function resetAndSeedDatabase(dbInstance: any) {
+export async function resetAndSeedDatabase(dbInstance: any, seedData?: any) {
   // Delete all records from tables in correct dependency order
   await dbInstance.delete(customerScansTable);
   await dbInstance.delete(deviceCodesTable);
@@ -314,5 +464,5 @@ export async function resetAndSeedDatabase(dbInstance: any) {
   await dbInstance.delete(companiesTable);
 
   // Run the seeding logic
-  await seedDatabase(dbInstance);
+  await seedDatabase(dbInstance, seedData);
 }

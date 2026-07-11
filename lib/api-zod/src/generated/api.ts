@@ -270,7 +270,8 @@ export const UpdateUserBody = zod.object({
   "role": zod.enum(['super_master', 'master', 'admin', 'client_admin', 'operator']).optional(),
   "isActive": zod.boolean().optional(),
   "enabledModules": zod.string().optional(),
-  "password": zod.string().optional()
+  "password": zod.string().optional(),
+  "companyId": zod.number().nullish()
 })
 
 export const UpdateUserResponse = zod.object({

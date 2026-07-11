@@ -67,8 +67,9 @@ router.use("/system", requireAuth, requireRole("super_master"));
 
 router.post("/system/reset-database", async (req, res): Promise<void> => {
   try {
+    const { seedData } = req.body;
     req.log.info("Supermaster database reset requested...");
-    await resetAndSeedDatabase(db);
+    await resetAndSeedDatabase(db, seedData);
     req.log.info("Database reset completed successfully");
     res.json({ success: true, message: "Database reset and seeded successfully." });
   } catch (err: any) {
