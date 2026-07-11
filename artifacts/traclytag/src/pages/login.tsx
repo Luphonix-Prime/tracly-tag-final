@@ -46,6 +46,22 @@ const signUpSchema = z.object({
   location: z.string().optional(),
 });
 
+const loadGoogleScript = (): Promise<void> => {
+  return new Promise((resolve) => {
+    if ((window as any).google?.accounts?.oauth2) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
+    document.head.appendChild(script);
+  });
+};
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -385,12 +401,74 @@ export default function Login() {
   }
 
   // --- SSO Actions ---
-  const handleSsoLogin = (provider: string) => {
-    setSsoProvider(provider);
-    setSsoCustomName("");
-    setSsoCustomEmail("");
-    setSsoCustomCompany("");
-    setIsSsoOpen(true);
+  const handleGoogleSsoSubmit = async (code: string) => {
+    const loadingToast = toast.loading("Verifying Google account...");
+    try {
+      const response = await fetch("/api/auth/sso/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Google SSO Login failed");
+
+      toast.dismiss(loadingToast);
+      toast.success("Authenticated with Google successfully!");
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      handleRedirect();
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error(err.message || "Google SSO Login failed");
+    }
+  };
+
+  const handleSsoLogin = async (provider: string) => {
+    if (provider === "Google") {
+      try {
+        const configRes = await fetch("/api/auth/config");
+        if (!configRes.ok) {
+          throw new Error("Failed to fetch OAuth configuration from server");
+        }
+        const configData = await configRes.json();
+        const googleClientId = configData.googleClientId;
+
+        if (!googleClientId) {
+          toast.error("Google SSO is not configured on the server. Please define GOOGLE_CLIENT_ID in your server's .env file.");
+          return;
+        }
+
+        await loadGoogleScript();
+
+        if (!(window as any).google?.accounts?.oauth2) {
+          toast.error("Failed to load Google Identity Services SDK.");
+          return;
+        }
+
+        const client = (window as any).google.accounts.oauth2.initCodeClient({
+          client_id: googleClientId,
+          scope: "openid email profile",
+          ux_mode: "popup",
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
+              toast.error(`Google Sign-In failed: ${tokenResponse.error_description || tokenResponse.error}`);
+              return;
+            }
+            if (tokenResponse.code) {
+              await handleGoogleSsoSubmit(tokenResponse.code);
+            }
+          },
+        });
+        client.requestCode();
+      } catch (err: any) {
+        toast.error(`Google SSO failed: ${err.message || err}`);
+      }
+    } else {
+      setSsoProvider(provider);
+      setSsoCustomName("");
+      setSsoCustomEmail("");
+      setSsoCustomCompany("");
+      setIsSsoOpen(true);
+    }
   };
 
   const handleSsoSubmit = async (ssoData: any) => {
@@ -767,11 +845,11 @@ export default function Login() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-grow flex items-center justify-center relative z-10 px-4 md:px-8 py-12">
+      <main className="flex-grow flex items-center justify-center relative z-10 px-4 md:px-8 py-4 md:py-6">
         <div className="w-full max-w-[440px]">
           {/* Card */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-lg overflow-hidden transition-all duration-300">
-            <div className="p-8 md:p-10">
+            <div className="p-5 md:p-6.5">
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -779,11 +857,11 @@ export default function Login() {
                 className="flex flex-col gap-6"
               >
                 {/* Logo branding block */}
-                <motion.div variants={itemVariants} className="flex flex-col items-center mb-4 w-full relative">
-                  <div className="flex items-center gap-2 mb-2 justify-center">
-                    <img src="/logo.png" alt="TracelyTag Logo" className="h-10 object-contain" />
+                <motion.div variants={itemVariants} className="flex flex-col items-center mb-3 w-full relative">
+                  <div className="flex items-center gap-2 mb-1.5 justify-center">
+                    <img src="/logo.png" alt="TracelyTag Logo" className="h-9 object-contain" />
                   </div>
-                  <div className="h-px w-12 bg-safety-blue mb-4"></div>
+                  <div className="h-px w-12 bg-safety-blue mb-3"></div>
                   <h1 className="text-sm font-bold text-midnight-navy dark:text-white uppercase tracking-widest">
                     {otpRequired ? "Security Code" : "Terminal Access"}
                   </h1>
@@ -973,7 +1051,7 @@ export default function Login() {
                           )}
                         />
                         
-                        <div className="flex flex-col gap-2.5 mt-4">
+                        <div className="flex flex-col gap-2.5 mt-3">
                           <Button 
                             type="submit" 
                             className="w-full h-12 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-sm font-semibold cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
@@ -1001,7 +1079,7 @@ export default function Login() {
                           )}
                         </div>
 
-                        <div className="relative my-3">
+                        <div className="relative my-2.5">
                           <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t border-slate-200 dark:border-slate-800" />
                           </div>
@@ -1262,7 +1340,7 @@ export default function Login() {
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 mt-4">
+                        <div className="grid grid-cols-2 gap-3 mt-3">
                           <Button 
                             type="submit" 
                             className="w-full h-12 rounded-lg text-white bg-safety-blue hover:bg-primary transition-all shadow-sm text-xs font-semibold cursor-pointer active:scale-[0.98]"
@@ -1289,7 +1367,7 @@ export default function Login() {
                           </Button>
                         </div>
 
-                        <div className="relative my-3">
+                        <div className="relative my-2.5">
                           <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t border-slate-200 dark:border-slate-800" />
                           </div>
@@ -1353,7 +1431,7 @@ export default function Login() {
                     {/* Demo Credentials Footer */}
                     <motion.div 
                       variants={itemVariants}
-                      className="bg-slate-50 dark:bg-slate-950 text-[9px] text-slate-500 dark:text-slate-400 flex flex-col items-start gap-1 p-3 rounded-lg border border-slate-200 dark:border-slate-850 mt-2"
+                      className="bg-slate-50 dark:bg-slate-950 text-[9px] text-slate-500 dark:text-slate-400 flex flex-col items-start gap-1 p-2 rounded-lg border border-slate-200 dark:border-slate-850 mt-1.5"
                     >
                       <div className="font-semibold text-slate-700 dark:text-slate-300">Demo Credentials:</div>
                       <div className="grid grid-cols-1 gap-x-3 gap-y-1 w-full text-[9px] font-mono">
@@ -1365,7 +1443,7 @@ export default function Login() {
                       </div>
                     </motion.div>
 
-                    <div className="mt-2 text-center">
+                    <div className="mt-1.5 text-center">
                       <button
                         type="button"
                         onClick={() => {
@@ -1446,7 +1524,7 @@ export default function Login() {
 
                 {/* Security Validation Pills */}
                 {!hideDevOptions && (
-                  <div className="mt-4 pt-6 border-t border-slate-100 dark:border-slate-850 flex justify-center gap-4">
+                  <div className="mt-3 pt-4 border-t border-slate-100 dark:border-slate-850 flex justify-center gap-4">
                     <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-850 rounded-full border border-slate-200 dark:border-slate-800">
                       <span className="material-symbols-outlined text-success-emerald text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
                       <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">AES-256 ENCRYPTED</span>
@@ -1463,7 +1541,7 @@ export default function Login() {
           </div>
 
           {/* Global Status Indicator */}
-          <div className="mt-6 flex justify-between items-center px-4 w-full max-w-[440px] text-white/50 text-[10px] font-bold uppercase tracking-wider">
+          <div className="mt-4 flex justify-between items-center px-4 w-full max-w-[440px] text-white/50 text-[10px] font-bold uppercase tracking-wider">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-emerald opacity-75"></span>
@@ -1477,7 +1555,7 @@ export default function Login() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full mt-auto py-6 px-8 bg-slate-50 dark:bg-midnight-navy border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[11px] flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
+      <footer className="w-full mt-auto py-4 px-8 bg-slate-50 dark:bg-midnight-navy border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[11px] flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4 md:mb-0">
           <span className="font-bold text-midnight-navy dark:text-white">TracelyTag</span>
           <span>© 2026 TracelyTag Industrial Intelligence. Secured by AES-255.</span>
@@ -1503,7 +1581,6 @@ export default function Login() {
             >
               <div className="p-6 border-b flex justify-between items-center bg-muted/30">
                 <div className="flex items-center gap-2">
-                  {ssoProvider === "Google" && <FcGoogle className="h-5 w-5" />}
                   {ssoProvider === "Microsoft" && <FaMicrosoft className="h-4.5 w-4.5 text-[#00a4ef]" />}
                   {ssoProvider === "GitHub" && <FaGithub className="h-5 w-5" />}
                   <span className="font-bold">Mock {ssoProvider} Identity Provider</span>

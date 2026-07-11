@@ -59152,8 +59152,149 @@ router2.get("/auth/me", async (req, res) => {
     subscriptionExpiresAt
   });
 });
+router2.get("/auth/config", async (req, res) => {
+  res.json({
+    googleClientId: process.env.GOOGLE_CLIENT_ID || ""
+  });
+});
+router2.post("/auth/sso/google", async (req, res) => {
+  const { code } = req.body;
+  if (!code) {
+    res.status(400).json({ error: "Authorization code is required" });
+    return;
+  }
+  const clientId = process.env.GOOGLE_CLIENT_ID || "";
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+  if (!clientId || !clientSecret) {
+    res.status(500).json({ error: "Google OAuth is not configured on the server" });
+    return;
+  }
+  try {
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: "postmessage",
+        grant_type: "authorization_code"
+      })
+    });
+    if (!tokenRes.ok) {
+      const errBody = await tokenRes.text();
+      req.log.error({ errBody }, "Google token exchange failed");
+      res.status(400).json({ error: "Failed to exchange authorization code with Google" });
+      return;
+    }
+    const { id_token } = await tokenRes.json();
+    if (!id_token) {
+      res.status(400).json({ error: "No ID token returned from Google" });
+      return;
+    }
+    const parts = id_token.split(".");
+    if (parts.length !== 3) {
+      res.status(400).json({ error: "Invalid ID token format" });
+      return;
+    }
+    const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
+    const { email, email_verified, name } = payload;
+    if (!email) {
+      res.status(400).json({ error: "Google account does not have an email address" });
+      return;
+    }
+    if (email_verified !== true && email_verified !== "true") {
+      res.status(400).json({ error: "Google account email is not verified" });
+      return;
+    }
+    let [user2] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+    let resolvedCompanyName = null;
+    let subscriptionPlan = null;
+    let subscriptionStatus = null;
+    let subscriptionExpiresAt = null;
+    if (!user2) {
+      let username = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
+      let suffix = 1;
+      const baseUsername = username;
+      while (true) {
+        const [existing] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+        if (!existing) break;
+        username = `${baseUsername}_${suffix}`;
+        suffix++;
+      }
+      const targetCompanyName = `${name || username}'s Organization`;
+      const targetWebsite = `https://${username.toLowerCase()}.tracelytag.com`;
+      const [company] = await db.insert(companiesTable).values({
+        name: targetCompanyName,
+        email,
+        address: targetWebsite,
+        gstin: null
+      }).returning();
+      if (!company) {
+        throw new Error("Failed to create company");
+      }
+      resolvedCompanyName = company.name;
+      subscriptionPlan = company.subscriptionPlan;
+      subscriptionStatus = company.subscriptionStatus;
+      subscriptionExpiresAt = company.subscriptionExpiresAt;
+      const randomPassword = crypto2.randomBytes(16).toString("hex");
+      const passwordHash = await bcryptjs_default.hash(randomPassword, 10);
+      const [newUser] = await db.insert(usersTable).values({
+        username,
+        email,
+        phone: null,
+        passwordHash,
+        role: "client_admin",
+        companyId: company.id
+      }).returning();
+      if (!newUser) {
+        throw new Error("Failed to create user");
+      }
+      user2 = newUser;
+    } else {
+      if (user2.companyId) {
+        const [c] = await db.select({
+          name: companiesTable.name,
+          subscriptionPlan: companiesTable.subscriptionPlan,
+          subscriptionStatus: companiesTable.subscriptionStatus,
+          subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
+        }).from(companiesTable).where(eq(companiesTable.id, user2.companyId));
+        resolvedCompanyName = c?.name ?? null;
+        subscriptionPlan = c?.subscriptionPlan ?? null;
+        subscriptionStatus = c?.subscriptionStatus ?? null;
+        subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
+      }
+    }
+    const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+    res.cookie("connect.sid", user2.id.toString(), {
+      signed: true,
+      httpOnly: true,
+      maxAge: 1e3 * 60 * 60 * 24 * 7,
+      secure: isProduction2,
+      sameSite: "lax"
+    });
+    res.json({
+      id: user2.id,
+      username: user2.username,
+      email: user2.email,
+      role: user2.role,
+      companyId: user2.companyId,
+      companyName: resolvedCompanyName,
+      subscriptionPlan,
+      subscriptionStatus,
+      subscriptionExpiresAt
+    });
+  } catch (err) {
+    req.log.error({ err }, "Google SSO authentication failed");
+    res.status(500).json({ error: "Google SSO authentication failed" });
+  }
+});
 router2.post("/auth/sso", async (req, res) => {
   const { provider, email, username, name, companyName, companyWebsiteUrl } = req.body;
+  if (provider === "Google") {
+    res.status(400).json({ error: "Google SSO must use the secure /auth/sso/google endpoint" });
+    return;
+  }
   if (!email || !username) {
     res.status(400).json({ error: "Email and username are required" });
     return;
