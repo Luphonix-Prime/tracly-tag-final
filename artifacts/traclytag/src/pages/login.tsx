@@ -835,7 +835,7 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col bg-midnight-navy text-white selection:bg-safety-blue selection:text-white overflow-x-hidden">
+    <div className="relative h-screen w-full flex flex-col bg-midnight-navy text-white selection:bg-safety-blue selection:text-white overflow-y-auto overflow-x-hidden">
       {/* Technical Background Canvas */}
       <div className="fixed inset-0 industrial-grid pointer-events-none z-0"></div>
       <div className="fixed inset-0 bg-gradient-to-tr from-midnight-navy via-transparent to-midnight-navy opacity-60 pointer-events-none z-0"></div>
