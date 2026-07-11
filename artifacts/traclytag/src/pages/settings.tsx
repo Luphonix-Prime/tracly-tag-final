@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings as SettingsIcon, Link2, ShieldAlert } from "lucide-react";
+import { Settings as SettingsIcon, Link2, ShieldAlert, Database } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
@@ -10,6 +11,16 @@ export default function Settings() {
   const { hideMappingCode, toggleVisibility } = useMappingCodeVisibility();
   const { hideDevOptions, hideSsoOptions, setDevVisibility, setSsoVisibility } = useDevOptionsVisibility();
   const { data: currentUser } = useGetCurrentUser();
+
+  const [hideRecentSerialization, setHideRecentSerialization] = useState(() => {
+    return localStorage.getItem("traclytag_hide_recent_serialization") === "true";
+  });
+
+  const toggleRecentSerialization = (checked: boolean) => {
+    localStorage.setItem("traclytag_hide_recent_serialization", String(checked));
+    setHideRecentSerialization(checked);
+    window.dispatchEvent(new Event("traclytag_recent_serialization_visibility_changed"));
+  };
 
   const isSuperMaster = currentUser?.role === "super_master";
 
@@ -55,6 +66,27 @@ export default function Settings() {
                   id="mapping-code-toggle"
                   checked={hideMappingCode}
                   onCheckedChange={toggleVisibility}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-rose-500/10 rounded-lg text-rose-500 mt-0.5">
+                    <Database className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="recent-serialization-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Hide Recent Product Serialization on Dashboard
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      When enabled, the "Recent Product Serialization" table will be hidden from the executive dashboard.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="recent-serialization-toggle"
+                  checked={hideRecentSerialization}
+                  onCheckedChange={toggleRecentSerialization}
                 />
               </div>
 
