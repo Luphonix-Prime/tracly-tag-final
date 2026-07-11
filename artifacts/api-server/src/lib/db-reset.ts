@@ -31,6 +31,7 @@ export async function seedDatabase(dbInstance: any) {
   const superMasterHash = await bcrypt.hash(supermasterPassword, 10);
   const masterHash = await bcrypt.hash("master123", 10);
   const adminHash = await bcrypt.hash("admin123", 10);
+  const managerHash = await bcrypt.hash("manager123", 10);
   const opHash = await bcrypt.hash("op123", 10);
 
   const users = await dbInstance.insert(usersTable).values([
@@ -55,6 +56,14 @@ export async function seedDatabase(dbInstance: any) {
       email: "admin@demopharma.in",
       phone: "+91 9111111111",
       passwordHash: adminHash,
+      role: "admin",
+      companyId: demoCo!.id,
+    },
+    {
+      username: "demo_manager",
+      email: "manager@demopharma.in",
+      phone: "+91 9155555555",
+      passwordHash: managerHash,
       role: "client_admin",
       companyId: demoCo!.id,
     },

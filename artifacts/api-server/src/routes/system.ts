@@ -2,50 +2,63 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { requireAuth, requireRole } from '../lib/session.js';
 import { resetAndSeedDatabase } from '../lib/db-reset.js';
-import fs from "fs";
-import path from "path";
+import { systemConfigsTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-// Path to system config file
-const configPath = path.join(process.cwd(), "system_config.json");
-
-// Helper to read config
-const readConfig = () => {
+// Helper to read config from database
+const readConfig = async () => {
   try {
-    if (fs.existsSync(configPath)) {
-      return JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    const rows = await db
+      .select()
+      .from(systemConfigsTable)
+      .where(eq(systemConfigsTable.key, "hideMappingCode"))
+      .limit(1);
+
+    if (rows.length > 0) {
+      return { hideMappingCode: rows[0].value === "true" };
     }
   } catch (err) {
     // ignore
   }
-  return { hideMappingCode: false };
+  // Default is true ("turn on it for now")
+  return { hideMappingCode: true };
 };
 
-// Helper to write config
-const writeConfig = (config: { hideMappingCode: boolean }) => {
+// Helper to write config to database
+const writeConfig = async (config: { hideMappingCode: boolean }) => {
   try {
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+    await db
+      .insert(systemConfigsTable)
+      .values({
+        key: "hideMappingCode",
+        value: String(config.hideMappingCode),
+      })
+      .onConflictDoUpdate({
+        target: systemConfigsTable.key,
+        set: { value: String(config.hideMappingCode) },
+      });
   } catch (err) {
     // ignore
   }
 };
 
 // Public/standard auth config getter
-router.get("/system-config", requireAuth, (req, res) => {
-  const config = readConfig();
+router.get("/system-config", requireAuth, async (req, res) => {
+  const config = await readConfig();
   res.json(config);
 });
 
 // Super master config setter
-router.post("/system-config", requireAuth, requireRole("super_master"), (req, res) => {
+router.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
   const { hideMappingCode } = req.body;
   if (typeof hideMappingCode !== "boolean") {
     res.status(400).json({ error: "Invalid value for hideMappingCode" });
     return;
   }
   const config = { hideMappingCode };
-  writeConfig(config);
+  await writeConfig(config);
   res.json({ success: true, config });
 });
 

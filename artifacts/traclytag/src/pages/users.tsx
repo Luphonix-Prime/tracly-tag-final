@@ -33,7 +33,7 @@ const userSchema = z.object({
   email: z.string().email("Invalid email"),
   phone: z.string().optional().or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["super_master", "master", "client_admin", "operator"]),
+  role: z.enum(["super_master", "master", "admin", "client_admin", "operator"]),
   companyId: z.coerce.number().optional(),
 });
 
@@ -69,7 +69,7 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
-  const [editRole, setEditRole] = useState<"super_master" | "master" | "client_admin" | "operator">("operator");
+  const [editRole, setEditRole] = useState<"super_master" | "master" | "admin" | "client_admin" | "operator">("operator");
   const [editIsActive, setEditIsActive] = useState(true);
   const [editModules, setEditModules] = useState<string[]>([]);
   const [editPassword, setEditPassword] = useState("");
@@ -231,7 +231,9 @@ export default function Users() {
                 </TableRow>
               ) : (
                 users.map((userRow) => {
-                  const canEdit = isMaster || (currentUser?.role === "client_admin" && userRow.role === "operator" && userRow.companyId === currentUser.companyId);
+                  const canEdit = isMaster || 
+                    (currentUser?.role === "admin" && userRow.companyId === currentUser.companyId && userRow.role !== "master" && userRow.role !== "super_master") ||
+                    (currentUser?.role === "client_admin" && userRow.role === "operator" && userRow.companyId === currentUser.companyId);
                   return (
                     <TableRow key={userRow.id} className="hover:bg-slate-50 transition-colors group border-0">
                       <TableCell className="align-middle px-6 py-5">
@@ -280,7 +282,7 @@ export default function Users() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
-                          {userRow.id !== currentUser?.id && (
+                          {canEdit && userRow.id !== currentUser?.id && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
@@ -347,7 +349,8 @@ export default function Users() {
                   <SelectContent>
                     {currentUser?.role === "super_master" && <SelectItem value="super_master">Super Master</SelectItem>}
                     {isMaster && <SelectItem value="master">Master Admin</SelectItem>}
-                    <SelectItem value="client_admin">Manager</SelectItem>
+                    {(isMaster || currentUser?.role === "admin") && <SelectItem value="client_admin">Manager</SelectItem>}
+                    {(isMaster || currentUser?.role === "admin") && <SelectItem value="admin">Admin</SelectItem>}
                     <SelectItem value="operator">Operator</SelectItem>
                   </SelectContent>
                 </Select>

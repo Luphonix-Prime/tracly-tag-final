@@ -1357,9 +1357,11 @@ export default function Login() {
                     >
                       <div className="font-semibold text-slate-700 dark:text-slate-300">Demo Credentials:</div>
                       <div className="grid grid-cols-1 gap-x-3 gap-y-1 w-full text-[9px] font-mono">
-                        {/* <div>Master: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">master</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">master123</code></div> */}
+                        <div>Supermaster: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">supermaster</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">super123</code></div>
+                        <div>Master: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">master</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">master123</code></div>
                         <div>Admin: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_admin</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">admin123</code></div>
-                        <div>Op: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_op</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">op123</code></div>
+                        <div>Manager: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_manager</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">manager123</code></div>
+                        <div>Operator: <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-800 dark:text-white font-medium">demo_op</code> / <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded text-slate-600 dark:text-slate-300">op123</code></div>
                       </div>
                     </motion.div>
 
