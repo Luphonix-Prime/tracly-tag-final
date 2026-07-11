@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: user } = useGetCurrentUser();
@@ -184,8 +185,90 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-4 md:hidden">
-              <img src="/logo.png" alt="Logo" className="h-6 object-contain" />
+            <div className="flex items-center gap-2 md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-64 bg-midnight-navy text-white p-0 border-r border-white/10 flex flex-col h-full font-sans">
+                  {/* Mobile Sidebar Header */}
+                  <div className="h-14 border-b border-white/10 flex items-center px-4 justify-between overflow-hidden shrink-0">
+                    <img src="/logo.png" alt="Logo" className="h-7 object-contain" />
+                    <span className="text-[10px] text-white/40 font-mono">v2.4</span>
+                  </div>
+                  {/* Mobile Navigation Links */}
+                  <div className="p-3 flex-1 overflow-y-auto space-y-6">
+                    <div className="space-y-1">
+                      {navigation.map((item, i) => {
+                        const isActive = location === item.href || location.startsWith(item.href + "/");
+                        const required = getRequiredPlan(item.href);
+                        const allowed = isPlanSufficient(required, currentPlan) || userModules.includes(item.module);
+
+                        if (!allowed) {
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => {
+                                setRequiredTier(required);
+                                setUpgradeModalOpen(true);
+                              }}
+                              className="w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 text-white/40 hover:bg-white/5 cursor-pointer px-4 py-2.5 gap-3 justify-between"
+                            >
+                              <div className="flex items-center gap-3">
+                                <item.icon className="h-4 w-4 shrink-0" />
+                                <span>{item.title}</span>
+                              </div>
+                              <Lock className="h-3.5 w-3.5 text-amber-500/80 shrink-0" />
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <SheetClose asChild key={i}>
+                            <Link 
+                              href={item.href} 
+                              className={cn(
+                                "flex items-center rounded-lg text-sm font-medium transition-all duration-200 px-4 py-2.5 gap-3 w-full",
+                                isActive ? "bg-safety-blue text-white shadow-lg shadow-safety-blue/20" : "text-white/70 hover:bg-white/5 hover:text-white"
+                              )}
+                            >
+                              <item.icon className="h-4 w-4 shrink-0" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SheetClose>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-4 border-t border-white/10 space-y-1">
+                      {bottomNavigation.map((item, i) => {
+                        const isActive = location === item.href || location.startsWith(item.href + "/");
+                        return (
+                          <SheetClose asChild key={i}>
+                            <Link 
+                              href={item.href} 
+                              className={cn(
+                                "flex items-center rounded-lg text-sm font-medium transition-all duration-200 px-4 py-2.5 gap-3 w-full",
+                                isActive ? "bg-safety-blue text-white shadow-lg shadow-safety-blue/20" : "text-white/70 hover:bg-white/5 hover:text-white"
+                              )}
+                            >
+                              <item.icon className="h-4 w-4 shrink-0" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SheetClose>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <img src="/logo.png" alt="Logo" className="h-6 object-contain ml-1" />
             </div>
             <div className="hidden md:flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
               {user.companyName ? `Company: ${user.companyName}` : "Global Admin"}
