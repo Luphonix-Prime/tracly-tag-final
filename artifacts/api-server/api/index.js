@@ -60647,16 +60647,32 @@ router8.get("/codes/debug/recent", async (_req, res) => {
   }
 });
 var getCityFromZip = (zip) => {
-  const cleanZip = zip.trim().toLowerCase();
-  if (cleanZip.startsWith("400") || cleanZip === "mumbai") return "Mumbai";
-  if (cleanZip.startsWith("110") || cleanZip === "delhi" || cleanZip === "new delhi") return "New Delhi";
-  if (cleanZip.startsWith("600") || cleanZip === "chennai") return "Chennai";
-  if (cleanZip.startsWith("500") || cleanZip === "hyderabad") return "Hyderabad";
-  if (cleanZip.startsWith("560") || cleanZip === "bangalore") return "Bengaluru";
-  if (cleanZip.startsWith("100") || cleanZip === "ny" || cleanZip === "new york") return "New York";
-  if (cleanZip === "singapore" || cleanZip.length === 6 && !isNaN(Number(cleanZip))) return "Singapore";
-  if (cleanZip === "dubai" || cleanZip.startsWith("dxb")) return "Dubai";
-  const defaultCities = ["Mumbai", "Singapore", "Dubai", "New Delhi", "Mumbai"];
+  const cleanZip = String(zip || "").toLowerCase().trim();
+  if (cleanZip.includes("mumbai")) return "Mumbai";
+  if (cleanZip.includes("pune")) return "Pune";
+  if (cleanZip.includes("delhi") || cleanZip.includes("new delhi")) return "New Delhi";
+  if (cleanZip.includes("chennai")) return "Chennai";
+  if (cleanZip.includes("hyderabad")) return "Hyderabad";
+  if (cleanZip.includes("bangalore") || cleanZip.includes("bengaluru")) return "Bengaluru";
+  if (cleanZip.includes("new york") || cleanZip.includes(" ny")) return "New York";
+  if (cleanZip.includes("singapore")) return "Singapore";
+  if (cleanZip.includes("dubai")) return "Dubai";
+  if (cleanZip.startsWith("411")) return "Pune";
+  if (cleanZip.startsWith("400")) return "Mumbai";
+  if (cleanZip.startsWith("110")) return "New Delhi";
+  if (cleanZip.startsWith("600")) return "Chennai";
+  if (cleanZip.startsWith("500")) return "Hyderabad";
+  if (cleanZip.startsWith("560")) return "Bengaluru";
+  if (cleanZip.startsWith("100")) return "New York";
+  if (cleanZip.length === 6 && !isNaN(Number(cleanZip))) return "Singapore";
+  const parts = cleanZip.split(",");
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (trimmed && isNaN(Number(trimmed)) && trimmed.length > 2) {
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    }
+  }
+  const defaultCities = ["Mumbai", "Singapore", "Dubai", "New Delhi", "Pune"];
   let hash2 = 0;
   for (let i = 0; i < cleanZip.length; i++) {
     hash2 = cleanZip.charCodeAt(i) + ((hash2 << 5) - hash2);

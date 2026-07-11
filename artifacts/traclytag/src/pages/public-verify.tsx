@@ -48,17 +48,17 @@ export default function PublicVerify() {
   const [step, setStep] = useState<"form" | "result">("form");
   const [fullName, setFullName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
-  const [zipCode, setZipCode] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
   const [locationAccess, setLocationAccess] = useState(true);
-  const [isFetchingZip, setIsFetchingZip] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
-  const fetchZipCodeAutomatically = () => {
+  const fetchLocationAutomatically = () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser");
       return;
     }
 
-    setIsFetchingZip(true);
+    setIsFetchingLocation(true);
     toast.info("Fetching your location...");
 
     navigator.geolocation.getCurrentPosition(
@@ -78,26 +78,27 @@ export default function PublicVerify() {
           if (!response.ok) throw new Error("Geocoding failed");
 
           const data = await response.json();
-          const postcode = data.address?.postcode;
-          
-          if (postcode) {
-            setZipCode(postcode);
-            toast.success(`Location auto-fetched: Zip ${postcode}`);
+          const address = data.display_name || 
+            (data.address ? `${data.address.city || data.address.town || ""}, ${data.address.state || ""}, ${data.address.country || ""}`.trim() : null);
+
+          if (address) {
+            setLocationAddress(address);
+            toast.success("Location auto-fetched successfully");
           } else {
-            const city = data.address?.city || data.address?.town || data.address?.village || "Unknown";
-            setZipCode(city);
-            toast.success(`Location auto-fetched: ${city}`);
+            const coords = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            setLocationAddress(coords);
+            toast.success("Coordinates auto-fetched");
           }
         } catch (err) {
           const coords = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-          setZipCode(coords);
+          setLocationAddress(coords);
           toast.success("Coordinates fetched (Geocoding unavailable)");
         } finally {
-          setIsFetchingZip(false);
+          setIsFetchingLocation(false);
         }
       },
       (error) => {
-        setIsFetchingZip(false);
+        setIsFetchingLocation(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
             toast.error("Location permission denied. Please enter manually.");
@@ -134,8 +135,8 @@ export default function PublicVerify() {
       return;
     }
 
-    if (!zipCode.trim()) {
-      setError("Zip Code is required.");
+    if (!locationAddress.trim()) {
+      setError("Location is required.");
       return;
     }
 
@@ -144,7 +145,7 @@ export default function PublicVerify() {
     const params = new URLSearchParams({
       customerName: fullName.trim(),
       mobileNumber: mobileNumber.trim(),
-      zipCode: zipCode.trim(),
+      zipCode: locationAddress.trim(),
     });
 
     fetch(`/api/codes/public/${encodeURIComponent(serial)}?${params.toString()}`)
@@ -279,27 +280,27 @@ export default function PublicVerify() {
                 </div>
               </div>
 
-              {/* Zip Code */}
+              {/* Location */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Zip Code</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Location</label>
                 <div className="flex items-center w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
                   <Input 
                     className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600" 
-                    placeholder="10001" 
-                    value={zipCode}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setZipCode(e.target.value)}
+                    placeholder="Enter location or fetch automatically" 
+                    value={locationAddress}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationAddress(e.target.value)}
                     type="text"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={fetchZipCodeAutomatically}
-                    disabled={isFetchingZip}
+                    onClick={fetchLocationAutomatically}
+                    disabled={isFetchingLocation}
                     title="Fetch GPS Location"
                     className="shrink-0 h-8 w-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
                   >
-                    {isFetchingZip ? (
+                    {isFetchingLocation ? (
                       <Loader2 className="h-4 w-4 animate-spin text-safety-blue" />
                     ) : (
                       <MapPin className="h-4 w-4 text-slate-400 hover:text-safety-blue" />
