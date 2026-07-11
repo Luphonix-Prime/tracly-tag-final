@@ -7,6 +7,7 @@ import {
   Cpu, Activity, Database, Search, ShieldAlert, 
   Terminal, RefreshCw, AlertCircle, Copy, Check, Info
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+const DEFAULT_SEED_DATA = {
+  company: {
+    name: "Demo Pharma Pvt Ltd",
+    email: "ops@demopharma.in",
+    address: "Plot 14, MIDC Industrial Area, Pune, Maharashtra 411019",
+    gstin: "27AABCD1234E1Z5"
+  },
+  users: [
+    { username: "supermaster", email: "supermaster@tracelytag.com", phone: "+91 8000000000", password: "super123", role: "super_master" },
+    { username: "master", email: "master@tracelytag.com", phone: "+91 9000000000", password: "master123", role: "master" },
+    { username: "demo_admin", email: "admin@demopharma.in", phone: "+91 9111111111", password: "admin123", role: "admin" },
+    { username: "demo_manager", email: "manager@demopharma.in", phone: "+91 9155555555", password: "manager123", role: "client_admin" },
+    { username: "demo_op", email: "op@demopharma.in", phone: "+91 9222222222", password: "op123", role: "operator" }
+  ],
+  locations: [
+    { locationType: "Warehouse", uniqueName: "WH-PUNE-01", locationName: "Pune Central Warehouse", contactNo: "+91 2027451234", state: "Maharashtra", city: "Pune", address: "Plot 14, MIDC Industrial Area, Pune 411019" },
+    { locationType: "Distributor", uniqueName: "DST-MUM-04", locationName: "Mumbai Distributor Hub", contactNo: "+91 2261234500", state: "Maharashtra", city: "Mumbai", address: "Andheri East, Mumbai 400069" },
+    { locationType: "Retailer", uniqueName: "RTL-DEL-12", locationName: "Connaught Place Pharmacy", contactNo: "+91 1141234567", state: "Delhi", city: "New Delhi", address: "Block A, Connaught Place, New Delhi 110001" }
+  ],
+  products: [
+    { skuId: "PARA-500-10S", name: "Paracetamol 500mg", skuSize: "10x10 Tablets", marketedBy: "Demo Pharma Pvt Ltd", sapDescription: "PARACETAMOL TABLETS IP 500MG", gtin: "08901234567896", mrp: 45, registrationNo: "MH/DRUGS/2023/0451", l1Size: 10, l2Size: 100, shipperSize: 1000, expiryDate: "2028-04-30" },
+    { skuId: "VITC-1000-30S", name: "Vitamin C 1000mg Effervescent", skuSize: "30 Tablets Tube", marketedBy: "Demo Pharma Pvt Ltd", sapDescription: "ASCORBIC ACID 1000MG EFFERVESCENT", gtin: "08907654321094", mrp: 299, registrationNo: "MH/DRUGS/2023/0892", l1Size: 6, l2Size: 36, shipperSize: 216, expiryDate: "2027-12-31" }
+  ],
+  batches: [
+    { productSkuId: "PARA-500-10S", batchNumber: "PCM2604A", mfgDate: "2026-04-01", expiryDate: "2028-04-30" },
+    { productSkuId: "VITC-1000-30S", batchNumber: "VTC2604B", mfgDate: "2026-04-15", expiryDate: "2027-12-31" }
+  ]
+};
 
 interface SystemInfo {
   env: Record<string, string>;
@@ -49,6 +79,8 @@ export default function System() {
   const [confirmText, setConfirmText] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [customSeedJson, setCustomSeedJson] = useState(() => JSON.stringify(DEFAULT_SEED_DATA, null, 2));
+  const [showSeedEditor, setShowSeedEditor] = useState(false);
 
   useEffect(() => {
     if (user && user.role === "super_master") {
@@ -85,10 +117,20 @@ export default function System() {
       return;
     }
 
+    let parsedSeed = null;
+    try {
+      parsedSeed = JSON.parse(customSeedJson);
+    } catch (e: any) {
+      toast.error(`Invalid JSON seeding data: ${e.message}`);
+      return;
+    }
+
     setIsResetting(true);
     try {
       const res = await fetch("/api/system/reset-database", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seedData: parsedSeed }),
       });
 
       if (!res.ok) {
@@ -338,7 +380,7 @@ export default function System() {
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="sm:max-w-[420px] bg-slate-900 border border-slate-800 text-white font-sans p-6 rounded-2xl shadow-2xl">
+        <DialogContent className={cn("bg-slate-900 border border-slate-800 text-white font-sans p-6 rounded-2xl shadow-2xl transition-all duration-300", showSeedEditor ? "sm:max-w-[650px]" : "sm:max-w-[420px]")}>
           <DialogHeader className="space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shadow-md">
               <ShieldAlert className="w-6 h-6 animate-bounce" />
@@ -364,6 +406,30 @@ export default function System() {
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-1.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSeedEditor(!showSeedEditor)}
+                className="text-[11px] font-bold text-safety-blue hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                {showSeedEditor ? "Hide Seeding Data Editor" : "Configure Custom Seeding Data (JSON)"}
+              </button>
+              
+              {showSeedEditor && (
+                <div className="space-y-1.5 mt-2">
+                  <Label className="text-[10px] text-slate-400 font-bold uppercase">JSON Seeding Template</Label>
+                  <textarea
+                    className="w-full h-56 bg-slate-950 border border-slate-800 text-slate-350 font-mono text-[10px] p-2.5 rounded-lg focus:outline-none focus:border-safety-blue scrollbar-thin resize-none"
+                    value={customSeedJson}
+                    onChange={(e) => setCustomSeedJson(e.target.value)}
+                  />
+                  <p className="text-[9px] text-slate-500 leading-normal">
+                    Edit the organization name, roles, or default product SKUs prior to the system wipe.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

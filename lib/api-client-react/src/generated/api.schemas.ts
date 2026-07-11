@@ -150,6 +150,8 @@ export interface UpdateUserBody {
   isActive?: boolean;
   enabledModules?: string;
   password?: string;
+  /** @nullable */
+  companyId?: number | null;
 }
 
 export interface Product {

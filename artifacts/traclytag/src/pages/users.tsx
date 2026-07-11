@@ -55,7 +55,7 @@ export default function Users() {
   const [, setLocation] = useLocation();
   const { data: currentUser } = useGetCurrentUser();
   const { data: users = [], isLoading } = useListUsers();
-  const { data: companies = [] } = useListCompanies({ query: { enabled: currentUser?.role === "master" } } as any);
+  const { data: companies = [] } = useListCompanies({ query: { enabled: currentUser?.role === "master" || currentUser?.role === "super_master" } } as any);
   
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -73,6 +73,7 @@ export default function Users() {
   const [editIsActive, setEditIsActive] = useState(true);
   const [editModules, setEditModules] = useState<string[]>([]);
   const [editPassword, setEditPassword] = useState("");
+  const [editCompanyId, setEditCompanyId] = useState<number | null>(null);
 
   const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
 
@@ -115,6 +116,7 @@ export default function Users() {
     setEditIsActive(user.isActive !== false);
     setEditModules((user.enabledModules || "").split(",").filter(Boolean));
     setEditPassword("");
+    setEditCompanyId(user.companyId || null);
     setIsEditOpen(true);
   };
 
@@ -126,6 +128,7 @@ export default function Users() {
       role: editRole,
       isActive: editIsActive,
       enabledModules: editModules.join(","),
+      companyId: (editRole === "super_master" || editRole === "master") ? null : (editCompanyId || null),
     };
     if (editPassword.trim()) {
       if (editPassword.length < 6) {
@@ -357,7 +360,27 @@ export default function Users() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+            {isMaster && (editRole === "admin" || editRole === "client_admin" || editRole === "operator") && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">Company Scope</label>
+                <Select
+                  value={editCompanyId ? editCompanyId.toString() : "none"}
+                  onValueChange={(val) => setEditCompanyId(val === "none" ? null : Number(val))}
+                >
+                  <SelectTrigger><SelectValue placeholder="No Company (Global / Orphaned)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Company (Global / Orphaned)</SelectItem>
+                    {companies.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg">
               <div className="space-y-0.5">
                 <label className="text-sm font-semibold">Account Status</label>
                 <p className="text-xs text-slate-500">Toggle whether this user can log in</p>

@@ -246,7 +246,7 @@ export default function NewUser() {
                     )}
                   />
 
-                  {isMaster && (
+                  {isMaster && ["admin", "client_admin", "operator"].includes(form.watch("role")) && (
                     <FormField
                       control={form.control}
                       name="companyId"
