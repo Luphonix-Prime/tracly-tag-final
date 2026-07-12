@@ -143,7 +143,7 @@ router.post("/users", async (req, res): Promise<void> => {
         role: parsed.data.role,
         companyId,
         isActive: parsed.data.isActive ?? true,
-        enabledModules: parsed.data.enabledModules ?? "dashboard,products,batches,codes,locations,reports,users,generate_codes,mapping_code,customer_scan,summary",
+        enabledModules: parsed.data.enabledModules ?? "dashboard,companies,products,batches,codes,locations,reports,users,generate_codes,mapping_code,customer_scan,summary",
       })
       .returning();
 

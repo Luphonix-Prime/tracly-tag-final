@@ -116,7 +116,7 @@ router.get("/companies", async (_req, res): Promise<void> => {
 
 router.post(
   "/companies",
-  requireRole("master"),
+  requireRole("master", "super_master", "admin"),
   async (req, res): Promise<void> => {
     const parsed = CreateCompanyBody.safeParse(req.body);
     if (!parsed.success) {
@@ -146,7 +146,7 @@ router.post(
 
 router.put(
   "/companies/:id",
-  requireRole("master"),
+  requireRole("master", "super_master", "admin"),
   async (req, res): Promise<void> => {
     const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const id = parseInt(raw ?? "", 10);
@@ -187,7 +187,7 @@ router.put(
 
 router.delete(
   "/companies/:id",
-  requireRole("master"),
+  requireRole("master", "super_master", "admin"),
   async (req, res): Promise<void> => {
     const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const id = parseInt(raw ?? "", 10);
