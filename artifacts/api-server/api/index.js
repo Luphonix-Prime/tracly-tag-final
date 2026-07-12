@@ -59956,7 +59956,7 @@ router3.get("/companies", async (_req, res) => {
 });
 router3.post(
   "/companies",
-  requireRole("master"),
+  requireRole("master", "super_master", "admin"),
   async (req, res) => {
     const parsed = CreateCompanyBody.safeParse(req.body);
     if (!parsed.success) {
@@ -59982,7 +59982,7 @@ router3.post(
 );
 router3.put(
   "/companies/:id",
-  requireRole("master"),
+  requireRole("master", "super_master", "admin"),
   async (req, res) => {
     const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const id = parseInt(raw ?? "", 10);
@@ -60018,7 +60018,7 @@ router3.put(
 );
 router3.delete(
   "/companies/:id",
-  requireRole("master"),
+  requireRole("master", "super_master", "admin"),
   async (req, res) => {
     const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const id = parseInt(raw ?? "", 10);
@@ -60134,7 +60134,7 @@ router4.post("/users", async (req, res) => {
       role: parsed.data.role,
       companyId,
       isActive: parsed.data.isActive ?? true,
-      enabledModules: parsed.data.enabledModules ?? "dashboard,products,batches,codes,locations,reports,users,generate_codes,mapping_code,customer_scan,summary"
+      enabledModules: parsed.data.enabledModules ?? "dashboard,companies,products,batches,codes,locations,reports,users,generate_codes,mapping_code,customer_scan,summary"
     }).returning();
     let companyName = null;
     if (row.companyId) {

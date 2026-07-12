@@ -128,8 +128,8 @@ export default function NewCompany() {
     }
   }, [company, isEdit, form]);
 
-  if (user?.role !== "master" && user?.role !== "super_master") {
-    return <div className="p-8 text-center text-destructive">Access denied. Master role required.</div>;
+  if (user?.role !== "master" && user?.role !== "super_master" && user?.role !== "admin") {
+    return <div className="p-8 text-center text-destructive">Access denied. Master or Admin role required.</div>;
   }
 
   const onSubmit = (values: z.infer<typeof companySchema>) => {

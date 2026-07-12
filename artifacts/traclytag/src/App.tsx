@@ -132,21 +132,24 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   const requiredModule = getRequiredModule(path);
   if (requiredModule && !isMaster) {
-    const userModules = (user.enabledModules || "").split(",");
-    if (!userModules.includes(requiredModule)) {
-      return (
-        <AppLayout>
-          <div className="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto font-sans">
-            <div className="w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive shadow-md mb-6">
-              <Lock className="w-8 h-8" />
+    const isAdminCompanies = requiredModule === "companies" && user.role === "admin";
+    if (!isAdminCompanies) {
+      const userModules = (user.enabledModules || "").split(",");
+      if (!userModules.includes(requiredModule)) {
+        return (
+          <AppLayout>
+            <div className="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto font-sans">
+              <div className="w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive shadow-md mb-6">
+                <Lock className="w-8 h-8" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">Access Denied</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
+                Your account does not have access to the <strong className="capitalize">{requiredModule.replace('_', ' ')}</strong> module. Please contact your administrator to request access.
+              </p>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">Access Denied</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
-              Your account does not have access to the <strong className="capitalize">{requiredModule.replace('_', ' ')}</strong> module. Please contact your administrator to request access.
-            </p>
-          </div>
-        </AppLayout>
-      );
+          </AppLayout>
+        );
+      }
     }
   }
 

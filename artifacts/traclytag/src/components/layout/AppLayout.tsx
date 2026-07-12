@@ -44,6 +44,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   const isMaster = user.role === "master" || user.role === "super_master";
+  const isMasterOrAdmin = isMaster || user.role === "admin";
   const currentPlan = isMaster ? "enterprise" : (user as any).subscriptionPlan || "free";
 
   const getRequiredPlan = (href: string) => {
@@ -62,13 +63,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return required === "free";
   };
 
+  const userModulesRaw = (user.enabledModules || "").split(",");
+  if (user.role === "admin" && !userModulesRaw.includes("companies")) {
+    userModulesRaw.push("companies");
+  }
+
   const userModules = isMaster 
     ? ["dashboard", "companies", "users", "products", "locations", "batches", "generate_codes", "mapping_code", "customer_scan", "summary", "reports"]
-    : (user.enabledModules || "").split(",");
+    : userModulesRaw;
 
   const navigation = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, module: "dashboard" },
-    ...(isMaster ? [{ title: "Companies", href: "/companies", icon: Building2, module: "companies" }] : []),
+    ...(isMasterOrAdmin ? [{ title: "Companies", href: "/companies", icon: Building2, module: "companies" }] : []),
     { title: "Users", href: "/users", icon: Users, module: "users" },
     { title: "Products", href: "/products", icon: Package, module: "products" },
     { title: "Locations", href: "/locations", icon: MapPin, module: "locations" },
