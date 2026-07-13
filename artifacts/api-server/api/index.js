@@ -60328,11 +60328,7 @@ function generateUnitCode(input) {
   const padded = input.gtin.length === 13 ? "0" + input.gtin : input.gtin;
   const expiry = formatExpiry(input.expiry);
   const serial = makeSerial();
-  let raw = `01${padded}21${serial}${FNC1}10${input.batch}${FNC1}17${expiry}`;
-  if (input.mfgDate) {
-    const mfg = formatExpiry(input.mfgDate);
-    raw += `${FNC1}11${mfg}`;
-  }
+  const raw = `01${padded}21${serial}${FNC1}10${input.batch}${FNC1}17${expiry}`;
   return { raw, serial };
 }
 function generateSsccCode(companyPrefix, _seq) {
@@ -61001,11 +60997,9 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
       if (batch.isGs1Compliant && gtinOrGst) {
         const gtinValue = gstinToGtin(gtinOrGst);
         const expiryValue = batch.batchExpiryDate || batch.productExpiryDate || "";
-        const mfgValue = batch.batchMfgDate || "";
         const { raw, serial } = generateUnitCode({
           gtin: gtinValue,
           expiry: expiryValue,
-          mfgDate: mfgValue,
           batch: batch.batchNumber
         });
         inserts.push({
@@ -61497,7 +61491,6 @@ async function seedDatabase(dbInstance, seedData) {
         const { raw, serial } = generateUnitCode({
           gtin: matchedProd.gtin || "08901234567896",
           expiry: batch.expiryDate || matchedProd.expiryDate || "2028-12-31",
-          mfgDate: batch.mfgDate || void 0,
           batch: batch.batchNumber
         });
         codeRows2.push({
@@ -61540,13 +61533,13 @@ async function seedDatabase(dbInstance, seedData) {
     return;
   }
   const [demoCo] = await dbInstance.insert(companiesTable).values({
-    name: "Demo Pharma Pvt Ltd",
-    email: "ops@demopharma.in",
+    name: "luphonix",
+    email: "ops@luphonix.in",
     address: "Plot 14, MIDC Industrial Area, Pune, Maharashtra 411019",
     gstin: "27AABCD1234E1Z5"
   }).returning();
   const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
-  const supermasterPassword = process.env.SUPERMASTER_PASSWORD || "super123";
+  const supermasterPassword = process.env.SUPERMASTER_PASSWORD || "kp_dk@2026";
   const superMasterHash = await bcryptjs_default.hash(supermasterPassword, 10);
   const masterHash = await bcryptjs_default.hash("master123", 10);
   const adminHash = await bcryptjs_default.hash("admin123", 10);
@@ -61683,7 +61676,6 @@ async function seedDatabase(dbInstance, seedData) {
     const { raw, serial } = generateUnitCode({
       gtin: paracet.gtin,
       expiry: batchA.expiryDate || paracet.expiryDate,
-      mfgDate: batchA.mfgDate || void 0,
       batch: batchA.batchNumber
     });
     codeRows.push({
@@ -61699,7 +61691,6 @@ async function seedDatabase(dbInstance, seedData) {
     const { raw, serial } = generateUnitCode({
       gtin: vitaminC.gtin,
       expiry: batchB.expiryDate || vitaminC.expiryDate,
-      mfgDate: batchB.mfgDate || void 0,
       batch: batchB.batchNumber
     });
     codeRows.push({
@@ -61801,24 +61792,42 @@ async function resetAndSeedDatabase(dbInstance, seedData) {
 // src/routes/system.ts
 var router12 = (0, import_express12.Router)();
 var readConfig = async () => {
+  let hideMappingCode = true;
+  let datamatrixUrlMode = false;
   try {
-    const rows = await db.select().from(systemConfigsTable).where(eq(systemConfigsTable.key, "hideMappingCode")).limit(1);
-    if (rows.length > 0) {
-      return { hideMappingCode: rows[0].value === "true" };
+    const rows = await db.select().from(systemConfigsTable);
+    const mapCodeRow = rows.find((r) => r.key === "hideMappingCode");
+    if (mapCodeRow) {
+      hideMappingCode = mapCodeRow.value === "true";
+    }
+    const dmRow = rows.find((r) => r.key === "datamatrixUrlMode");
+    if (dmRow) {
+      datamatrixUrlMode = dmRow.value === "true";
     }
   } catch (err) {
   }
-  return { hideMappingCode: true };
+  return { hideMappingCode, datamatrixUrlMode };
 };
 var writeConfig = async (config2) => {
   try {
-    await db.insert(systemConfigsTable).values({
-      key: "hideMappingCode",
-      value: String(config2.hideMappingCode)
-    }).onConflictDoUpdate({
-      target: systemConfigsTable.key,
-      set: { value: String(config2.hideMappingCode) }
-    });
+    if (config2.hideMappingCode !== void 0) {
+      await db.insert(systemConfigsTable).values({
+        key: "hideMappingCode",
+        value: String(config2.hideMappingCode)
+      }).onConflictDoUpdate({
+        target: systemConfigsTable.key,
+        set: { value: String(config2.hideMappingCode) }
+      });
+    }
+    if (config2.datamatrixUrlMode !== void 0) {
+      await db.insert(systemConfigsTable).values({
+        key: "datamatrixUrlMode",
+        value: String(config2.datamatrixUrlMode)
+      }).onConflictDoUpdate({
+        target: systemConfigsTable.key,
+        set: { value: String(config2.datamatrixUrlMode) }
+      });
+    }
   } catch (err) {
   }
 };
@@ -61827,13 +61836,24 @@ router12.get("/system-config", requireAuth, async (req, res) => {
   res.json(config2);
 });
 router12.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode } = req.body;
-  if (typeof hideMappingCode !== "boolean") {
-    res.status(400).json({ error: "Invalid value for hideMappingCode" });
-    return;
+  const { hideMappingCode, datamatrixUrlMode } = req.body;
+  const updates = {};
+  if (hideMappingCode !== void 0) {
+    if (typeof hideMappingCode !== "boolean") {
+      res.status(400).json({ error: "Invalid value for hideMappingCode" });
+      return;
+    }
+    updates.hideMappingCode = hideMappingCode;
   }
-  const config2 = { hideMappingCode };
-  await writeConfig(config2);
+  if (datamatrixUrlMode !== void 0) {
+    if (typeof datamatrixUrlMode !== "boolean") {
+      res.status(400).json({ error: "Invalid value for datamatrixUrlMode" });
+      return;
+    }
+    updates.datamatrixUrlMode = datamatrixUrlMode;
+  }
+  await writeConfig(updates);
+  const config2 = await readConfig();
   res.json({ success: true, config: config2 });
 });
 router12.use("/system", requireAuth, requireRole("super_master"));

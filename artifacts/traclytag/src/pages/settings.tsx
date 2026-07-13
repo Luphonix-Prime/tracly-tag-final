@@ -5,11 +5,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
 import { useDevOptionsVisibility } from "@/hooks/use-dev-options-visibility";
+import { useDatamatrixUrlMode } from "@/hooks/use-datamatrix-url-mode";
 import { useGetCurrentUser } from "@workspace/api-client-react";
 
 export default function Settings() {
   const { hideMappingCode, toggleVisibility } = useMappingCodeVisibility();
   const { hideDevOptions, hideSsoOptions, setDevVisibility, setSsoVisibility } = useDevOptionsVisibility();
+  const { datamatrixUrlMode, setUrlMode } = useDatamatrixUrlMode();
   const { data: currentUser } = useGetCurrentUser();
 
   const [hideRecentSerialization, setHideRecentSerialization] = useState(() => {
@@ -66,6 +68,27 @@ export default function Settings() {
                   id="mapping-code-toggle"
                   checked={hideMappingCode}
                   onCheckedChange={toggleVisibility}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-safety-blue/10 rounded-lg text-safety-blue mt-0.5">
+                    <Link2 className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="datamatrix-url-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Use URL-based DataMatrix Codes
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      When enabled, scanning the generated DataMatrix barcodes will direct scanners/phones to the product verification URL.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="datamatrix-url-toggle"
+                  checked={datamatrixUrlMode}
+                  onCheckedChange={setUrlMode}
                 />
               </div>
 

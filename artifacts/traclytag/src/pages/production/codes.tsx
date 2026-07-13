@@ -30,6 +30,7 @@ import {
   Link as LinkIcon
 } from "lucide-react";
 import { format } from "date-fns";
+import { useDatamatrixUrlMode } from "@/hooks/use-datamatrix-url-mode";
 
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -78,7 +79,17 @@ function fixSsccCheckDigit(sscc: string): string {
   return digitsOnly.slice(0, 17) + checkDigit;
 }
 
-function DataMatrixBarcode({ rawString, size }: { rawString: string; size: number }) {
+function DataMatrixBarcode({ 
+  rawString, 
+  size, 
+  urlMode, 
+  verificationUrl 
+}: { 
+  rawString: string; 
+  size: number; 
+  urlMode?: boolean; 
+  verificationUrl?: string; 
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -89,7 +100,10 @@ function DataMatrixBarcode({ rawString, size }: { rawString: string; size: numbe
       let barcodeType = "datamatrix";
       let barcodeText = rawString;
 
-      if (!parsed.fallback && !parsed.error) {
+      if (urlMode && verificationUrl) {
+        barcodeText = verificationUrl;
+        barcodeType = "datamatrix";
+      } else if (!parsed.fallback && !parsed.error) {
         if (parsed.sscc) {
           const validSscc = fixSsccCheckDigit(parsed.sscc);
           barcodeText = `(00)${validSscc}`;
@@ -119,7 +133,7 @@ function DataMatrixBarcode({ rawString, size }: { rawString: string; size: numbe
         ctx.fillText("Error", 5, 12);
       }
     }
-  }, [rawString]);
+  }, [rawString, urlMode, verificationUrl]);
 
   return (
     <canvas 
@@ -239,6 +253,7 @@ const generateSchema = z.object({
 
 export default function Codes() {
   const { data: user } = useGetCurrentUser();
+  const { datamatrixUrlMode } = useDatamatrixUrlMode();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -914,12 +929,14 @@ export default function Codes() {
                     cleaned = cleaned.replace(/\/+$/, "");
                     baseOrigin = cleaned;
                   }
-                  const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
+                  const parsedCode = parseGs1Raw(code.rawString);
+                  const shortUrl = `${baseOrigin}/code/${parsedCode.serial || ""}`;
+                  const verificationUrl = datamatrixUrlMode ? shortUrl : `${baseOrigin}/code/${qrCodeString}`;
                   
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
                       <div className="p-1.5 bg-white rounded-lg border border-slate-200 flex items-center justify-center w-[130px] h-[130px]">
-                        <DataMatrixBarcode rawString={code.rawString} size={120} />
+                        <DataMatrixBarcode rawString={code.rawString} size={120} urlMode={datamatrixUrlMode} verificationUrl={shortUrl} />
                       </div>
                       <div className="w-full flex items-start justify-between gap-1 px-1 mt-1">
                         <div className="flex-1 min-w-0">
@@ -973,11 +990,13 @@ export default function Codes() {
                     cleaned = cleaned.replace(/\/+$/, "");
                     baseOrigin = cleaned;
                   }
-                  const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
+                  const parsedCode = parseGs1Raw(code.rawString);
+                  const shortUrl = `${baseOrigin}/code/${parsedCode.serial || ""}`;
+                  const verificationUrl = datamatrixUrlMode ? shortUrl : `${baseOrigin}/code/${qrCodeString}`;
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
                       <div className="p-1.5 bg-white rounded-lg border border-slate-200 shrink-0 flex items-center justify-center w-[100px] h-[100px]">
-                        <DataMatrixBarcode rawString={code.rawString} size={90} />
+                        <DataMatrixBarcode rawString={code.rawString} size={90} urlMode={datamatrixUrlMode} verificationUrl={shortUrl} />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-start justify-between gap-3">
