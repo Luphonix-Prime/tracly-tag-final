@@ -146,7 +146,6 @@ function parseGs1Raw(raw: string) {
   let serial = "";
   let batch = "";
   let expiry = "";
-  let mfg = "";
   
   let pos = 0;
   while (pos < clean.length) {
@@ -168,34 +167,17 @@ function parseGs1Raw(raw: string) {
     } else if (ai === "17") {
       expiry = clean.substring(pos, pos + 6);
       pos += 6;
-    } else if (ai === "11") {
-      mfg = clean.substring(pos, pos + 6);
-      pos += 6;
     } else {
       break;
     }
   }
   
-  if (!gtin && !serial && !batch && !expiry && !mfg) {
+  if (!gtin && !serial && !batch && !expiry) {
     return { fallback: raw };
   }
   
-  return { gtin, serial, batch, expiry, mfg };
+  return { gtin, serial, batch, expiry };
 }
-
-const getProductString = (raw: string, companyGstin?: string) => {
-  const parsed = parseGs1Raw(raw);
-  if (parsed.fallback || parsed.error) {
-    return raw;
-  }
-  if (parsed.sscc) {
-    const validSscc = fixSsccCheckDigit(parsed.sscc);
-    return `(00)${validSscc}`;
-  }
-  const displayGtin = companyGstin || (parsed.gtin ? fixGtinCheckDigit(parsed.gtin) : "");
-  const expiryYear = parsed.expiry && parsed.expiry.length >= 2 ? `20${parsed.expiry.substring(0, 2)}` : "";
-  return `(01)${displayGtin}-(10)${parsed.batch || ""}-(17)${expiryYear}-(21)${parsed.serial || ""}`;
-};
 
 const renderGs1Text = (raw: string, companyGstin?: string) => {
   const parsed = parseGs1Raw(raw);
@@ -221,7 +203,7 @@ const renderGs1Text = (raw: string, companyGstin?: string) => {
       {parsed.batch && <div>(10){parsed.batch}</div>}
       {parsed.expiry && <div>(17){parsed.expiry}</div>}
       <div className="mt-1 border-t border-slate-200/50 pt-0.5 text-[8.5px] text-[#434655] truncate" title={concatenated}>
-        Product string: {concatenated}
+        {concatenated}
       </div>
     </div>
   );
@@ -902,8 +884,20 @@ export default function Codes() {
                 "grid-cols-6"
               }`}>
                 {viewCodesList.map((code) => {
-                  const displayCode = getProductString(code.rawString, code.companyGstin);
-                  const qrCodeString = displayCode;
+                  const displayCode = code.serialNumber || code.ssccCode || "";
+                  let prefix = "";
+                  try {
+                    if (code.createdAt) {
+                      const cDate = new Date(code.createdAt);
+                      const dateStr = format(cDate, "yyyyMMdd");
+                      const timeStr = format(cDate, "HHmmss");
+                      const gstin = code.companyGstin || "";
+                      prefix = `${dateStr}_${timeStr}_${gstin}`;
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
                   let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
                   if (rawUrl) {
@@ -961,8 +955,20 @@ export default function Codes() {
               /* List View Mode */
               <div className="space-y-3">
                 {viewCodesList.map((code) => {
-                  const displayCode = getProductString(code.rawString, code.companyGstin);
-                  const qrCodeString = displayCode;
+                  const displayCode = code.serialNumber || code.ssccCode || "";
+                  let prefix = "";
+                  try {
+                    if (code.createdAt) {
+                      const cDate = new Date(code.createdAt);
+                      const dateStr = format(cDate, "yyyyMMdd");
+                      const timeStr = format(cDate, "HHmmss");
+                      const gstin = code.companyGstin || "";
+                      prefix = `${dateStr}_${timeStr}_${gstin}`;
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
                   let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
                   if (rawUrl) {

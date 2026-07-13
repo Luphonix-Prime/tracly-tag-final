@@ -60328,7 +60328,11 @@ function generateUnitCode(input) {
   const padded = input.gtin.length === 13 ? "0" + input.gtin : input.gtin;
   const expiry = formatExpiry(input.expiry);
   const serial = makeSerial();
-  const raw = `01${padded}21${serial}${FNC1}10${input.batch}${FNC1}17${expiry}`;
+  let raw = `01${padded}21${serial}${FNC1}10${input.batch}${FNC1}17${expiry}`;
+  if (input.mfgDate) {
+    const mfg = formatExpiry(input.mfgDate);
+    raw += `${FNC1}11${mfg}`;
+  }
   return { raw, serial };
 }
 function generateSsccCode(companyPrefix, _seq) {
@@ -60359,6 +60363,10 @@ function parseGs1Code(rawCode) {
       const yymmdd = normalized.substring(pos, pos + 6);
       pos += 6;
       result.expiry = yymmdd;
+    } else if (ai === "11") {
+      const yymmdd = normalized.substring(pos, pos + 6);
+      pos += 6;
+      result.mfgDate = yymmdd;
     } else if (ai === "10") {
       const nextSep = normalized.indexOf("|", pos);
       const nextAi = Math.min(
@@ -60416,21 +60424,25 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
-  if (isGs1Compliant) {
-    if (!parsed.data.gtin) {
-      res.status(400).json({ error: "GTIN is required for GS1 compliant products" });
-      return;
-    }
-    if (!isValidGtin(parsed.data.gtin)) {
-      res.status(400).json({ error: "Invalid GTIN check digit" });
-      return;
-    }
-  }
   let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId : null);
   if (!companyId) {
     res.status(400).json({ error: "Master must select a company context to add products" });
     return;
+  }
+  const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
+  if (isGs1Compliant) {
+    if (!parsed.data.gtin) {
+      const [company] = await db.select({ gstin: companiesTable.gstin }).from(companiesTable).where(eq(companiesTable.id, Number(companyId)));
+      if (!company || !company.gstin) {
+        res.status(400).json({ error: "GTIN or Company GST is required for GS1 compliant products" });
+        return;
+      }
+    } else {
+      if (!isValidGtin(parsed.data.gtin)) {
+        res.status(400).json({ error: "Invalid GTIN check digit" });
+        return;
+      }
+    }
   }
   const [row] = await db.insert(productsTable).values({
     companyId: Number(companyId),
@@ -60756,6 +60768,19 @@ router8.get("/codes/public/:serial", async (req, res) => {
     }
     if (searchSerial.includes("-")) {
       const parts = searchSerial.split("-");
+      if (parts.length >= 4) {
+        const potentialSerial = parts[parts.length - 1];
+        if (potentialSerial && potentialSerial.length >= 6 && !potentialSerial.includes(" ")) {
+          const matches = await db.select({ id: codesTable.id }).from(codesTable).where(eq(codesTable.serialNumber, potentialSerial)).limit(1);
+          if (matches.length > 0) {
+            searchSerial = potentialSerial;
+            console.log(`[Public Verify] Normalized dash-separated URL to serial: "${searchSerial}"`);
+          }
+        }
+      }
+    }
+    if (searchSerial.includes("-")) {
+      const parts = searchSerial.split("-");
       const serialIndex = parts.findIndex((p) => p.startsWith("21"));
       if (serialIndex > -1) {
         searchSerial = parts.slice(serialIndex).join("-").substring(2);
@@ -60952,6 +60977,7 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
     productId: batchesTable.productId,
     batchNumber: batchesTable.batchNumber,
     batchExpiryDate: batchesTable.expiryDate,
+    batchMfgDate: batchesTable.mfgDate,
     productExpiryDate: productsTable.expiryDate,
     gtin: productsTable.gtin,
     isGs1Compliant: productsTable.isGs1Compliant,
@@ -60974,10 +61000,12 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
       const gtinOrGst = batch.companyGstin || batch.gtin;
       if (batch.isGs1Compliant && gtinOrGst) {
         const gtinValue = gstinToGtin(gtinOrGst);
-        const expiryValue = batch.productExpiryDate || batch.batchExpiryDate || "";
+        const expiryValue = batch.batchExpiryDate || batch.productExpiryDate || "";
+        const mfgValue = batch.batchMfgDate || "";
         const { raw, serial } = generateUnitCode({
           gtin: gtinValue,
           expiry: expiryValue,
+          mfgDate: mfgValue,
           batch: batch.batchNumber
         });
         inserts.push({
@@ -61468,7 +61496,8 @@ async function seedDatabase(dbInstance, seedData) {
       for (let i = 0; i < 20; i++) {
         const { raw, serial } = generateUnitCode({
           gtin: matchedProd.gtin || "08901234567896",
-          expiry: matchedProd.expiryDate || "2028-12-31",
+          expiry: batch.expiryDate || matchedProd.expiryDate || "2028-12-31",
+          mfgDate: batch.mfgDate || void 0,
           batch: batch.batchNumber
         });
         codeRows2.push({
@@ -61653,7 +61682,8 @@ async function seedDatabase(dbInstance, seedData) {
   for (let i = 0; i < 30; i++) {
     const { raw, serial } = generateUnitCode({
       gtin: paracet.gtin,
-      expiry: paracet.expiryDate,
+      expiry: batchA.expiryDate || paracet.expiryDate,
+      mfgDate: batchA.mfgDate || void 0,
       batch: batchA.batchNumber
     });
     codeRows.push({
@@ -61668,7 +61698,8 @@ async function seedDatabase(dbInstance, seedData) {
   for (let i = 0; i < 20; i++) {
     const { raw, serial } = generateUnitCode({
       gtin: vitaminC.gtin,
-      expiry: vitaminC.expiryDate,
+      expiry: batchB.expiryDate || vitaminC.expiryDate,
+      mfgDate: batchB.mfgDate || void 0,
       batch: batchB.batchNumber
     });
     codeRows.push({

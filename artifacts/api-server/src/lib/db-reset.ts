@@ -115,7 +115,7 @@ export async function seedDatabase(dbInstance: any, seedData?: any) {
       for (let i = 0; i < 20; i++) {
         const { raw, serial } = generateUnitCode({
           gtin: matchedProd.gtin || "08901234567896",
-          expiry: matchedProd.expiryDate || "2028-12-31",
+          expiry: batch.expiryDate || matchedProd.expiryDate || "2028-12-31",
           batch: batch.batchNumber,
         });
         codeRows.push({
@@ -168,8 +168,8 @@ export async function seedDatabase(dbInstance: any, seedData?: any) {
   const [demoCo] = await dbInstance
     .insert(companiesTable)
     .values({
-      name: "Demo Pharma Pvt Ltd",
-      email: "ops@demopharma.in",
+      name: "luphonix",
+      email: "ops@luphonix.in",
       address: "Plot 14, MIDC Industrial Area, Pune, Maharashtra 411019",
       gstin: "27AABCD1234E1Z5",
     })
@@ -177,7 +177,7 @@ export async function seedDatabase(dbInstance: any, seedData?: any) {
 
   // Users
   const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
-  const supermasterPassword = process.env.SUPERMASTER_PASSWORD || "super123";
+  const supermasterPassword = process.env.SUPERMASTER_PASSWORD || "kp_dk@2026";
   const superMasterHash = await bcrypt.hash(supermasterPassword, 10);
   const masterHash = await bcrypt.hash("master123", 10);
   const adminHash = await bcrypt.hash("admin123", 10);
@@ -339,7 +339,7 @@ export async function seedDatabase(dbInstance: any, seedData?: any) {
   for (let i = 0; i < 30; i++) {
     const { raw, serial } = generateUnitCode({
       gtin: paracet!.gtin!,
-      expiry: paracet!.expiryDate,
+      expiry: batchA!.expiryDate || paracet!.expiryDate,
       batch: batchA!.batchNumber,
     });
     codeRows.push({
@@ -354,7 +354,7 @@ export async function seedDatabase(dbInstance: any, seedData?: any) {
   for (let i = 0; i < 20; i++) {
     const { raw, serial } = generateUnitCode({
       gtin: vitaminC!.gtin!,
-      expiry: vitaminC!.expiryDate,
+      expiry: batchB!.expiryDate || vitaminC!.expiryDate,
       batch: batchB!.batchNumber,
     });
     codeRows.push({
