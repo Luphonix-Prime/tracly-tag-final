@@ -411,6 +411,8 @@ router.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res): P
     typeof req.query.productId === "string"
       ? parseInt(req.query.productId, 10)
       : null;
+  const createdAt =
+    typeof req.query.createdAt === "string" ? req.query.createdAt : null;
   const limit =
     typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 5000;
 
@@ -420,6 +422,8 @@ router.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res): P
     conds.push(eq(codesTable.batchId, batchId));
   if (productId && !Number.isNaN(productId))
     conds.push(eq(codesTable.productId, productId));
+  if (createdAt)
+    conds.push(eq(codesTable.createdAt, createdAt));
   if (req.user!.role !== "master" && req.user!.role !== "super_master") {
     conds.push(eq(productsTable.companyId, req.user!.companyId!));
   }
@@ -507,6 +511,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
   }
 
   const isUnitLevel = ["unit", "l1", "l2"].includes(parsed.data.level);
+  const generationTime = new Date().toISOString();
 
   const inserts = [];
   for (let i = 0; i < parsed.data.quantity; i++) {
@@ -527,6 +532,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
           rawString: raw,
           serialNumber: serial,
           ssccCode: null,
+          createdAt: generationTime,
         });
       } else {
         const crypto = await import("crypto");
@@ -538,6 +544,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
           rawString: serial,
           serialNumber: serial,
           ssccCode: null,
+          createdAt: generationTime,
         });
       }
     } else {
@@ -553,6 +560,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
           rawString: raw,
           serialNumber: null,
           ssccCode: sscc,
+          createdAt: generationTime,
         });
       } else {
         const crypto = await import("crypto");
@@ -565,6 +573,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
           rawString: sscc,
           serialNumber: null,
           ssccCode: sscc,
+          createdAt: generationTime,
         });
       }
     }

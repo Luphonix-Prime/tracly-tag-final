@@ -91,6 +91,7 @@ export const ListCompaniesResponse = zod.array(ListCompaniesResponseItem)
 
 
 export const createCompanyBodyGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');
+export const companyUrlVerifyRegExp = new RegExp('^$|^verify\\.[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
 
 
 export const CreateCompanyBody = zod.object({
@@ -98,7 +99,7 @@ export const CreateCompanyBody = zod.object({
   "email": zod.string(),
   "address": zod.string(),
   "gstin": zod.string().regex(createCompanyBodyGstinRegExp).nullish(),
-  "companyUrl": zod.string().nullish(),
+  "companyUrl": zod.string().regex(companyUrlVerifyRegExp, "Domain must use 'verify' subdomain (e.g. verify.company.com)").nullish(),
   "pan": zod.string().nullish(),
   "cin": zod.string().nullish(),
   "msmeRegistrationNo": zod.string().nullish(),
@@ -132,7 +133,7 @@ export const GetMyCompanyResponse = zod.object({
 
 
 export const UpdateMyCompanyBody = zod.object({
-  "companyUrl": zod.string().nullish()
+  "companyUrl": zod.string().regex(companyUrlVerifyRegExp, "Domain must use 'verify' subdomain (e.g. verify.company.com)").nullish()
 })
 
 export const updateMyCompanyResponseGstinRegExp = new RegExp('^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$');

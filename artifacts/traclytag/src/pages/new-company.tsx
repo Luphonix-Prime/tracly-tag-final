@@ -28,7 +28,11 @@ const companySchema = z.object({
     .string()
     .optional()
     .or(z.literal(""))
-    .transform((val) => val?.trim().toLowerCase()),
+    .transform((val) => val?.trim().toLowerCase())
+    .refine(
+      (val) => !val || (val.startsWith("verify.") && val.split(".").filter(Boolean).length >= 3),
+      "Custom domain must use 'verify' as the subdomain (e.g., verify.company.com)"
+    ),
   pan: z
     .string()
     .optional()

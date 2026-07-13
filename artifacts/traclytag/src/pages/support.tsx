@@ -155,13 +155,18 @@ export default function Support() {
 
   const handleSaveDomain = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedDomain = domainInput.trim().toLowerCase();
+    if (trimmedDomain && (!trimmedDomain.startsWith("verify.") || trimmedDomain.split(".").filter(Boolean).length < 3)) {
+      toast.error("Custom domain must use 'verify' as the subdomain (e.g., verify.company.com)");
+      return;
+    }
     setIsUpdatingDomain(true);
     try {
       const url = isSuperMaster ? `/api/companies/my-company?companyId=${selectedCompanyId}` : `/api/companies/my-company`;
       const res = await fetch(url, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyUrl: domainInput.trim() || null })
+        body: JSON.stringify({ companyUrl: trimmedDomain || null })
       });
       if (!res.ok) throw new Error("Failed to save domain");
       toast.success("Custom domain configuration saved successfully!");
