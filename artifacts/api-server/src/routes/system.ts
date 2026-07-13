@@ -9,36 +9,54 @@ const router: IRouter = Router();
 
 // Helper to read config from database
 const readConfig = async () => {
+  let hideMappingCode = true;
+  let datamatrixUrlMode = false;
   try {
     const rows = await db
       .select()
-      .from(systemConfigsTable)
-      .where(eq(systemConfigsTable.key, "hideMappingCode"))
-      .limit(1);
+      .from(systemConfigsTable);
 
-    if (rows.length > 0) {
-      return { hideMappingCode: rows[0].value === "true" };
+    const mapCodeRow = rows.find(r => r.key === "hideMappingCode");
+    if (mapCodeRow) {
+      hideMappingCode = mapCodeRow.value === "true";
+    }
+    const dmRow = rows.find(r => r.key === "datamatrixUrlMode");
+    if (dmRow) {
+      datamatrixUrlMode = dmRow.value === "true";
     }
   } catch (err) {
     // ignore
   }
-  // Default is true ("turn on it for now")
-  return { hideMappingCode: true };
+  return { hideMappingCode, datamatrixUrlMode };
 };
 
 // Helper to write config to database
-const writeConfig = async (config: { hideMappingCode: boolean }) => {
+const writeConfig = async (config: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean }) => {
   try {
-    await db
-      .insert(systemConfigsTable)
-      .values({
-        key: "hideMappingCode",
-        value: String(config.hideMappingCode),
-      })
-      .onConflictDoUpdate({
-        target: systemConfigsTable.key,
-        set: { value: String(config.hideMappingCode) },
-      });
+    if (config.hideMappingCode !== undefined) {
+      await db
+        .insert(systemConfigsTable)
+        .values({
+          key: "hideMappingCode",
+          value: String(config.hideMappingCode),
+        })
+        .onConflictDoUpdate({
+          target: systemConfigsTable.key,
+          set: { value: String(config.hideMappingCode) },
+        });
+    }
+    if (config.datamatrixUrlMode !== undefined) {
+      await db
+        .insert(systemConfigsTable)
+        .values({
+          key: "datamatrixUrlMode",
+          value: String(config.datamatrixUrlMode),
+        })
+        .onConflictDoUpdate({
+          target: systemConfigsTable.key,
+          set: { value: String(config.datamatrixUrlMode) },
+        });
+    }
   } catch (err) {
     // ignore
   }
@@ -52,13 +70,27 @@ router.get("/system-config", requireAuth, async (req, res) => {
 
 // Super master config setter
 router.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode } = req.body;
-  if (typeof hideMappingCode !== "boolean") {
-    res.status(400).json({ error: "Invalid value for hideMappingCode" });
-    return;
+  const { hideMappingCode, datamatrixUrlMode } = req.body;
+  const updates: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean } = {};
+  
+  if (hideMappingCode !== undefined) {
+    if (typeof hideMappingCode !== "boolean") {
+      res.status(400).json({ error: "Invalid value for hideMappingCode" });
+      return;
+    }
+    updates.hideMappingCode = hideMappingCode;
   }
-  const config = { hideMappingCode };
-  await writeConfig(config);
+  
+  if (datamatrixUrlMode !== undefined) {
+    if (typeof datamatrixUrlMode !== "boolean") {
+      res.status(400).json({ error: "Invalid value for datamatrixUrlMode" });
+      return;
+    }
+    updates.datamatrixUrlMode = datamatrixUrlMode;
+  }
+  
+  await writeConfig(updates);
+  const config = await readConfig();
   res.json({ success: true, config });
 });
 

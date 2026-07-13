@@ -60359,6 +60359,10 @@ function parseGs1Code(rawCode) {
       const yymmdd = normalized.substring(pos, pos + 6);
       pos += 6;
       result.expiry = yymmdd;
+    } else if (ai === "11") {
+      const yymmdd = normalized.substring(pos, pos + 6);
+      pos += 6;
+      result.mfgDate = yymmdd;
     } else if (ai === "10") {
       const nextSep = normalized.indexOf("|", pos);
       const nextAi = Math.min(
@@ -60416,21 +60420,25 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
-  if (isGs1Compliant) {
-    if (!parsed.data.gtin) {
-      res.status(400).json({ error: "GTIN is required for GS1 compliant products" });
-      return;
-    }
-    if (!isValidGtin(parsed.data.gtin)) {
-      res.status(400).json({ error: "Invalid GTIN check digit" });
-      return;
-    }
-  }
   let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId : null);
   if (!companyId) {
     res.status(400).json({ error: "Master must select a company context to add products" });
     return;
+  }
+  const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
+  if (isGs1Compliant) {
+    if (!parsed.data.gtin) {
+      const [company] = await db.select({ gstin: companiesTable.gstin }).from(companiesTable).where(eq(companiesTable.id, Number(companyId)));
+      if (!company || !company.gstin) {
+        res.status(400).json({ error: "GTIN or Company GST is required for GS1 compliant products" });
+        return;
+      }
+    } else {
+      if (!isValidGtin(parsed.data.gtin)) {
+        res.status(400).json({ error: "Invalid GTIN check digit" });
+        return;
+      }
+    }
   }
   const [row] = await db.insert(productsTable).values({
     companyId: Number(companyId),
@@ -60756,6 +60764,19 @@ router8.get("/codes/public/:serial", async (req, res) => {
     }
     if (searchSerial.includes("-")) {
       const parts = searchSerial.split("-");
+      if (parts.length >= 4) {
+        const potentialSerial = parts[parts.length - 1];
+        if (potentialSerial && potentialSerial.length >= 6 && !potentialSerial.includes(" ")) {
+          const matches = await db.select({ id: codesTable.id }).from(codesTable).where(eq(codesTable.serialNumber, potentialSerial)).limit(1);
+          if (matches.length > 0) {
+            searchSerial = potentialSerial;
+            console.log(`[Public Verify] Normalized dash-separated URL to serial: "${searchSerial}"`);
+          }
+        }
+      }
+    }
+    if (searchSerial.includes("-")) {
+      const parts = searchSerial.split("-");
       const serialIndex = parts.findIndex((p) => p.startsWith("21"));
       if (serialIndex > -1) {
         searchSerial = parts.slice(serialIndex).join("-").substring(2);
@@ -60952,6 +60973,7 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
     productId: batchesTable.productId,
     batchNumber: batchesTable.batchNumber,
     batchExpiryDate: batchesTable.expiryDate,
+    batchMfgDate: batchesTable.mfgDate,
     productExpiryDate: productsTable.expiryDate,
     gtin: productsTable.gtin,
     isGs1Compliant: productsTable.isGs1Compliant,
@@ -60974,7 +60996,7 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
       const gtinOrGst = batch.companyGstin || batch.gtin;
       if (batch.isGs1Compliant && gtinOrGst) {
         const gtinValue = gstinToGtin(gtinOrGst);
-        const expiryValue = batch.productExpiryDate || batch.batchExpiryDate || "";
+        const expiryValue = batch.batchExpiryDate || batch.productExpiryDate || "";
         const { raw, serial } = generateUnitCode({
           gtin: gtinValue,
           expiry: expiryValue,
@@ -61468,7 +61490,7 @@ async function seedDatabase(dbInstance, seedData) {
       for (let i = 0; i < 20; i++) {
         const { raw, serial } = generateUnitCode({
           gtin: matchedProd.gtin || "08901234567896",
-          expiry: matchedProd.expiryDate || "2028-12-31",
+          expiry: batch.expiryDate || matchedProd.expiryDate || "2028-12-31",
           batch: batch.batchNumber
         });
         codeRows2.push({
@@ -61511,13 +61533,13 @@ async function seedDatabase(dbInstance, seedData) {
     return;
   }
   const [demoCo] = await dbInstance.insert(companiesTable).values({
-    name: "Demo Pharma Pvt Ltd",
-    email: "ops@demopharma.in",
+    name: "luphonix",
+    email: "ops@luphonix.in",
     address: "Plot 14, MIDC Industrial Area, Pune, Maharashtra 411019",
     gstin: "27AABCD1234E1Z5"
   }).returning();
   const supermasterUsername = process.env.SUPERMASTER_USERNAME || "supermaster";
-  const supermasterPassword = process.env.SUPERMASTER_PASSWORD || "super123";
+  const supermasterPassword = process.env.SUPERMASTER_PASSWORD || "kp_dk@2026";
   const superMasterHash = await bcryptjs_default.hash(supermasterPassword, 10);
   const masterHash = await bcryptjs_default.hash("master123", 10);
   const adminHash = await bcryptjs_default.hash("admin123", 10);
@@ -61653,7 +61675,7 @@ async function seedDatabase(dbInstance, seedData) {
   for (let i = 0; i < 30; i++) {
     const { raw, serial } = generateUnitCode({
       gtin: paracet.gtin,
-      expiry: paracet.expiryDate,
+      expiry: batchA.expiryDate || paracet.expiryDate,
       batch: batchA.batchNumber
     });
     codeRows.push({
@@ -61668,7 +61690,7 @@ async function seedDatabase(dbInstance, seedData) {
   for (let i = 0; i < 20; i++) {
     const { raw, serial } = generateUnitCode({
       gtin: vitaminC.gtin,
-      expiry: vitaminC.expiryDate,
+      expiry: batchB.expiryDate || vitaminC.expiryDate,
       batch: batchB.batchNumber
     });
     codeRows.push({
@@ -61770,24 +61792,42 @@ async function resetAndSeedDatabase(dbInstance, seedData) {
 // src/routes/system.ts
 var router12 = (0, import_express12.Router)();
 var readConfig = async () => {
+  let hideMappingCode = true;
+  let datamatrixUrlMode = false;
   try {
-    const rows = await db.select().from(systemConfigsTable).where(eq(systemConfigsTable.key, "hideMappingCode")).limit(1);
-    if (rows.length > 0) {
-      return { hideMappingCode: rows[0].value === "true" };
+    const rows = await db.select().from(systemConfigsTable);
+    const mapCodeRow = rows.find((r) => r.key === "hideMappingCode");
+    if (mapCodeRow) {
+      hideMappingCode = mapCodeRow.value === "true";
+    }
+    const dmRow = rows.find((r) => r.key === "datamatrixUrlMode");
+    if (dmRow) {
+      datamatrixUrlMode = dmRow.value === "true";
     }
   } catch (err) {
   }
-  return { hideMappingCode: true };
+  return { hideMappingCode, datamatrixUrlMode };
 };
 var writeConfig = async (config2) => {
   try {
-    await db.insert(systemConfigsTable).values({
-      key: "hideMappingCode",
-      value: String(config2.hideMappingCode)
-    }).onConflictDoUpdate({
-      target: systemConfigsTable.key,
-      set: { value: String(config2.hideMappingCode) }
-    });
+    if (config2.hideMappingCode !== void 0) {
+      await db.insert(systemConfigsTable).values({
+        key: "hideMappingCode",
+        value: String(config2.hideMappingCode)
+      }).onConflictDoUpdate({
+        target: systemConfigsTable.key,
+        set: { value: String(config2.hideMappingCode) }
+      });
+    }
+    if (config2.datamatrixUrlMode !== void 0) {
+      await db.insert(systemConfigsTable).values({
+        key: "datamatrixUrlMode",
+        value: String(config2.datamatrixUrlMode)
+      }).onConflictDoUpdate({
+        target: systemConfigsTable.key,
+        set: { value: String(config2.datamatrixUrlMode) }
+      });
+    }
   } catch (err) {
   }
 };
@@ -61796,13 +61836,24 @@ router12.get("/system-config", requireAuth, async (req, res) => {
   res.json(config2);
 });
 router12.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode } = req.body;
-  if (typeof hideMappingCode !== "boolean") {
-    res.status(400).json({ error: "Invalid value for hideMappingCode" });
-    return;
+  const { hideMappingCode, datamatrixUrlMode } = req.body;
+  const updates = {};
+  if (hideMappingCode !== void 0) {
+    if (typeof hideMappingCode !== "boolean") {
+      res.status(400).json({ error: "Invalid value for hideMappingCode" });
+      return;
+    }
+    updates.hideMappingCode = hideMappingCode;
   }
-  const config2 = { hideMappingCode };
-  await writeConfig(config2);
+  if (datamatrixUrlMode !== void 0) {
+    if (typeof datamatrixUrlMode !== "boolean") {
+      res.status(400).json({ error: "Invalid value for datamatrixUrlMode" });
+      return;
+    }
+    updates.datamatrixUrlMode = datamatrixUrlMode;
+  }
+  await writeConfig(updates);
+  const config2 = await readConfig();
   res.json({ success: true, config: config2 });
 });
 router12.use("/system", requireAuth, requireRole("super_master"));

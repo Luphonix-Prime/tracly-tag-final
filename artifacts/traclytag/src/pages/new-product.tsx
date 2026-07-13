@@ -304,7 +304,7 @@ export default function NewProduct() {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="false">TracelyTag Internal Compliance (Generates secure non-GS1 serial codes)</SelectItem>
-                            <SelectItem value="true">Official GS1 Compliant Mode (Requires 13/14-digit GTIN checks)</SelectItem>
+                            <SelectItem value="true">Official GS1 Compliant Mode (Requires GTIN or Company GST)</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

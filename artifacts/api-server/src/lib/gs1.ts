@@ -94,6 +94,7 @@ export function parseGs1Code(rawCode: string): {
   gtin?: string;
   batch?: string;
   expiry?: string;
+  mfgDate?: string;
 } {
   const result: Record<string, string | undefined> = {};
   let i = 0;
@@ -123,6 +124,11 @@ export function parseGs1Code(rawCode: string): {
       const yymmdd = normalized.substring(pos, pos + 6);
       pos += 6;
       result.expiry = yymmdd;
+    } else if (ai === '11') {
+      // Mfg date - 6 digits (YYMMDD)
+      const yymmdd = normalized.substring(pos, pos + 6);
+      pos += 6;
+      result.mfgDate = yymmdd;
     } else if (ai === '10') {
       // Batch/Lot - variable, ends with FNC1 (|) or next AI
       const nextSep = normalized.indexOf('|', pos);

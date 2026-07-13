@@ -208,6 +208,25 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
       searchSerial = parts[parts.length - 1] || searchSerial;
     }
 
+    // Extract actual serial/SSCC from new format: <gst/gtin>-<expiry>-<batch>-<serial>
+    if (searchSerial.includes("-")) {
+      const parts = searchSerial.split("-");
+      if (parts.length >= 4) {
+        const potentialSerial = parts[parts.length - 1];
+        if (potentialSerial && potentialSerial.length >= 6 && !potentialSerial.includes(" ")) {
+          const matches = await db
+            .select({ id: codesTable.id })
+            .from(codesTable)
+            .where(eq(codesTable.serialNumber, potentialSerial))
+            .limit(1);
+          if (matches.length > 0) {
+            searchSerial = potentialSerial;
+            console.log(`[Public Verify] Normalized dash-separated URL to serial: "${searchSerial}"`);
+          }
+        }
+      }
+    }
+
     // Extract actual serial/SSCC from concatenated product string if formatted with (21) or (00)
     if (searchSerial.includes("-")) {
       const parts = searchSerial.split("-");
@@ -460,6 +479,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
       productId: batchesTable.productId,
       batchNumber: batchesTable.batchNumber,
       batchExpiryDate: batchesTable.expiryDate,
+      batchMfgDate: batchesTable.mfgDate,
       productExpiryDate: productsTable.expiryDate,
       gtin: productsTable.gtin,
       isGs1Compliant: productsTable.isGs1Compliant,
@@ -494,7 +514,7 @@ router.post("/codes", requireAuth, requireModule("generate_codes"), async (req, 
       const gtinOrGst = batch.companyGstin || batch.gtin;
       if (batch.isGs1Compliant && gtinOrGst) {
         const gtinValue = gstinToGtin(gtinOrGst);
-        const expiryValue = batch.productExpiryDate || batch.batchExpiryDate || "";
+        const expiryValue = batch.batchExpiryDate || batch.productExpiryDate || "";
         const { raw, serial } = generateUnitCode({
           gtin: gtinValue,
           expiry: expiryValue,
