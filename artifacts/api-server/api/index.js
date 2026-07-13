@@ -60472,6 +60472,61 @@ router5.post("/products", async (req, res) => {
     mrp: typeof row.mrp === "string" ? parseFloat(row.mrp) : row.mrp
   });
 });
+router5.put("/products/:id", async (req, res) => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = CreateProductBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
+  if (isGs1Compliant) {
+    if (parsed.data.gtin && !isValidGtin(parsed.data.gtin)) {
+      res.status(400).json({ error: "Invalid GTIN check digit" });
+      return;
+    }
+  }
+  const expiryDateStr = parsed.data.expiryDate instanceof Date ? parsed.data.expiryDate.toISOString().slice(0, 10) : String(parsed.data.expiryDate).slice(0, 10);
+  const [row] = await db.update(productsTable).set({
+    skuId: parsed.data.skuId,
+    name: parsed.data.name,
+    skuSize: parsed.data.skuSize,
+    marketedBy: parsed.data.marketedBy,
+    sapDescription: parsed.data.sapDescription ?? null,
+    gtin: parsed.data.gtin ?? null,
+    mrp: Number(parsed.data.mrp),
+    registrationNo: parsed.data.registrationNo ?? null,
+    hsnCode: parsed.data.hsnCode ?? null,
+    gstRate: parsed.data.gstRate !== void 0 && parsed.data.gstRate !== null ? Number(parsed.data.gstRate) : null,
+    unit: parsed.data.unit ?? null,
+    weightValue: parsed.data.weightValue !== void 0 && parsed.data.weightValue !== null ? Number(parsed.data.weightValue) : null,
+    weightUnit: parsed.data.weightUnit ?? null,
+    packagingType: parsed.data.packagingType ?? null,
+    shelfLifeDays: parsed.data.shelfLifeDays !== void 0 && parsed.data.shelfLifeDays !== null ? Number(parsed.data.shelfLifeDays) : null,
+    countryOfOrigin: parsed.data.countryOfOrigin ?? "IND",
+    isGs1Compliant,
+    l1Size: parsed.data.l1Size,
+    l2Size: parsed.data.l2Size,
+    shipperSize: parsed.data.shipperSize,
+    cautionLogoUrl: parsed.data.cautionLogoUrl ?? null,
+    productLogoUrl: parsed.data.productLogoUrl ?? null,
+    labelPdfUrl: parsed.data.labelPdfUrl ?? null,
+    expiryDate: expiryDateStr
+  }).where(eq(productsTable.id, id)).returning();
+  if (!row) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+  res.json({
+    ...row,
+    mrp: typeof row.mrp === "string" ? parseFloat(row.mrp) : row.mrp
+  });
+});
 router5.delete("/products/:id", async (req, res) => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw ?? "", 10);
@@ -60522,6 +60577,41 @@ router6.post("/locations", async (req, res) => {
     gln: parsed.data.gln ?? null
   }).returning();
   res.status(201).json(row);
+});
+router6.put("/locations/:id", async (req, res) => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = CreateLocationBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (parsed.data.gln) {
+    const { validateGs1CheckDigit: validateGs1CheckDigit2 } = await Promise.resolve().then(() => (init_gs1_validation(), gs1_validation_exports));
+    if (!validateGs1CheckDigit2(parsed.data.gln)) {
+      res.status(400).json({ error: "Invalid GLN checksum. Must be standard 13-digit GS1 location code." });
+      return;
+    }
+  }
+  const [row] = await db.update(locationsTable).set({
+    locationType: parsed.data.locationType,
+    uniqueName: parsed.data.uniqueName,
+    locationName: parsed.data.locationName,
+    contactNo: parsed.data.contactNo,
+    state: parsed.data.state,
+    city: parsed.data.city,
+    address: parsed.data.address,
+    gln: parsed.data.gln ?? null
+  }).where(eq(locationsTable.id, id)).returning();
+  if (!row) {
+    res.status(404).json({ error: "Location not found" });
+    return;
+  }
+  res.json(row);
 });
 router6.delete("/locations/:id", async (req, res) => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -60586,6 +60676,44 @@ router7.post("/batches", async (req, res) => {
     res.status(201).json(withProduct);
   } catch (err) {
     req.log.error({ err }, "Batch create failed");
+    res.status(400).json({ error: "Batch number must be unique per product" });
+  }
+});
+router7.put("/batches/:id", async (req, res) => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = CreateBatchBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  try {
+    const [row] = await db.update(batchesTable).set({
+      productId: parsed.data.productId,
+      batchNumber: parsed.data.batchNumber,
+      mfgDate: parsed.data.mfgDate.toISOString(),
+      expiryDate: parsed.data.expiryDate.toISOString()
+    }).where(eq(batchesTable.id, id)).returning();
+    if (!row) {
+      res.status(404).json({ error: "Batch not found" });
+      return;
+    }
+    const [withProduct] = await db.select({
+      id: batchesTable.id,
+      productId: batchesTable.productId,
+      productName: productsTable.name,
+      batchNumber: batchesTable.batchNumber,
+      mfgDate: batchesTable.mfgDate,
+      expiryDate: batchesTable.expiryDate,
+      createdAt: batchesTable.createdAt
+    }).from(batchesTable).innerJoin(productsTable, eq(batchesTable.productId, productsTable.id)).where(eq(batchesTable.id, row.id));
+    res.json(withProduct);
+  } catch (err) {
+    req.log.error({ err }, "Batch update failed");
     res.status(400).json({ error: "Batch number must be unique per product" });
   }
 });

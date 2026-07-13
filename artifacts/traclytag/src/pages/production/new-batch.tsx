@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useParams } from "wouter";
 import {
   useCreateBatch,
   getListBatchesQueryKey,
   useListProducts,
   useListLocations,
+  useListBatches,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -32,8 +33,14 @@ const batchSchema = z.object({
 type BatchForm = z.infer<typeof batchSchema>;
 
 export default function NewBatch() {
+  const { id: idStr } = useParams<{ id?: string }>();
+  const id = idStr ? parseInt(idStr, 10) : undefined;
+  const isEdit = id !== undefined;
+
   const { data: products = [] } = useListProducts();
   const { data: locations = [] } = useListLocations();
+  const { data: batches = [] } = useListBatches();
+  const batch = batches.find(b => b.id === id);
   const factories = locations;
   const createBatch = useCreateBatch();
   const queryClient = useQueryClient();
@@ -52,6 +59,17 @@ export default function NewBatch() {
     },
   });
 
+  useEffect(() => {
+    if (isEdit && batch) {
+      form.reset({
+        productId: batch.productId,
+        batchNumber: batch.batchNumber ?? "",
+        mfgDate: batch.mfgDate ? new Date(batch.mfgDate) : undefined as any,
+        expiryDate: batch.expiryDate ? new Date(batch.expiryDate) : undefined as any,
+      });
+    }
+  }, [batch, isEdit, form]);
+
   const watchBatchNumber = form.watch("batchNumber") || "";
 
   const onSubmit = (values: BatchForm) => {
@@ -62,21 +80,43 @@ export default function NewBatch() {
       expiryDate: format(values.expiryDate, "yyyy-MM-dd"),
     };
 
-    createBatch.mutate(
-      { data: payload as any },
-      {
-        onSuccess: () => {
+    if (isEdit) {
+      fetch(`/api/batches/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Failed to update batch");
+          }
           queryClient.invalidateQueries({
             queryKey: getListBatchesQueryKey(),
           });
-          toast.success("Batch created successfully");
+          toast.success("Batch updated successfully");
           setLocation("/production/batches");
-        },
-        onError: (error: any) => {
-          toast.error(error?.data?.error || "Failed to create batch");
-        },
-      }
-    );
+        })
+        .catch((error) => {
+          toast.error(error.message || "Failed to update batch");
+        });
+    } else {
+      createBatch.mutate(
+        { data: payload as any },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              queryKey: getListBatchesQueryKey(),
+            });
+            toast.success("Batch created successfully");
+            setLocation("/production/batches");
+          },
+          onError: (error: any) => {
+            toast.error(error?.data?.error || "Failed to create batch");
+          },
+        }
+      );
+    }
   };
 
   return (
@@ -87,7 +127,9 @@ export default function NewBatch() {
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
         <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => setLocation("/production/batches")}>Batches</a>
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">Add Batch</span>
+        <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">
+          {isEdit ? "Edit Batch" : "Add Batch"}
+        </span>
       </nav>
 
       <Form {...form}>
@@ -95,8 +137,12 @@ export default function NewBatch() {
           {/* Header Section */}
           <div className="flex justify-between items-end">
             <div>
-              <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Add New Batch</h2>
-              <p className="text-[16px] text-slate-600 mt-1">Initialize a new production lot for GS1 serialization tracking.</p>
+              <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">
+                {isEdit ? "Edit Batch Lot" : "Add New Batch"}
+              </h2>
+              <p className="text-[16px] text-slate-600 mt-1">
+                {isEdit ? "Update details for this production lot." : "Initialize a new production lot for GS1 serialization tracking."}
+              </p>
             </div>
             <div className="flex gap-3">
               <Button

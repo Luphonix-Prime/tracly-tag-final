@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import {
   useGetCurrentUser,
   useCreateProduct,
   useListCompanies,
   getListProductsQueryKey,
+  useListProducts,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -64,9 +65,15 @@ const productSchema = z.object({
 type ProductForm = z.infer<typeof productSchema>;
 
 export default function NewProduct() {
+  const { id: idStr } = useParams<{ id?: string }>();
+  const id = idStr ? parseInt(idStr, 10) : undefined;
+  const isEdit = id !== undefined;
+
   const { data: currentUser } = useGetCurrentUser();
   const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
   const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
+  const { data: products = [] } = useListProducts();
+  const product = products.find(p => p.id === id);
 
   const createProduct = useCreateProduct();
   const queryClient = useQueryClient();
@@ -112,19 +119,51 @@ export default function NewProduct() {
   const watchName = form.watch("name");
 
   useEffect(() => {
+    if (isEdit && product) {
+      form.reset({
+        skuId: product.skuId ?? "",
+        name: product.name ?? "",
+        skuSize: product.skuSize ?? "",
+        marketedBy: product.marketedBy ?? "",
+        sapDescription: product.sapDescription ?? "",
+        mrp: product.mrp ?? 0,
+        registrationNo: product.registrationNo ?? "",
+        hsnCode: product.hsnCode ?? "",
+        gstRate: product.gstRate ?? 18,
+        unit: product.unit ?? "Piece",
+        weightValue: product.weightValue ?? 0,
+        weightUnit: product.weightUnit ?? "g",
+        packagingType: product.packagingType ?? "Bottle",
+        shelfLifeDays: product.shelfLifeDays ?? 365,
+        countryOfOrigin: product.countryOfOrigin ?? "IND",
+        isGs1Compliant: product.isGs1Compliant ?? false,
+        l1Size: product.l1Size ?? 10,
+        l2Size: product.l2Size ?? 100,
+        shipperSize: product.shipperSize ?? 5,
+        cautionLogoUrl: product.cautionLogoUrl ?? "Flammable",
+        productLogoUrl: product.productLogoUrl ?? "",
+        labelPdfUrl: product.labelPdfUrl ?? "",
+        expiryDate: product.expiryDate ? new Date(product.expiryDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        companyId: product.companyId ?? undefined,
+      });
+    }
+  }, [product, isEdit, form]);
+
+  useEffect(() => {
     if (currentUser?.companyName && !isMaster) {
       form.setValue("marketedBy", currentUser.companyName);
     }
   }, [currentUser, isMaster, form]);
 
   useEffect(() => {
+    if (isEdit) return;
     const generatedSku = (watchName || "")
       .toUpperCase()
       .replace(/[^A-Z0-9\s-]/g, "")
       .trim()
       .replace(/[\s-]+/g, "-");
     form.setValue("skuId", generatedSku, { shouldValidate: true });
-  }, [watchName, form]);
+  }, [watchName, form, isEdit]);
 
   const watchL1Size = form.watch("l1Size") || 10;
   const watchShipperSize = form.watch("shipperSize") || 5;
@@ -192,21 +231,43 @@ export default function NewProduct() {
       expiryDate: format(values.expiryDate, "yyyy-MM-dd"),
     };
 
-    createProduct.mutate(
-      { data: payload },
-      {
-        onSuccess: () => {
+    if (isEdit) {
+      fetch(`/api/products/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Failed to update product");
+          }
           queryClient.invalidateQueries({
             queryKey: getListProductsQueryKey(),
           });
-          toast.success("Product created successfully");
+          toast.success("Product updated successfully");
           setLocation("/products");
-        },
-        onError: (error: any) => {
-          toast.error(error?.data?.error || "Failed to create product");
-        },
-      }
-    );
+        })
+        .catch((error) => {
+          toast.error(error.message || "Failed to update product");
+        });
+    } else {
+      createProduct.mutate(
+        { data: payload },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              queryKey: getListProductsQueryKey(),
+            });
+            toast.success("Product created successfully");
+            setLocation("/products");
+          },
+          onError: (error: any) => {
+            toast.error(error?.data?.error || "Failed to create product");
+          },
+        }
+      );
+    }
   };
 
   return (
@@ -215,8 +276,14 @@ export default function NewProduct() {
         {/* Header Block */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-[32px] font-bold text-[#0F172A] tracking-tight">Add Product Master Data</h1>
-            <p className="text-slate-500 text-[14px] mt-1">Populate GS1 compliant product specifications for unique serialization tagging.</p>
+            <h1 className="text-[32px] font-bold text-[#0F172A] tracking-tight">
+              {isEdit ? "Edit Product Master Data" : "Add Product Master Data"}
+            </h1>
+            <p className="text-slate-500 text-[14px] mt-1">
+              {isEdit 
+                ? "Update product specifications and GS1 parameters." 
+                : "Populate GS1 compliant product specifications for unique serialization tagging."}
+            </p>
           </div>
           <div className="flex gap-3">
             <Button

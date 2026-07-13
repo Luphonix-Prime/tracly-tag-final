@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Trash2, Plus, Layers, CalendarIcon, ChevronRight, Search, Filter, Download, Loader2 } from "lucide-react";
+import { Trash2, Plus, Layers, CalendarIcon, ChevronRight, Search, Filter, Download, Loader2, Edit } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -227,10 +227,17 @@ export default function Batches() {
                         {format(new Date(batch.createdAt), "MMM d, yyyy HH:mm")}
                       </span>
                     </TableCell>
-                    <TableCell className="align-middle px-6 py-5 text-right">
+                    <TableCell className="align-middle px-6 py-5 text-right flex items-center justify-end gap-1">
+                      <button 
+                        onClick={() => setLocation(`/production/batches/${batch.id}/edit`)}
+                        className="p-2 text-slate-500 hover:text-[#2563EB] hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                        title="Edit batch"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                          <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer">
                             <Trash2 className="h-5 w-5" />
                           </button>
                         </AlertDialogTrigger>
