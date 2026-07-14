@@ -15,4 +15,5 @@ export interface ProductReportRow {
   total: number;
   mapped: number;
   unmapped: number;
+  createdAt: string;
 }

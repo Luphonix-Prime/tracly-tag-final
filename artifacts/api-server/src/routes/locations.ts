@@ -60,6 +60,51 @@ router.post("/locations", async (req, res): Promise<void> => {
   res.status(201).json(row);
 });
 
+router.put("/locations/:id", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const parsed = CreateLocationBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (parsed.data.gln) {
+    const { validateGs1CheckDigit } = await import('../lib/gs1-validation.js');
+    if (!validateGs1CheckDigit(parsed.data.gln)) {
+      res.status(400).json({ error: "Invalid GLN checksum. Must be standard 13-digit GS1 location code." });
+      return;
+    }
+  }
+
+  const [row] = await db
+    .update(locationsTable)
+    .set({
+      locationType: parsed.data.locationType,
+      uniqueName: parsed.data.uniqueName,
+      locationName: parsed.data.locationName,
+      contactNo: parsed.data.contactNo,
+      state: parsed.data.state,
+      city: parsed.data.city,
+      address: parsed.data.address,
+      gln: parsed.data.gln ?? null,
+    })
+    .where(eq(locationsTable.id, id))
+    .returning();
+
+  if (!row) {
+    res.status(404).json({ error: "Location not found" });
+    return;
+  }
+
+  res.json(row);
+});
+
 router.delete("/locations/:id", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw ?? "", 10);

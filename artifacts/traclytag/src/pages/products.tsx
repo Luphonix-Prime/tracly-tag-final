@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Trash2, Plus, Package, CalendarIcon, Upload, Loader2, ChevronRight, Search, Filter, Download } from "lucide-react";
+import { Trash2, Plus, Package, CalendarIcon, Upload, Loader2, ChevronRight, Search, Filter, Download, Edit } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -69,9 +69,9 @@ const productSchema = z.object({
   gtin: z.string().regex(/^\d{13,14}$/, "GTIN must be 13–14 digits"),
   mrp: z.coerce.number().positive("MRP must be positive"),
   registrationNo: z.string().optional().or(z.literal("")),
-  l1Size: z.coerce.number().int().min(1),
-  l2Size: z.coerce.number().int().min(1),
-  shipperSize: z.coerce.number().int().min(1),
+  l1Size: z.coerce.number().int().min(0),
+  l2Size: z.coerce.number().int().min(0),
+  shipperSize: z.coerce.number().int().min(0),
   cautionLogoUrl: z
     .string()
     .url("Must be a URL")
@@ -173,9 +173,9 @@ export default function Products() {
       gtin: "",
       mrp: 0,
       registrationNo: "",
-      l1Size: 10,
+      l1Size: 0,
       l2Size: 100,
-      shipperSize: 1000,
+      shipperSize: 0,
       cautionLogoUrl: "",
       productLogoUrl: "",
       labelPdfUrl: "",
@@ -371,10 +371,17 @@ export default function Products() {
                         {product.expiryDate ? format(new Date(product.expiryDate), "MMM d, yyyy") : "-"}
                       </span>
                     </TableCell>
-                    <TableCell className="align-middle px-6 py-5 text-right">
+                    <TableCell className="align-middle px-6 py-5 text-right flex items-center justify-end gap-1">
+                      <button 
+                        onClick={() => setLocation(`/products/${product.id}/edit`)}
+                        className="p-2 text-slate-500 hover:text-[#2563EB] hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                        title="Edit product"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                          <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer">
                             <Trash2 className="h-5 w-5" />
                           </button>
                         </AlertDialogTrigger>

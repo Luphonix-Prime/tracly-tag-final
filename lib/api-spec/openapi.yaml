@@ -1297,6 +1297,8 @@ components:
           type: integer
         unmapped:
           type: integer
+        createdAt:
+          type: string
       required:
         - productId
         - productName
@@ -1306,6 +1308,7 @@ components:
         - total
         - mapped
         - unmapped
+        - createdAt
 
     ShipperSummaryRow:
       type: object

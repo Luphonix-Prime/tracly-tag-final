@@ -78,6 +78,58 @@ router.post("/batches", async (req, res): Promise<void> => {
   }
 });
 
+router.put("/batches/:id", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const parsed = CreateBatchBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  try {
+    const [row] = await db
+      .update(batchesTable)
+      .set({
+        productId: parsed.data.productId,
+        batchNumber: parsed.data.batchNumber,
+        mfgDate: parsed.data.mfgDate.toISOString(),
+        expiryDate: parsed.data.expiryDate.toISOString(),
+      })
+      .where(eq(batchesTable.id, id))
+      .returning();
+
+    if (!row) {
+      res.status(404).json({ error: "Batch not found" });
+      return;
+    }
+
+    const [withProduct] = await db
+      .select({
+        id: batchesTable.id,
+        productId: batchesTable.productId,
+        productName: productsTable.name,
+        batchNumber: batchesTable.batchNumber,
+        mfgDate: batchesTable.mfgDate,
+        expiryDate: batchesTable.expiryDate,
+        createdAt: batchesTable.createdAt,
+      })
+      .from(batchesTable)
+      .innerJoin(productsTable, eq(batchesTable.productId, productsTable.id))
+      .where(eq(batchesTable.id, row.id));
+
+    res.json(withProduct);
+  } catch (err) {
+    req.log.error({ err }, "Batch update failed");
+    res.status(400).json({ error: "Batch number must be unique per product" });
+  }
+});
+
 router.delete("/batches/:id", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw ?? "", 10);

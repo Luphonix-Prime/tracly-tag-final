@@ -266,13 +266,20 @@ export default function Codes() {
   const [gridCols, setGridCols] = useState(3);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const handleViewBatch = async (batchId: number, batchNumber: string) => {
+  const handleViewBatch = async (batchId: number, batchNumber: string, createdAt?: string) => {
     setViewBatchId(batchId);
     setViewBatchNumber(batchNumber);
     setViewCodesDialogOpen(true);
     setLoadingViewCodes(true);
     try {
-      const response = await fetch(`/api/codes?batchId=${batchId}&limit=5000`);
+      const queryParams = new URLSearchParams({
+        batchId: batchId.toString(),
+        limit: "5000"
+      });
+      if (createdAt) {
+        queryParams.append("createdAt", createdAt);
+      }
+      const response = await fetch(`/api/codes?${queryParams.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch codes");
       const codesList = await response.json();
       setViewCodesList(codesList || []);
@@ -307,21 +314,27 @@ export default function Codes() {
   };
 
   // Helper to format creation dates from batches
-  const getBatchCreatedAt = (batchId: number) => {
-    const batch = batches.find(b => b.id === batchId);
-    if (!batch?.createdAt) return "N/A";
+  const formatGenerationDate = (dateStr?: string) => {
+    if (!dateStr) return "N/A";
     try {
-      return format(new Date(batch.createdAt), "dd MMM yyyy, HH:mm");
+      return format(new Date(dateStr), "dd MMM yyyy, HH:mm");
     } catch {
-      return batch.createdAt;
+      return dateStr;
     }
   };
 
   // Handle single batch codes download as CSV
-  const handleDownloadBatch = async (batchId: number, batchNumber: string) => {
+  const handleDownloadBatch = async (batchId: number, batchNumber: string, createdAt?: string) => {
     setDownloadingBatchId(batchId);
     try {
-      const response = await fetch(`/api/codes?batchId=${batchId}&limit=5000`);
+      const queryParams = new URLSearchParams({
+        batchId: batchId.toString(),
+        limit: "5000"
+      });
+      if (createdAt) {
+        queryParams.append("createdAt", createdAt);
+      }
+      const response = await fetch(`/api/codes?${queryParams.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch codes");
       const codesList = await response.json();
       
@@ -375,7 +388,7 @@ export default function Codes() {
         `"${row.size}"`,
         `"${row.batchNumber}"`,
         `"${row.total}"`,
-        `"${getBatchCreatedAt(row.batchId)}"`
+        `"${formatGenerationDate(row.createdAt)}"`
       ].join(","))
     ].join("\n");
 
@@ -580,12 +593,12 @@ export default function Codes() {
                         {Number(row.total).toLocaleString()}
                       </span>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-sm text-[#434655]">{getBatchCreatedAt(row.batchId)}</TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-[#434655]">{formatGenerationDate(row.createdAt)}</TableCell>
                     <TableCell className="px-6 py-4 text-right flex items-center justify-end gap-2">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        onClick={() => handleViewBatch(row.batchId, row.batchNumber)}
+                        onClick={() => handleViewBatch(row.batchId, row.batchNumber, row.createdAt)}
                         className="h-8 w-8 text-[#2563EB] hover:bg-[#2563EB]/10 rounded-lg transition-all cursor-pointer"
                         title="View batch QR codes"
                       >
@@ -595,7 +608,7 @@ export default function Codes() {
                         variant="ghost" 
                         size="icon" 
                         disabled={downloadingBatchId === row.batchId}
-                        onClick={() => handleDownloadBatch(row.batchId, row.batchNumber)}
+                        onClick={() => handleDownloadBatch(row.batchId, row.batchNumber, row.createdAt)}
                         className="h-8 w-8 text-[#2563EB] hover:bg-[#2563EB]/10 rounded-lg transition-all cursor-pointer"
                         title="Download codes as CSV"
                       >

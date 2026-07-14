@@ -216,10 +216,13 @@ function Router() {
       <Route path="/users/new"><ProtectedRoute component={NewUser} /></Route>
       <Route path="/products"><ProtectedRoute component={Products} /></Route>
       <Route path="/products/new"><ProtectedRoute component={NewProduct} /></Route>
+      <Route path="/products/:id/edit"><ProtectedRoute component={NewProduct} /></Route>
       <Route path="/locations"><ProtectedRoute component={Locations} /></Route>
       <Route path="/locations/new"><ProtectedRoute component={NewLocation} /></Route>
+      <Route path="/locations/:id/edit"><ProtectedRoute component={NewLocation} /></Route>
       <Route path="/production/batches"><ProtectedRoute component={Batches} /></Route>
       <Route path="/production/batches/new"><ProtectedRoute component={NewBatch} /></Route>
+      <Route path="/production/batches/:id/edit"><ProtectedRoute component={NewBatch} /></Route>
       <Route path="/production/codes"><ProtectedRoute component={Codes} /></Route>
       <Route path="/production/codes/new"><ProtectedRoute component={GenerateCodes} /></Route>
       <Route path="/mapping-code"><ProtectedRoute component={MappingCode} /></Route>

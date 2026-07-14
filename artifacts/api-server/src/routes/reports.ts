@@ -192,12 +192,20 @@ router.get("/reports/product", requireModule("reports"), async (req, res): Promi
       total: count(codesTable.id),
       mapped: sql<number>`sum(case when ${codesTable.mapped} then 1 else 0 end)`,
       unmapped: sql<number>`sum(case when ${codesTable.mapped} then 0 else 1 end)`,
+      createdAt: codesTable.createdAt,
     })
     .from(codesTable)
     .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
     .innerJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
     .where(where)
-    .groupBy(productsTable.id, productsTable.name, batchesTable.id, batchesTable.batchNumber, productsTable.skuSize);
+    .groupBy(
+      productsTable.id,
+      productsTable.name,
+      batchesTable.id,
+      batchesTable.batchNumber,
+      productsTable.skuSize,
+      codesTable.createdAt
+    );
 
   res.json(rows);
 });

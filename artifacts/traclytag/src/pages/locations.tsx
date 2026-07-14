@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Trash2, Plus, MapPin } from "lucide-react";
+import { Trash2, Plus, MapPin, Edit } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -220,10 +220,17 @@ export default function Locations() {
                       </span>
                       <span className="text-[12px] font-semibold text-slate-500 tracking-wide mt-0.5 block">{location.city}, {location.state}</span>
                     </TableCell>
-                    <TableCell className="align-middle px-6 py-5 text-right">
+                    <TableCell className="align-middle px-6 py-5 text-right flex items-center justify-end gap-1">
+                      <button 
+                        onClick={() => setLocation(`/locations/${location.id}/edit`)}
+                        className="p-2 text-slate-500 hover:text-[#2563EB] hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                        title="Edit location"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                          <button className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer">
                             <Trash2 className="h-5 w-5" />
                           </button>
                         </AlertDialogTrigger>

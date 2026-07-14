@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useParams } from "wouter";
 import {
   useCreateLocation,
   getListLocationsQueryKey,
   useGetMyCompany,
+  useListLocations,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -37,8 +38,14 @@ const locationSchema = z.object({
 type LocationForm = z.infer<typeof locationSchema>;
 
 export default function NewLocation() {
+  const { id: idStr } = useParams<{ id?: string }>();
+  const id = idStr ? parseInt(idStr, 10) : undefined;
+  const isEdit = id !== undefined;
+
   const createLocation = useCreateLocation();
   const { data: myCompany } = useGetMyCompany();
+  const { data: locations = [] } = useListLocations();
+  const loc = locations.find(l => l.id === id);
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
@@ -63,22 +70,59 @@ export default function NewLocation() {
     },
   });
 
+  useEffect(() => {
+    if (isEdit && loc) {
+      form.reset({
+        locationType: loc.locationType ?? "Warehouse",
+        uniqueName: loc.uniqueName ?? "",
+        locationName: loc.locationName ?? "",
+        contactNo: loc.contactNo ?? "",
+        address: loc.address ?? "",
+        city: loc.city ?? "",
+        state: loc.state ?? "",
+        gln: loc.gln ?? "",
+      });
+    }
+  }, [loc, isEdit, form]);
+
   const onSubmit = (values: LocationForm) => {
-    createLocation.mutate(
-      { data: values },
-      {
-        onSuccess: () => {
+    if (isEdit) {
+      fetch(`/api/locations/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Failed to update location");
+          }
           queryClient.invalidateQueries({
             queryKey: getListLocationsQueryKey(),
           });
-          toast.success("Location created successfully");
+          toast.success("Location updated successfully");
           setLocation("/locations");
-        },
-        onError: (error: any) => {
-          toast.error(error?.data?.error || "Failed to create location");
-        },
-      }
-    );
+        })
+        .catch((error) => {
+          toast.error(error.message || "Failed to update location");
+        });
+    } else {
+      createLocation.mutate(
+        { data: values },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              queryKey: getListLocationsQueryKey(),
+            });
+            toast.success("Location created successfully");
+            setLocation("/locations");
+          },
+          onError: (error: any) => {
+            toast.error(error?.data?.error || "Failed to create location");
+          },
+        }
+      );
+    }
   };
 
   return (
@@ -89,7 +133,9 @@ export default function NewLocation() {
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
         <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => setLocation("/locations")}>Locations</a>
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">Add New Location</span>
+        <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">
+          {isEdit ? "Edit Location" : "Add New Location"}
+        </span>
       </nav>
 
       <Form {...form}>
@@ -97,8 +143,12 @@ export default function NewLocation() {
           {/* Header Section */}
           <div className="flex justify-between items-end">
             <div>
-              <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Add New Location</h2>
-              <p className="text-[16px] text-slate-600 mt-1">Register a new warehouse, factory, or retail outlet for serialization tracking.</p>
+              <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">
+                {isEdit ? "Edit Location Details" : "Add New Location"}
+              </h2>
+              <p className="text-[16px] text-slate-600 mt-1">
+                {isEdit ? "Update warehouse, factory, or retail outlet configuration." : "Register a new warehouse, factory, or retail outlet for serialization tracking."}
+              </p>
             </div>
             <div className="flex gap-3">
               <Button

@@ -11,6 +11,7 @@ const router: IRouter = Router();
 const readConfig = async () => {
   let hideMappingCode = true;
   let datamatrixUrlMode = false;
+  let hidePackagingHierarchy = true;
   try {
     const rows = await db
       .select()
@@ -24,14 +25,18 @@ const readConfig = async () => {
     if (dmRow) {
       datamatrixUrlMode = dmRow.value === "true";
     }
+    const phRow = rows.find(r => r.key === "hidePackagingHierarchy");
+    if (phRow) {
+      hidePackagingHierarchy = phRow.value === "true";
+    }
   } catch (err) {
     // ignore
   }
-  return { hideMappingCode, datamatrixUrlMode };
+  return { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy };
 };
 
 // Helper to write config to database
-const writeConfig = async (config: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean }) => {
+const writeConfig = async (config: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean; hidePackagingHierarchy?: boolean }) => {
   try {
     if (config.hideMappingCode !== undefined) {
       await db
@@ -57,6 +62,18 @@ const writeConfig = async (config: { hideMappingCode?: boolean; datamatrixUrlMod
           set: { value: String(config.datamatrixUrlMode) },
         });
     }
+    if (config.hidePackagingHierarchy !== undefined) {
+      await db
+        .insert(systemConfigsTable)
+        .values({
+          key: "hidePackagingHierarchy",
+          value: String(config.hidePackagingHierarchy),
+        })
+        .onConflictDoUpdate({
+          target: systemConfigsTable.key,
+          set: { value: String(config.hidePackagingHierarchy) },
+        });
+    }
   } catch (err) {
     // ignore
   }
@@ -70,8 +87,8 @@ router.get("/system-config", requireAuth, async (req, res) => {
 
 // Super master config setter
 router.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode, datamatrixUrlMode } = req.body;
-  const updates: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean } = {};
+  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy } = req.body;
+  const updates: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean; hidePackagingHierarchy?: boolean } = {};
   
   if (hideMappingCode !== undefined) {
     if (typeof hideMappingCode !== "boolean") {
@@ -87,6 +104,14 @@ router.post("/system-config", requireAuth, requireRole("super_master"), async (r
       return;
     }
     updates.datamatrixUrlMode = datamatrixUrlMode;
+  }
+
+  if (hidePackagingHierarchy !== undefined) {
+    if (typeof hidePackagingHierarchy !== "boolean") {
+      res.status(400).json({ error: "Invalid value for hidePackagingHierarchy" });
+      return;
+    }
+    updates.hidePackagingHierarchy = hidePackagingHierarchy;
   }
   
   await writeConfig(updates);
