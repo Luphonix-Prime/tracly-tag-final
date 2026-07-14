@@ -121,6 +121,8 @@ function DataMatrixBarcode({
         scale: 3,
         height: 10,
         width: 10,
+        // @ts-ignore
+        format: (urlMode && barcodeText.length <= 64) ? "26x26" : undefined,
         includetext: false,
       });
     } catch (err) {
