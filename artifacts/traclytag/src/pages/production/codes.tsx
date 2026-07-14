@@ -934,7 +934,9 @@ export default function Codes() {
                   const qrCodeString = displayCode;
                   let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
-                  if (rawUrl) {
+                  const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+                  const isVercel = window.location.hostname.endsWith(".vercel.app");
+                  if (rawUrl && !isLocalhost && !isVercel) {
                     let cleaned = rawUrl.trim();
                     if (!/^https?:\/\//i.test(cleaned)) {
                       cleaned = `https://${cleaned}`;
@@ -995,7 +997,9 @@ export default function Codes() {
                   const qrCodeString = displayCode;
                   let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
-                  if (rawUrl) {
+                  const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+                  const isVercel = window.location.hostname.endsWith(".vercel.app");
+                  if (rawUrl && !isLocalhost && !isVercel) {
                     let cleaned = rawUrl.trim();
                     if (!/^https?:\/\//i.test(cleaned)) {
                       cleaned = `https://${cleaned}`;
