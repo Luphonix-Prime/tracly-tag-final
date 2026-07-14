@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
 const profileSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().optional().or(z.literal("")),
   currentPassword: z.string().optional().or(z.literal("")),
@@ -56,6 +57,7 @@ export default function Profile() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
+      username: "",
       email: "",
       phone: "",
       currentPassword: "",
@@ -68,6 +70,7 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       form.reset({
+        username: user.username || "",
         email: user.email || "",
         phone: (user as any).phone || "",
         currentPassword: "",
@@ -85,6 +88,7 @@ export default function Profile() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          username: data.username,
           email: data.email,
           phone: data.phone || null,
           currentPassword: data.currentPassword || null,
@@ -154,7 +158,24 @@ export default function Profile() {
             <CardContent className="pt-6">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-700 dark:text-slate-300 font-semibold">Username</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+                              <Input className="pl-10 h-11" placeholder="Username" {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="email"

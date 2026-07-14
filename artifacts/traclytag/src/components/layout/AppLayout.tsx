@@ -117,7 +117,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {!isCollapsed && <span className="text-[10px] text-white/40 font-mono">v2.4</span>}
         </div>
         <div className="p-3 flex-1 overflow-y-auto space-y-6">
-          <div className="space-y-6">
+          <div className="space-y-3">
             <div className="space-y-1">
               {navigation.map((item, i) => {
                 const isActive = location === item.href || location.startsWith(item.href + "/");
@@ -160,7 +160,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               })}
             </div>
             
-            <div className="pt-4 border-t border-white/10 space-y-1">
+            <div className="pt-2 border-t border-white/10 space-y-1">
               {bottomNavigation.map((item, i) => {
                 const isActive = location === item.href || location.startsWith(item.href + "/");
                 return (
@@ -209,7 +209,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <span className="text-[10px] text-white/40 font-mono">v2.4</span>
                   </div>
                   {/* Mobile Navigation Links */}
-                  <div className="p-3 flex-1 overflow-y-auto space-y-6">
+                  <div className="p-3 flex-1 overflow-y-auto space-y-3">
                     <div className="space-y-1">
                       {navigation.map((item, i) => {
                         const isActive = location === item.href || location.startsWith(item.href + "/");
@@ -252,7 +252,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       })}
                     </div>
 
-                    <div className="pt-4 border-t border-white/10 space-y-1">
+                    <div className="pt-2 border-t border-white/10 space-y-1">
                       {bottomNavigation.map((item, i) => {
                         const isActive = location === item.href || location.startsWith(item.href + "/");
                         return (
