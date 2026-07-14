@@ -74,10 +74,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, module: "dashboard" },
-    ...(isMasterOrAdmin ? [{ title: "Companies", href: "/companies", icon: Building2, module: "companies" }] : []),
-    { title: "Users", href: "/users", icon: Users, module: "users" },
     { title: "Products", href: "/products", icon: Package, module: "products" },
-    { title: "Locations", href: "/locations", icon: MapPin, module: "locations" },
     { title: "Batches", href: "/production/batches", icon: Layers, module: "batches" },
     { title: "Generate Codes", href: "/production/codes", icon: QrCode, module: "generate_codes" },
     ...(!hideMappingCode ? [{ title: "Mapping Code", href: "/mapping-code", icon: LinkIcon, module: "mapping_code" }] : []),
@@ -87,11 +84,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ].filter(item => userModules.includes(item.module));
 
   const bottomNavigation = [
+    ...(isMasterOrAdmin ? [{ title: "Companies", href: "/companies", icon: Building2, module: "companies" }] : []),
+    { title: "Users", href: "/users", icon: Users, module: "users" },
+    { title: "Locations", href: "/locations", icon: MapPin, module: "locations" },
     { title: "Profile", href: "/profile", icon: User },
     { title: "Settings", href: "/settings", icon: Settings },
     ...(user.role === "super_master" ? [{ title: "System", href: "/system", icon: Terminal }] : []),
     { title: "Support", href: "/support", icon: HelpCircle },
-  ];
+  ].filter(item => !item.module || userModules.includes(item.module));
 
 
   const toggleSidebar = () => {

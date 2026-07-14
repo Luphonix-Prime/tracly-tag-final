@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings as SettingsIcon, Link2, ShieldAlert, Database } from "lucide-react";
+import { Settings as SettingsIcon, Link2, ShieldAlert, Database, Layers } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
 import { useDevOptionsVisibility } from "@/hooks/use-dev-options-visibility";
 import { useDatamatrixUrlMode } from "@/hooks/use-datamatrix-url-mode";
 import { useGetCurrentUser } from "@workspace/api-client-react";
+import { usePackagingHierarchyVisibility } from "@/hooks/use-packaging-hierarchy-visibility";
 
 export default function Settings() {
   const { hideMappingCode, toggleVisibility } = useMappingCodeVisibility();
   const { hideDevOptions, hideSsoOptions, setDevVisibility, setSsoVisibility } = useDevOptionsVisibility();
   const { datamatrixUrlMode, setUrlMode } = useDatamatrixUrlMode();
+  const { hidePackagingHierarchy, toggleVisibility: togglePackagingHierarchyVisibility } = usePackagingHierarchyVisibility();
   const { data: currentUser } = useGetCurrentUser();
 
   const [hideRecentSerialization, setHideRecentSerialization] = useState(() => {
@@ -68,6 +70,27 @@ export default function Settings() {
                   id="mapping-code-toggle"
                   checked={hideMappingCode}
                   onCheckedChange={toggleVisibility}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-safety-blue/10 rounded-lg text-safety-blue mt-0.5">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="packaging-hierarchy-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Hide Packaging Hierarchy
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      When enabled, the "Packaging Hierarchy" (Shipper and Pallet inputs) will be hidden from the product creation screen.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="packaging-hierarchy-toggle"
+                  checked={hidePackagingHierarchy}
+                  onCheckedChange={togglePackagingHierarchyVisibility}
                 />
               </div>
 

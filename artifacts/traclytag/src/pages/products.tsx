@@ -69,9 +69,9 @@ const productSchema = z.object({
   gtin: z.string().regex(/^\d{13,14}$/, "GTIN must be 13–14 digits"),
   mrp: z.coerce.number().positive("MRP must be positive"),
   registrationNo: z.string().optional().or(z.literal("")),
-  l1Size: z.coerce.number().int().min(1),
-  l2Size: z.coerce.number().int().min(1),
-  shipperSize: z.coerce.number().int().min(1),
+  l1Size: z.coerce.number().int().min(0),
+  l2Size: z.coerce.number().int().min(0),
+  shipperSize: z.coerce.number().int().min(0),
   cautionLogoUrl: z
     .string()
     .url("Must be a URL")
@@ -173,9 +173,9 @@ export default function Products() {
       gtin: "",
       mrp: 0,
       registrationNo: "",
-      l1Size: 10,
+      l1Size: 0,
       l2Size: 100,
-      shipperSize: 1000,
+      shipperSize: 0,
       cautionLogoUrl: "",
       productLogoUrl: "",
       labelPdfUrl: "",

@@ -50887,12 +50887,13 @@ var ListCompaniesResponseItem = objectType({
 });
 var ListCompaniesResponse = arrayType(ListCompaniesResponseItem);
 var createCompanyBodyGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
+var companyUrlVerifyRegExp = new RegExp("^$|^verify\\.[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
 var CreateCompanyBody = objectType({
   "name": stringType(),
   "email": stringType(),
   "address": stringType(),
   "gstin": stringType().regex(createCompanyBodyGstinRegExp).nullish(),
-  "companyUrl": stringType().nullish(),
+  "companyUrl": stringType().regex(companyUrlVerifyRegExp, "Domain must use 'verify' subdomain (e.g. verify.company.com)").nullish(),
   "pan": stringType().nullish(),
   "cin": stringType().nullish(),
   "msmeRegistrationNo": stringType().nullish(),
@@ -50920,7 +50921,7 @@ var GetMyCompanyResponse = objectType({
   "createdAt": coerce.date()
 });
 var UpdateMyCompanyBody = objectType({
-  "companyUrl": stringType().nullish()
+  "companyUrl": stringType().regex(companyUrlVerifyRegExp, "Domain must use 'verify' subdomain (e.g. verify.company.com)").nullish()
 });
 var updateMyCompanyResponseGstinRegExp = new RegExp("^[0-9]{2}[a-zA-Z0-9]{10}[a-zA-Z0-9][zZ][a-zA-Z0-9]?$");
 var UpdateMyCompanyResponse = objectType({
@@ -61051,6 +61052,7 @@ router8.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res) =
   const level = typeof req.query.level === "string" ? req.query.level : null;
   const batchId = typeof req.query.batchId === "string" ? parseInt(req.query.batchId, 10) : null;
   const productId = typeof req.query.productId === "string" ? parseInt(req.query.productId, 10) : null;
+  const createdAt = typeof req.query.createdAt === "string" ? req.query.createdAt : null;
   const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 5e3;
   const conds = [];
   if (level) conds.push(eq(codesTable.level, level));
@@ -61058,6 +61060,8 @@ router8.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res) =
     conds.push(eq(codesTable.batchId, batchId));
   if (productId && !Number.isNaN(productId))
     conds.push(eq(codesTable.productId, productId));
+  if (createdAt)
+    conds.push(eq(codesTable.createdAt, createdAt));
   if (req.user.role !== "master" && req.user.role !== "super_master") {
     conds.push(eq(productsTable.companyId, req.user.companyId));
   }
@@ -61118,6 +61122,7 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
     return;
   }
   const isUnitLevel = ["unit", "l1", "l2"].includes(parsed.data.level);
+  const generationTime = (/* @__PURE__ */ new Date()).toISOString();
   const inserts = [];
   for (let i = 0; i < parsed.data.quantity; i++) {
     if (isUnitLevel) {
@@ -61136,7 +61141,8 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
           level: parsed.data.level,
           rawString: raw,
           serialNumber: serial,
-          ssccCode: null
+          ssccCode: null,
+          createdAt: generationTime
         });
       } else {
         const crypto4 = await import("crypto");
@@ -61147,7 +61153,8 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
           level: parsed.data.level,
           rawString: serial,
           serialNumber: serial,
-          ssccCode: null
+          ssccCode: null,
+          createdAt: generationTime
         });
       }
     } else {
@@ -61162,7 +61169,8 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
           level: parsed.data.level,
           rawString: raw,
           serialNumber: null,
-          ssccCode: sscc
+          ssccCode: sscc,
+          createdAt: generationTime
         });
       } else {
         const crypto4 = await import("crypto");
@@ -61174,7 +61182,8 @@ router8.post("/codes", requireAuth, requireModule("generate_codes"), async (req,
           level: parsed.data.level,
           rawString: sscc,
           serialNumber: null,
-          ssccCode: sscc
+          ssccCode: sscc,
+          createdAt: generationTime
         });
       }
     }
@@ -61388,8 +61397,16 @@ router9.get("/reports/product", requireModule("reports"), async (req, res) => {
     size: productsTable.skuSize,
     total: count(codesTable.id),
     mapped: sql`sum(case when ${codesTable.mapped} then 1 else 0 end)`,
-    unmapped: sql`sum(case when ${codesTable.mapped} then 0 else 1 end)`
-  }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).innerJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).where(where).groupBy(productsTable.id, productsTable.name, batchesTable.id, batchesTable.batchNumber, productsTable.skuSize);
+    unmapped: sql`sum(case when ${codesTable.mapped} then 0 else 1 end)`,
+    createdAt: codesTable.createdAt
+  }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).innerJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).where(where).groupBy(
+    productsTable.id,
+    productsTable.name,
+    batchesTable.id,
+    batchesTable.batchNumber,
+    productsTable.skuSize,
+    codesTable.createdAt
+  );
   res.json(rows);
 });
 router9.get("/reports/shipper-summary", requireModule("reports"), async (req, res) => {

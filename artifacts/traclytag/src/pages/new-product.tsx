@@ -37,7 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 const productSchema = z.object({
   skuId: z.string().min(1, "SKU ID required"),
-  name: z.string().min(1, "Name required"),
+  name: z.string().min(1, "Product name must be entered"),
   skuSize: z.string().min(1, "SKU size required"),
   marketedBy: z.string().min(1, "Marketed by required"),
   sapDescription: z.string().optional().or(z.literal("")),
@@ -52,15 +52,17 @@ const productSchema = z.object({
   shelfLifeDays: z.coerce.number().int().min(0).optional().or(z.null()),
   countryOfOrigin: z.string().default("IND"),
   isGs1Compliant: z.boolean().default(false),
-  l1Size: z.coerce.number().int().min(1),
-  l2Size: z.coerce.number().int().min(1),
-  shipperSize: z.coerce.number().int().min(1),
+  l1Size: z.coerce.number().int().min(0),
+  l2Size: z.coerce.number().int().min(0),
+  shipperSize: z.coerce.number().int().min(0),
   cautionLogoUrl: z.string().optional().or(z.literal("")),
   productLogoUrl: z.string().optional().or(z.literal("")),
   labelPdfUrl: z.string().optional().or(z.literal("")),
   expiryDate: z.date({ required_error: "Expiry date is required" }),
   companyId: z.coerce.number().optional(),
 });
+
+import { usePackagingHierarchyVisibility } from "@/hooks/use-packaging-hierarchy-visibility";
 
 type ProductForm = z.infer<typeof productSchema>;
 
@@ -85,6 +87,7 @@ export default function NewProduct() {
   const [shipperQty, setShipperQty] = useState("");
   const [palletQty, setPalletQty] = useState("");
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const { hidePackagingHierarchy } = usePackagingHierarchyVisibility();
 
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
@@ -105,9 +108,9 @@ export default function NewProduct() {
       shelfLifeDays: 365,
       countryOfOrigin: "IND",
       isGs1Compliant: false,
-      l1Size: 10,
+      l1Size: 0,
       l2Size: 100,
-      shipperSize: 5,
+      shipperSize: 0,
       cautionLogoUrl: "Flammable",
       productLogoUrl: "",
       labelPdfUrl: "",
@@ -137,9 +140,9 @@ export default function NewProduct() {
         shelfLifeDays: product.shelfLifeDays ?? 365,
         countryOfOrigin: product.countryOfOrigin ?? "IND",
         isGs1Compliant: product.isGs1Compliant ?? false,
-        l1Size: product.l1Size ?? 10,
+        l1Size: product.l1Size ?? 0,
         l2Size: product.l2Size ?? 100,
-        shipperSize: product.shipperSize ?? 5,
+        shipperSize: product.shipperSize ?? 0,
         cautionLogoUrl: product.cautionLogoUrl ?? "Flammable",
         productLogoUrl: product.productLogoUrl ?? "",
         labelPdfUrl: product.labelPdfUrl ?? "",
@@ -165,8 +168,8 @@ export default function NewProduct() {
     form.setValue("skuId", generatedSku, { shouldValidate: true });
   }, [watchName, form, isEdit]);
 
-  const watchL1Size = form.watch("l1Size") || 10;
-  const watchShipperSize = form.watch("shipperSize") || 5;
+  const watchL1Size = Number(form.watch("l1Size")) || 0;
+  const watchShipperSize = Number(form.watch("shipperSize")) || 0;
   const watchCautionLogo = form.watch("cautionLogoUrl");
 
   const handleUpload = (fieldName: "productLogoUrl" | "labelPdfUrl" | "leafletPdf") => {
@@ -319,61 +322,110 @@ export default function NewProduct() {
               </div>
 
               <div className="space-y-5">
-                {isMaster && (
-                  <FormField
-                    control={form.control}
-                    name="companyId"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                          COMPANY <span className="text-[#EF4444]">*</span>
-                        </FormLabel>
-                        <Select 
-                          onValueChange={(val) => field.onChange(Number(val))} 
-                          value={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
-                              <SelectValue placeholder="Select target company node" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {companies.map((company: any) => (
-                              <SelectItem key={company.id} value={company.id.toString()}>
-                                {company.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {isMaster ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="companyId"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                            COMPANY <span className="text-[#EF4444]">*</span>
+                          </FormLabel>
+                          <Select 
+                            onValueChange={(val) => field.onChange(Number(val))} 
+                            value={field.value?.toString()}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                                <SelectValue placeholder="Select target company node" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {companies.map((company: any) => (
+                                <SelectItem key={company.id} value={company.id.toString()}>
+                                  {company.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          {form.formState.isSubmitted && !form.watch("companyId") && (
+                            <p className="text-[12px] font-medium text-destructive mt-1.5">Company must be selected</p>
+                          )}
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                        COMPANY GST
+                      </label>
+                      <Input 
+                        value={companies.find((c: any) => c.id === form.watch("companyId"))?.gstin || (currentUser as any)?.companyGstin || (currentUser as any)?.company?.gstin || ""}
+                        readOnly
+                        placeholder="Selected company GST" 
+                        className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-500 rounded-lg py-2.5 px-4 text-sm transition-all font-mono cursor-not-allowed focus-visible:ring-0"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                      COMPANY GST
+                    </label>
+                    <Input 
+                      value={(currentUser as any)?.companyGstin || (currentUser as any)?.company?.gstin || ""}
+                      readOnly
+                      placeholder="Selected company GST" 
+                      className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-500 rounded-lg py-2.5 px-4 text-sm transition-all font-mono cursor-not-allowed focus-visible:ring-0"
+                    />
+                  </div>
                 )}
+
+                <FormField
+                  control={form.control}
+                  name="isGs1Compliant"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                        SERIALIZATION COMPLIANCE MODE
+                      </FormLabel>
+                      <Select 
+                        onValueChange={(val) => field.onChange(val === "true")} 
+                        value={String(field.value)}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                            <SelectValue placeholder="Select serialization mode" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="false">TracelyTag Internal Compliance (Generates secure non-GS1 serial codes)</SelectItem>
+                          <SelectItem value="true">Official GS1 Compliant Mode (Requires GTIN or Company GST)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="isGs1Compliant"
+                    name="name"
                     render={({ field }) => (
-                      <FormItem className="space-y-1.5 col-span-2">
+                      <FormItem className="space-y-1.5">
                         <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                          SERIALIZATION COMPLIANCE MODE
+                          PRODUCT NAME <span className="text-[#EF4444]">*</span>
                         </FormLabel>
-                        <Select 
-                          onValueChange={(val) => field.onChange(val === "true")} 
-                          value={String(field.value)}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
-                              <SelectValue placeholder="Select serialization mode" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="false">TracelyTag Internal Compliance (Generates secure non-GS1 serial codes)</SelectItem>
-                            <SelectItem value="true">Official GS1 Compliant Mode (Requires GTIN or Company GST)</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter formal product commercial name" 
+                            className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all placeholder:text-slate-400"
+                            {...field} 
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -385,7 +437,7 @@ export default function NewProduct() {
                     render={({ field }) => (
                       <FormItem className="space-y-1.5">
                         <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                          SKU ID <span className="text-[#EF4444]">*</span>
+                          SKU ID 
                         </FormLabel>
                         <FormControl>
                           <Input 
@@ -395,43 +447,13 @@ export default function NewProduct() {
                             {...field} 
                           />
                         </FormControl>
-                        <FormMessage />
+                        {form.formState.errors.skuId && form.watch("name") ? (
+                          <FormMessage />
+                        ) : null}
                       </FormItem>
                     )}
                   />
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                      COMPANY GST
-                    </label>
-                    <Input 
-                      value={companies.find((c: any) => c.id === form.watch("companyId"))?.gstin || (currentUser as any)?.companyGstin || (currentUser as any)?.company?.gstin || ""}
-                      readOnly
-                      placeholder="Selected company GST" 
-                      className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-500 rounded-lg py-2.5 px-4 text-sm transition-all font-mono cursor-not-allowed focus-visible:ring-0"
-                    />
-                  </div>
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                        PRODUCT NAME
-                      </FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter formal product commercial name" 
-                          className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all placeholder:text-slate-400"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
@@ -839,114 +861,116 @@ export default function NewProduct() {
           <div className="col-span-12 lg:col-span-4 space-y-6">
             
             {/* Card 3: Packaging Hierarchy */}
-            <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-[#F0F6FF] flex items-center justify-center text-blue-600">
-                  <Layers className="w-5 h-5" />
-                </div>
-                <h3 className="text-[16px] font-bold text-[#0F172A]">Packaging Hierarchy</h3>
-              </div>
-
-              <div className="space-y-6">
-                
-                {/* Shipper Section */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-800">SHIPPER</span>
-                    <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full uppercase tracking-wider">QR/SHIPPER</span>
+            {!hidePackagingHierarchy && (
+              <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-lg bg-[#F0F6FF] flex items-center justify-center text-blue-600">
+                    <Layers className="w-5 h-5" />
                   </div>
-                  <p className="text-xs text-slate-500">How many QR codes should be entered for 1 Shipper?</p>
+                  <h3 className="text-[16px] font-bold text-[#0F172A]">Packaging Hierarchy</h3>
+                </div>
+
+                <div className="space-y-6">
                   
-                  <div className="flex items-center gap-3">
-                    <FormField
-                      control={form.control}
-                      name="l1Size"
-                      render={({ field }) => (
-                        <FormItem className="w-24">
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              className="bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 text-center font-semibold text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <span className="text-xs text-slate-400 font-medium">QR</span>
-                    <span className="text-slate-400 font-bold">=</span>
-                    <div className="w-16 bg-slate-100 border border-slate-200 text-center font-semibold text-sm py-2 rounded-lg text-slate-500 select-none">
-                      1
+                  {/* Shipper Section */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-800">SHIPPER</span>
+                      <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full uppercase tracking-wider">QR/SHIPPER</span>
                     </div>
-                    <span className="text-xs text-slate-400 font-medium">SHP</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 italic font-medium">{watchL1Size} QR Codes = 1 Shipper</p>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase block">SHIPPER REQUEST</label>
-                  <p className="text-xs text-slate-500 mb-1">How many shippers do you need?</p>
-                  <div className="relative">
-                    <Input 
-                      placeholder="Enter quantity"
-                      value={shipperQty}
-                      onChange={(e) => setShipperQty(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2 px-4 pr-12 text-sm text-slate-900 transition-all placeholder:text-slate-400"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">QTY</span>
-                  </div>
-                </div>
-
-                {/* Pallet Section */}
-                <div className="space-y-3 pt-4 border-t border-slate-100">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-800">PALLET</span>
-                    <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full uppercase tracking-wider">SHIPPERS/PALLET</span>
-                  </div>
-                  <p className="text-xs text-slate-500">How many Shipper codes should be entered for 1 Pallet?</p>
-                  
-                  <div className="flex items-center gap-3">
-                    <FormField
-                      control={form.control}
-                      name="shipperSize"
-                      render={({ field }) => (
-                        <FormItem className="w-24">
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              className="bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 text-center font-semibold text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <span className="text-xs text-slate-400 font-medium">SHP</span>
-                    <span className="text-slate-400 font-bold">=</span>
-                    <div className="w-16 bg-slate-100 border border-slate-200 text-center font-semibold text-sm py-2 rounded-lg text-slate-500 select-none">
-                      1
+                    <p className="text-xs text-slate-500">How many QR codes should be entered for 1 Shipper?</p>
+                    
+                    <div className="flex items-center gap-3">
+                      <FormField
+                        control={form.control}
+                        name="l1Size"
+                        render={({ field }) => (
+                          <FormItem className="w-24">
+                            <FormControl>
+                              <Input 
+                                type="number"
+                                className="bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 text-center font-semibold text-sm"
+                                {...field}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-xs text-slate-400 font-medium">QR</span>
+                      <span className="text-slate-400 font-bold">=</span>
+                      <div className="w-16 bg-slate-100 border border-slate-200 text-center font-semibold text-sm py-2 rounded-lg text-slate-500 select-none">
+                        1
+                      </div>
+                      <span className="text-xs text-slate-400 font-medium">SHP</span>
                     </div>
-                    <span className="text-xs text-slate-400 font-medium">PLT</span>
+                    <p className="text-[10px] text-slate-400 italic font-medium">{watchL1Size} QR Codes = 1 Shipper</p>
                   </div>
-                  <p className="text-[10px] text-slate-400 italic font-medium">{watchShipperSize} Shipper Codes = 1 Pallet</p>
-                </div>
 
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase block">PALLET REQUEST</label>
-                  <p className="text-xs text-slate-500 mb-1">How many pallets do you need?</p>
-                  <div className="relative">
-                    <Input 
-                      placeholder="Enter quantity"
-                      value={palletQty}
-                      onChange={(e) => setPalletQty(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2 px-4 pr-12 text-sm text-slate-900 transition-all placeholder:text-slate-400"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">QTY</span>
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase block">SHIPPER REQUEST</label>
+                    <p className="text-xs text-slate-500 mb-1">How many shippers do you need?</p>
+                    <div className="relative">
+                      <Input 
+                        placeholder="Enter quantity"
+                        value={shipperQty}
+                        onChange={(e) => setShipperQty(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2 px-4 pr-12 text-sm text-slate-900 transition-all placeholder:text-slate-400"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">QTY</span>
+                    </div>
                   </div>
-                </div>
 
-              </div>
-            </section>
+                  {/* Pallet Section */}
+                  <div className="space-y-3 pt-4 border-t border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-800">PALLET</span>
+                      <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full uppercase tracking-wider">SHIPPERS/PALLET</span>
+                    </div>
+                    <p className="text-xs text-slate-500">How many Shipper codes should be entered for 1 Pallet?</p>
+                    
+                    <div className="flex items-center gap-3">
+                      <FormField
+                        control={form.control}
+                        name="shipperSize"
+                        render={({ field }) => (
+                          <FormItem className="w-24">
+                            <FormControl>
+                              <Input 
+                                type="number"
+                                className="bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 text-center font-semibold text-sm"
+                                {...field}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-xs text-slate-400 font-medium">SHP</span>
+                      <span className="text-slate-400 font-bold">=</span>
+                      <div className="w-16 bg-slate-100 border border-slate-200 text-center font-semibold text-sm py-2 rounded-lg text-slate-500 select-none">
+                        1
+                      </div>
+                      <span className="text-xs text-slate-400 font-medium">PLT</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 italic font-medium">{watchShipperSize} Shipper Codes = 1 Pallet</p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase block">PALLET REQUEST</label>
+                    <p className="text-xs text-slate-500 mb-1">How many pallets do you need?</p>
+                    <div className="relative">
+                      <Input 
+                        placeholder="Enter quantity"
+                        value={palletQty}
+                        onChange={(e) => setPalletQty(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2 px-4 pr-12 text-sm text-slate-900 transition-all placeholder:text-slate-400"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">QTY</span>
+                    </div>
+                  </div>
+
+                </div>
+              </section>
+            )}
 
             {/* Card 4: Digital Assets */}
             <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-6">
