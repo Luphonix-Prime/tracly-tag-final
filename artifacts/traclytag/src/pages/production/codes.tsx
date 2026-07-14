@@ -101,7 +101,7 @@ function DataMatrixBarcode({
       let barcodeText = rawString;
 
       if (urlMode && verificationUrl) {
-        barcodeText = verificationUrl;
+        barcodeText = verificationUrl.replace(/^https?:\/\//i, "");
         barcodeType = "datamatrix";
       } else if (!parsed.fallback && !parsed.error) {
         if (parsed.sscc) {
