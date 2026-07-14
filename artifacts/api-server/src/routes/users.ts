@@ -8,7 +8,7 @@ import { requireAuth, requireModule } from '../lib/session.js';
 const router: IRouter = Router();
 
 router.put("/users/profile", requireAuth, async (req, res): Promise<void> => {
-  const { email, phone, currentPassword, password } = req.body;
+  const { username, email, phone, currentPassword, password } = req.body;
   if (!email) {
     res.status(400).json({ error: "Email is required" });
     return;
@@ -29,6 +29,25 @@ router.put("/users/profile", requireAuth, async (req, res): Promise<void> => {
       email,
       phone: phone ?? null,
     };
+
+    if (username && username !== user.username) {
+      const trimmedUsername = username.trim();
+      if (trimmedUsername.length < 3) {
+        res.status(400).json({ error: "Username must be at least 3 characters long" });
+        return;
+      }
+
+      const [existingUser] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.username, trimmedUsername));
+
+      if (existingUser) {
+        res.status(400).json({ error: "Username is already taken" });
+        return;
+      }
+      updateData.username = trimmedUsername;
+    }
 
     if (password && password.trim().length > 0) {
       if (!currentPassword || currentPassword.trim().length === 0) {
