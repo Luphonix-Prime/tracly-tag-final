@@ -121,8 +121,6 @@ function DataMatrixBarcode({
         scale: 3,
         height: 10,
         width: 10,
-        // @ts-ignore
-        format: (urlMode && barcodeText.length <= 64) ? "26x26" : undefined,
         includetext: false,
       });
     } catch (err) {
@@ -934,21 +932,39 @@ export default function Codes() {
                 {viewCodesList.map((code) => {
                   const displayCode = getProductString(code.rawString, code.companyGstin);
                   const qrCodeString = displayCode;
-                  let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
                   const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
                   const isVercel = window.location.hostname.endsWith(".vercel.app");
+                  
+                  // For the DataMatrix barcode: use the configured companyUrl if available (usually a short domain)
+                  // so the generated barcode is a sparse single-quadrant. If no companyUrl is set, fall back to window.location.origin.
+                  let barcodeBaseOrigin = window.location.origin;
+                  if (rawUrl) {
+                    let cleaned = rawUrl.trim();
+                    if (!/^https?:\/\//i.test(cleaned)) {
+                      cleaned = `https://${cleaned}`;
+                    }
+                    cleaned = cleaned.replace(/\/+$/, "");
+                    barcodeBaseOrigin = cleaned;
+                  }
+                  
+                  // For the clickable link button: point to the active host (localhost or Vercel preview host)
+                  // so developers/operators can click and test it in their current environment.
+                  let linkBaseOrigin = window.location.origin;
                   if (rawUrl && !isLocalhost && !isVercel) {
                     let cleaned = rawUrl.trim();
                     if (!/^https?:\/\//i.test(cleaned)) {
                       cleaned = `https://${cleaned}`;
                     }
                     cleaned = cleaned.replace(/\/+$/, "");
-                    baseOrigin = cleaned;
+                    linkBaseOrigin = cleaned;
                   }
+                  
                   const parsedCode = parseGs1Raw(code.rawString);
-                  const shortUrl = `${baseOrigin}/code/${parsedCode.serial || ""}`;
-                  const verificationUrl = datamatrixUrlMode ? shortUrl : `${baseOrigin}/code/${qrCodeString}`;
+                  const shortUrl = `${barcodeBaseOrigin}/code/${parsedCode.serial || ""}`;
+                  const verificationUrl = datamatrixUrlMode 
+                    ? `${linkBaseOrigin}/code/${parsedCode.serial || ""}` 
+                    : `${linkBaseOrigin}/code/${qrCodeString}`;
                   
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
@@ -997,21 +1013,35 @@ export default function Codes() {
                 {viewCodesList.map((code) => {
                   const displayCode = getProductString(code.rawString, code.companyGstin);
                   const qrCodeString = displayCode;
-                  let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
                   const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
                   const isVercel = window.location.hostname.endsWith(".vercel.app");
+                  
+                  let barcodeBaseOrigin = window.location.origin;
+                  if (rawUrl) {
+                    let cleaned = rawUrl.trim();
+                    if (!/^https?:\/\//i.test(cleaned)) {
+                      cleaned = `https://${cleaned}`;
+                    }
+                    cleaned = cleaned.replace(/\/+$/, "");
+                    barcodeBaseOrigin = cleaned;
+                  }
+                  
+                  let linkBaseOrigin = window.location.origin;
                   if (rawUrl && !isLocalhost && !isVercel) {
                     let cleaned = rawUrl.trim();
                     if (!/^https?:\/\//i.test(cleaned)) {
                       cleaned = `https://${cleaned}`;
                     }
                     cleaned = cleaned.replace(/\/+$/, "");
-                    baseOrigin = cleaned;
+                    linkBaseOrigin = cleaned;
                   }
+                  
                   const parsedCode = parseGs1Raw(code.rawString);
-                  const shortUrl = `${baseOrigin}/code/${parsedCode.serial || ""}`;
-                  const verificationUrl = datamatrixUrlMode ? shortUrl : `${baseOrigin}/code/${qrCodeString}`;
+                  const shortUrl = `${barcodeBaseOrigin}/code/${parsedCode.serial || ""}`;
+                  const verificationUrl = datamatrixUrlMode 
+                    ? `${linkBaseOrigin}/code/${parsedCode.serial || ""}` 
+                    : `${linkBaseOrigin}/code/${qrCodeString}`;
                   return (
                     <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
                       <div className="p-1.5 bg-white rounded-lg border border-slate-200 shrink-0 flex items-center justify-center w-[100px] h-[100px]">
