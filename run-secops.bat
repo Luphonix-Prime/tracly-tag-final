@@ -10,31 +10,44 @@ cls
 echo =========================================================
 echo         TRACLY-TAG DEVOPS ^& SECOPS MANAGEMENT CLI
 echo =========================================================
-echo [1] Start Application (Docker Compose Up)
-echo [2] Stop Application (Docker Compose Down)
-echo [3] Check Container Status (Docker Compose PS)
-echo [4] View Container Logs (Docker Compose Logs)
+echo [1/S] Start Application (Docker Compose Up)
+echo [2/D] Stop Application (Docker Compose Down)
+echo [3/P] Check Container Status (Docker Compose PS)
+echo [4/L] View Container Logs (Docker Compose Logs)
 echo.
-echo [5] Run SecOps: Audit Package Vulnerabilities (pnpm audit)
-echo [6] Run SecOps: Scan for Exposed Secrets ^& Git Checks
-echo [7] Run SecOps: Validate Codebase (Typecheck ^& Build)
+echo [5/A] Run SecOps: Audit Package Vulnerabilities (pnpm audit)
+echo [6/C] Run SecOps: Scan for Exposed Secrets ^& Git Checks
+echo [7/V] Run SecOps: Validate Codebase (Typecheck ^& Build)
 echo.
-echo [8] Database Management (Push/Seed/Studio)
-echo [9] Deep Clean Environment (Purge Volumes ^& Reinstall)
-echo [0] Exit
+echo [8/B] Database Management (Push/Seed/Studio)
+echo [9/R] Deep Clean Environment (Purge Volumes ^& Reinstall)
+echo [10/H] Docker Hub Management (Login/Build/Push)
+echo [0/X] Exit
 echo =========================================================
-set /p choice="Select an option (0-9): "
+set /p choice="Select an option (0-10 or shortcut): "
 
 if "%choice%"=="1" goto START_APP
+if /i "%choice%"=="s" goto START_APP
 if "%choice%"=="2" goto STOP_APP
+if /i "%choice%"=="d" goto STOP_APP
 if "%choice%"=="3" goto STATUS_APP
+if /i "%choice%"=="p" goto STATUS_APP
 if "%choice%"=="4" goto LOGS_APP
+if /i "%choice%"=="l" goto LOGS_APP
 if "%choice%"=="5" goto SEC_AUDIT
+if /i "%choice%"=="a" goto SEC_AUDIT
 if "%choice%"=="6" goto SEC_CHECK
+if /i "%choice%"=="c" goto SEC_CHECK
 if "%choice%"=="7" goto SEC_STATIC
+if /i "%choice%"=="v" goto SEC_STATIC
 if "%choice%"=="8" goto DB_MENU
+if /i "%choice%"=="b" goto DB_MENU
 if "%choice%"=="9" goto DEEP_CLEAN
+if /i "%choice%"=="r" goto DEEP_CLEAN
+if "%choice%"=="10" goto DOCKER_HUB_MENU
+if /i "%choice%"=="h" goto DOCKER_HUB_MENU
 if "%choice%"=="0" goto EXIT
+if /i "%choice%"=="x" goto EXIT
 echo Invalid choice. Please try again.
 pause
 goto MENU
@@ -250,6 +263,115 @@ echo.
 echo Deep clean completed successfully!
 pause
 goto MENU
+
+:DOCKER_HUB_MENU
+cls
+echo =========================================================
+echo                     DOCKER HUB OPERATIONS
+echo =========================================================
+echo [1/L] Docker Login (docker login)
+echo [2/B] Build Production Image (docker build)
+echo [3/P] Push Production Image (docker push)
+echo [4/A] Build and Push (All-in-one)
+echo [5/M] Return to Main Menu
+echo =========================================================
+set /p dh_choice="Select an option (1-5 or shortcut): "
+
+if "%dh_choice%"=="1" goto DH_LOGIN
+if /i "%dh_choice%"=="l" goto DH_LOGIN
+if "%dh_choice%"=="2" goto DH_BUILD
+if /i "%dh_choice%"=="b" goto DH_BUILD
+if "%dh_choice%"=="3" goto DH_PUSH
+if /i "%dh_choice%"=="p" goto DH_PUSH
+if "%dh_choice%"=="4" goto DH_ALL
+if /i "%dh_choice%"=="a" goto DH_ALL
+if "%dh_choice%"=="5" goto MENU
+if /i "%dh_choice%"=="m" goto MENU
+echo Invalid choice. Please try again.
+pause
+goto DOCKER_HUB_MENU
+
+:DH_LOGIN
+echo.
+echo Please log in to Docker Hub...
+docker login
+pause
+goto DOCKER_HUB_MENU
+
+:DH_BUILD
+call :GET_DOCKER_DETAILS
+echo.
+echo Building production image !FULL_IMAGE_NAME!...
+docker build --target runner -t !FULL_IMAGE_NAME! .
+if !errorlevel! equ 0 (
+    echo.
+    echo Image built successfully: !FULL_IMAGE_NAME!
+) else (
+    echo.
+    echo Error: Failed to build image.
+)
+pause
+goto DOCKER_HUB_MENU
+
+:DH_PUSH
+call :GET_DOCKER_DETAILS
+echo.
+echo Pushing image !FULL_IMAGE_NAME! to Docker Hub...
+docker push !FULL_IMAGE_NAME!
+if !errorlevel! equ 0 (
+    echo.
+    echo Image pushed successfully: !FULL_IMAGE_NAME!
+) else (
+    echo.
+    echo Error: Failed to push image. Ensure you are logged in (Option 1).
+)
+pause
+goto DOCKER_HUB_MENU
+
+:DH_ALL
+call :GET_DOCKER_DETAILS
+echo.
+echo 1. Building production image !FULL_IMAGE_NAME!...
+docker build --target runner -t !FULL_IMAGE_NAME! .
+if !errorlevel! equ 0 (
+    echo.
+    echo 2. Pushing image !FULL_IMAGE_NAME! to Docker Hub...
+    docker push !FULL_IMAGE_NAME!
+    if !errorlevel! equ 0 (
+        echo.
+        echo Success: Image built and pushed successfully!
+    ) else (
+        echo.
+        echo Error: Failed to push image. Ensure you are logged in (Option 1).
+    )
+) else (
+    echo.
+    echo Error: Failed to build image.
+)
+pause
+goto DOCKER_HUB_MENU
+echo Invalid choice. Please try again.
+pause
+goto DOCKER_HUB_MENU
+
+:GET_DOCKER_DETAILS
+echo.
+set /p DOCKER_USER="Enter Docker Hub Username: "
+if "!DOCKER_USER!"=="" (
+    echo Username cannot be empty.
+    pause
+    goto GET_DOCKER_DETAILS
+)
+set /p IMAGE_NAME="Enter Image Name [tracly-tag-final]: "
+if "!IMAGE_NAME!"=="" (
+    set IMAGE_NAME=tracly-tag-final
+)
+set /p IMAGE_TAG="Enter Image Tag [latest]: "
+if "!IMAGE_TAG!"=="" (
+    set IMAGE_TAG=latest
+)
+set FULL_IMAGE_NAME=!DOCKER_USER!/!IMAGE_NAME!:!IMAGE_TAG!
+goto :EOF
 
 :EXIT
 echo Exiting CLI...
