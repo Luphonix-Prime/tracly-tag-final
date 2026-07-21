@@ -485,9 +485,10 @@ echo [1/L] Local DevSecOps Loop (Build, Scan ^& Publish)
 echo [2/A] Provision Jenkins Inbound Agent (Docker-in-Docker)
 echo [3/C] Spin up local Jenkins Controller
 echo [4/S] Run Jenkinsfile ^& Docker Registry Security Auditor
-echo [5/M] Return to Main Menu
+echo [5/K] Test Jenkins CLI connection (jenkins-cli.jar)
+echo [6/M] Return to Main Menu
 echo =========================================================
-set /p j_choice="Select an option (1-5 or shortcut): "
+set /p j_choice="Select an option (1-6 or shortcut): "
 
 if "%j_choice%"=="1" goto JK_BUILD_SCAN_PUSH
 if /i "%j_choice%"=="l" goto JK_BUILD_SCAN_PUSH
@@ -497,7 +498,9 @@ if "%j_choice%"=="3" goto JK_CONTROLLER
 if /i "%j_choice%"=="c" goto JK_CONTROLLER
 if "%j_choice%"=="4" goto JK_AUDIT
 if /i "%j_choice%"=="s" goto JK_AUDIT
-if "%j_choice%"=="5" goto MENU
+if "%j_choice%"=="5" goto JK_CLI
+if /i "%j_choice%"=="k" goto JK_CLI
+if "%j_choice%"=="6" goto MENU
 if /i "%j_choice%"=="m" goto MENU
 echo Invalid choice. Please try again.
 pause
@@ -517,6 +520,10 @@ goto JENKINS_MENU
 
 :JK_AUDIT
 call "%~dp0devsecops-audit\jenkins-docker\audit-jenkins-docker.bat"
+goto JENKINS_MENU
+
+:JK_CLI
+call "%~dp0devsecops-audit\jenkins-docker\jenkins-cli-helper.bat"
 goto JENKINS_MENU
 
 :EXIT

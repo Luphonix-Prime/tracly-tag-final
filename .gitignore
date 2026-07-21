@@ -66,3 +66,4 @@ k8s/pvc.yaml
 k8s/services.yaml
 aws/ecs-task-def.json
 aws/deploy-aws.bat
+jenkins-cli.jar
