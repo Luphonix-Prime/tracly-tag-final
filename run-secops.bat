@@ -18,13 +18,15 @@ echo.
 echo [5/A] Run SecOps: Audit Package Vulnerabilities (pnpm audit)
 echo [6/C] Run SecOps: Scan for Exposed Secrets ^& Git Checks
 echo [7/V] Run SecOps: Validate Codebase (Typecheck ^& Build)
+echo [8/K] Run SecOps: Check Kubernetes Nodes ^& Load Balancing
 echo.
-echo [8/B] Database Management (Push/Seed/Studio)
-echo [9/R] Deep Clean Environment (Purge Volumes ^& Reinstall)
-echo [10/H] Docker Hub Management (Login/Build/Push)
+echo [9/B] Database Management (Push/Seed/Studio)
+echo [10/R] Deep Clean Environment (Purge Volumes ^& Reinstall)
+echo [11/H] Docker Hub Management (Login/Build/Push)
+echo [12/J] Jenkins ^& Docker Desktop Integration
 echo [0/X] Exit
 echo =========================================================
-set /p choice="Select an option (0-10 or shortcut): "
+set /p choice="Select an option (0-12 or shortcut): "
 
 if "%choice%"=="1" goto START_APP
 if /i "%choice%"=="s" goto START_APP
@@ -40,12 +42,16 @@ if "%choice%"=="6" goto SEC_CHECK
 if /i "%choice%"=="c" goto SEC_CHECK
 if "%choice%"=="7" goto SEC_STATIC
 if /i "%choice%"=="v" goto SEC_STATIC
-if "%choice%"=="8" goto DB_MENU
+if "%choice%"=="8" goto SEC_K8S
+if /i "%choice%"=="k" goto SEC_K8S
+if "%choice%"=="9" goto DB_MENU
 if /i "%choice%"=="b" goto DB_MENU
-if "%choice%"=="9" goto DEEP_CLEAN
+if "%choice%"=="10" goto DEEP_CLEAN
 if /i "%choice%"=="r" goto DEEP_CLEAN
-if "%choice%"=="10" goto DOCKER_HUB_MENU
+if "%choice%"=="11" goto DOCKER_HUB_MENU
 if /i "%choice%"=="h" goto DOCKER_HUB_MENU
+if "%choice%"=="12" goto JENKINS_MENU
+if /i "%choice%"=="j" goto JENKINS_MENU
 if "%choice%"=="0" goto EXIT
 if /i "%choice%"=="x" goto EXIT
 echo Invalid choice. Please try again.
@@ -179,6 +185,103 @@ if %errorlevel% neq 0 (
 ) else (
     echo Codebase built successfully with zero compiling errors!
 )
+pause
+goto MENU
+
+:SEC_K8S
+echo.
+echo =========================================================
+echo       KUBERNETES NODES ^& LOAD BALANCING AUDIT
+echo =========================================================
+
+:: 1. Search for kubectl.exe in system PATH or local tools
+where kubectl >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERROR] kubectl was not found on your system PATH.
+    echo Please install kubectl or make sure it is in your system PATH.
+    goto K8S_FILE_SCAN
+)
+
+:: 2. Check cluster connection
+echo Checking active Kubernetes cluster context...
+for /f "delims=" %%i in ('kubectl config current-context 2^>^&1') do set "k8s_context=%%i"
+if "!k8s_context!"=="" (
+    echo [ERROR] No active Kubernetes context found or cluster is unreachable.
+    goto K8S_FILE_SCAN
+)
+echo !k8s_context! | findstr /i "error Error refused Unable" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [ERROR] Failed to retrieve Kubernetes context: !k8s_context!
+    goto K8S_FILE_SCAN
+)
+echo   Active Context: !k8s_context!
+
+:: 3. List Nodes
+echo.
+echo --- Kubernetes Nodes ---
+kubectl get nodes --request-timeout=5s
+if %errorlevel% neq 0 (
+    echo [WARNING] Failed to fetch Kubernetes nodes. Cluster might be unreachable.
+)
+
+:: 4. List Load Balancing Resources
+echo.
+echo --- Kubernetes Services ^(LoadBalancer^) ---
+kubectl get svc -A --field-selector spec.type=LoadBalancer --request-timeout=5s
+if %errorlevel% neq 0 (
+    echo Falling back to searching all services for LoadBalancer...
+    kubectl get svc -A --request-timeout=5s | findstr /i "LoadBalancer"
+    if !errorlevel! neq 0 (
+        echo No services of type LoadBalancer found.
+    )
+)
+
+:K8S_FILE_SCAN
+:: 5. Search workspace for local Kubernetes configurations / manifests & Load Balancers configs
+echo.
+echo --- Local Configuration Discovery ---
+if not exist "devsecops-audit\temp" mkdir "devsecops-audit\temp"
+
+powershell -NoProfile -Command ^
+    "$k8sFiles = @();" ^
+    "Get-ChildItem -Path '%~dp0' -Filter '*.yaml' -Recurse -ErrorAction SilentlyContinue | " ^
+    "  Where-Object { $_.FullName -notmatch 'node_modules^|.git^|dist^|temp^|reports' } | " ^
+    "  ForEach-Object {" ^
+    "    $content = Get-Content $_.FullName -ErrorAction SilentlyContinue;" ^
+    "    if ($content -match 'apiVersion:\\s+apps^|apiVersion:\\s+v1^|kind:\\s+Service') {" ^
+    "       $k8sFiles += $_.Name;" ^
+    "    }" ^
+    "  };" ^
+    "if ($k8sFiles.Count -gt 0) { Write-Output ($k8sFiles -join ',') } else { Write-Output 'NONE' }" > "devsecops-audit\temp\k8s_files_check.txt"
+
+set /p k8s_found=<"devsecops-audit\temp\k8s_files_check.txt"
+del "devsecops-audit\temp\k8s_files_check.txt" >nul 2>&1
+
+if not "%k8s_found%"=="NONE" (
+    echo   [OK] Found Kubernetes configurations in workspace: %k8s_found%
+) else (
+    echo   [INFO] No local Kubernetes manifest files found.
+)
+
+powershell -NoProfile -Command ^
+    "$proxyFiles = @();" ^
+    "Get-ChildItem -Path '%~dp0' -Filter '*traefik*' -Recurse -ErrorAction SilentlyContinue | " ^
+    "  Where-Object { $_.FullName -notmatch 'node_modules^|.git^|dist' } | " ^
+    "  ForEach-Object { $proxyFiles += $_.Name };" ^
+    "Get-ChildItem -Path '%~dp0' -Filter '*nginx*' -Recurse -ErrorAction SilentlyContinue | " ^
+    "  Where-Object { $_.FullName -notmatch 'node_modules^|.git^|dist' } | " ^
+    "  ForEach-Object { $proxyFiles += $_.Name };" ^
+    "if ($proxyFiles.Count -gt 0) { Write-Output ($proxyFiles -join ',') } else { Write-Output 'NONE' }" > "devsecops-audit\temp\proxy_files_check.txt"
+
+set /p proxy_found=<"devsecops-audit\temp\proxy_files_check.txt"
+del "devsecops-audit\temp\proxy_files_check.txt" >nul 2>&1
+
+if not "%proxy_found%"=="NONE" (
+    echo   [OK] Found reverse proxy/load balancing files in workspace: %proxy_found%
+) else (
+    echo   [INFO] No local load balancer or reverse proxy configurations (nginx/traefik) found.
+)
+
 pause
 goto MENU
 
@@ -372,6 +475,49 @@ if "!IMAGE_TAG!"=="" (
 )
 set FULL_IMAGE_NAME=!DOCKER_USER!/!IMAGE_NAME!:!IMAGE_TAG!
 goto :EOF
+
+:JENKINS_MENU
+cls
+echo =========================================================
+echo            JENKINS ^& DOCKER DESKTOP INTEGRATION
+echo =========================================================
+echo [1/L] Local DevSecOps Loop (Build, Scan ^& Publish)
+echo [2/A] Provision Jenkins Inbound Agent (Docker-in-Docker)
+echo [3/C] Spin up local Jenkins Controller
+echo [4/S] Run Jenkinsfile ^& Docker Registry Security Auditor
+echo [5/M] Return to Main Menu
+echo =========================================================
+set /p j_choice="Select an option (1-5 or shortcut): "
+
+if "%j_choice%"=="1" goto JK_BUILD_SCAN_PUSH
+if /i "%j_choice%"=="l" goto JK_BUILD_SCAN_PUSH
+if "%j_choice%"=="2" goto JK_AGENT
+if /i "%j_choice%"=="a" goto JK_AGENT
+if "%j_choice%"=="3" goto JK_CONTROLLER
+if /i "%j_choice%"=="c" goto JK_CONTROLLER
+if "%j_choice%"=="4" goto JK_AUDIT
+if /i "%j_choice%"=="s" goto JK_AUDIT
+if "%j_choice%"=="5" goto MENU
+if /i "%j_choice%"=="m" goto MENU
+echo Invalid choice. Please try again.
+pause
+goto JENKINS_MENU
+
+:JK_BUILD_SCAN_PUSH
+call "%~dp0devsecops-audit\jenkins-docker\build-scan-publish.bat"
+goto JENKINS_MENU
+
+:JK_AGENT
+call "%~dp0devsecops-audit\jenkins-docker\jenkins-agent.bat"
+goto JENKINS_MENU
+
+:JK_CONTROLLER
+call "%~dp0devsecops-audit\jenkins-docker\jenkins-controller.bat"
+goto JENKINS_MENU
+
+:JK_AUDIT
+call "%~dp0devsecops-audit\jenkins-docker\audit-jenkins-docker.bat"
+goto JENKINS_MENU
 
 :EXIT
 echo Exiting CLI...
