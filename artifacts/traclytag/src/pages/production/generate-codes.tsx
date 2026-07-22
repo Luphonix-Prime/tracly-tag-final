@@ -13,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { usePackagingLevelVisibility } from "@/hooks/use-packaging-level-visibility";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -35,6 +36,7 @@ export default function GenerateCodes() {
   const { data: products = [] } = useListProducts();
   const { data: batches = [] } = useListBatches({});
   const generateCodes = useGenerateCodes();
+  const { hidePackagingLevel } = usePackagingLevelVisibility();
 
   const form = useForm<GenerateForm>({
     resolver: zodResolver(generateSchema),
@@ -216,32 +218,34 @@ export default function GenerateCodes() {
                   />
 
                   {/* Packaging Level */}
-                  <FormField
-                    control={form.control}
-                    name="level"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[11px] font-bold text-[#434655] uppercase flex items-center gap-1">
-                          Packaging Level <span className="text-[#EF4444]">*</span>
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="w-full bg-white border border-[#E2E8F0] h-11 rounded-lg focus:ring-0 text-sm text-[#0F172A] focus:border-[#2563EB]">
-                              <SelectValue placeholder="Select Level" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="unit">Unit</SelectItem>
-                            <SelectItem value="l1">Level 1 (L1)</SelectItem>
-                            <SelectItem value="l2">Level 2 (L2)</SelectItem>
-                            <SelectItem value="shipper">Shipper</SelectItem>
-                            <SelectItem value="pallet">Pallet</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {!hidePackagingLevel && (
+                    <FormField
+                      control={form.control}
+                      name="level"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-[11px] font-bold text-[#434655] uppercase flex items-center gap-1">
+                            Packaging Level <span className="text-[#EF4444]">*</span>
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="w-full bg-white border border-[#E2E8F0] h-11 rounded-lg focus:ring-0 text-sm text-[#0F172A] focus:border-[#2563EB]">
+                                <SelectValue placeholder="Select Level" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="unit">Unit</SelectItem>
+                              <SelectItem value="l1">Level 1 (L1)</SelectItem>
+                              <SelectItem value="l2">Level 2 (L2)</SelectItem>
+                              <SelectItem value="shipper">Shipper</SelectItem>
+                              <SelectItem value="pallet">Pallet</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                 </div>
 

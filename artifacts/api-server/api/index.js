@@ -60037,7 +60037,7 @@ var companies_default = router3;
 var import_express4 = __toESM(require_express2(), 1);
 var router4 = (0, import_express4.Router)();
 router4.put("/users/profile", requireAuth, async (req, res) => {
-  const { email, phone, currentPassword, password } = req.body;
+  const { username, email, phone, currentPassword, password } = req.body;
   if (!email) {
     res.status(400).json({ error: "Email is required" });
     return;
@@ -60052,6 +60052,19 @@ router4.put("/users/profile", requireAuth, async (req, res) => {
       email,
       phone: phone ?? null
     };
+    if (username && username !== user2.username) {
+      const trimmedUsername = username.trim();
+      if (trimmedUsername.length < 3) {
+        res.status(400).json({ error: "Username must be at least 3 characters long" });
+        return;
+      }
+      const [existingUser] = await db.select().from(usersTable).where(eq(usersTable.username, trimmedUsername));
+      if (existingUser) {
+        res.status(400).json({ error: "Username is already taken" });
+        return;
+      }
+      updateData.username = trimmedUsername;
+    }
     if (password && password.trim().length > 0) {
       if (!currentPassword || currentPassword.trim().length === 0) {
         res.status(400).json({ error: "Current password is required to set a new password" });
@@ -61939,6 +61952,7 @@ var router12 = (0, import_express12.Router)();
 var readConfig = async () => {
   let hideMappingCode = true;
   let datamatrixUrlMode = false;
+  let hidePackagingHierarchy = true;
   try {
     const rows = await db.select().from(systemConfigsTable);
     const mapCodeRow = rows.find((r) => r.key === "hideMappingCode");
@@ -61949,9 +61963,13 @@ var readConfig = async () => {
     if (dmRow) {
       datamatrixUrlMode = dmRow.value === "true";
     }
+    const phRow = rows.find((r) => r.key === "hidePackagingHierarchy");
+    if (phRow) {
+      hidePackagingHierarchy = phRow.value === "true";
+    }
   } catch (err) {
   }
-  return { hideMappingCode, datamatrixUrlMode };
+  return { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy };
 };
 var writeConfig = async (config2) => {
   try {
@@ -61973,6 +61991,15 @@ var writeConfig = async (config2) => {
         set: { value: String(config2.datamatrixUrlMode) }
       });
     }
+    if (config2.hidePackagingHierarchy !== void 0) {
+      await db.insert(systemConfigsTable).values({
+        key: "hidePackagingHierarchy",
+        value: String(config2.hidePackagingHierarchy)
+      }).onConflictDoUpdate({
+        target: systemConfigsTable.key,
+        set: { value: String(config2.hidePackagingHierarchy) }
+      });
+    }
   } catch (err) {
   }
 };
@@ -61981,7 +62008,7 @@ router12.get("/system-config", requireAuth, async (req, res) => {
   res.json(config2);
 });
 router12.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode, datamatrixUrlMode } = req.body;
+  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy } = req.body;
   const updates = {};
   if (hideMappingCode !== void 0) {
     if (typeof hideMappingCode !== "boolean") {
@@ -61996,6 +62023,13 @@ router12.post("/system-config", requireAuth, requireRole("super_master"), async 
       return;
     }
     updates.datamatrixUrlMode = datamatrixUrlMode;
+  }
+  if (hidePackagingHierarchy !== void 0) {
+    if (typeof hidePackagingHierarchy !== "boolean") {
+      res.status(400).json({ error: "Invalid value for hidePackagingHierarchy" });
+      return;
+    }
+    updates.hidePackagingHierarchy = hidePackagingHierarchy;
   }
   await writeConfig(updates);
   const config2 = await readConfig();
