@@ -59,11 +59,7 @@ devsecops-audit/*
 .github/workflows/ci-cd.yml
 k8s/deployment.yaml
 Jenkinsfile
-aws/terraform/main.tf
-aws/terraform/outputs.tf
-aws/terraform/variables.tf
-k8s/pvc.yaml
-k8s/services.yaml
-aws/ecs-task-def.json
-aws/deploy-aws.bat
+aws/*
+k8s/*
+
 jenkins-cli.jar
