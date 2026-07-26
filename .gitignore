@@ -63,3 +63,4 @@ aws/*
 k8s/*
 
 jenkins-cli.jar
+Jenkinsfile.dev
