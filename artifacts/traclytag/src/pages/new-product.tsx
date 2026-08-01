@@ -38,7 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 const productSchema = z.object({
   skuId: z.string().min(1, "SKU ID required"),
   name: z.string().min(1, "Product name must be entered"),
-  skuSize: z.string().min(1, "SKU size required"),
+  skuSize: z.string().optional().or(z.literal("")),
   marketedBy: z.string().min(1, "Marketed by required"),
   sapDescription: z.string().optional().or(z.literal("")),
   mrp: z.coerce.number().positive("MRP must be positive"),
@@ -224,8 +224,16 @@ export default function NewProduct() {
       toast.error("Please select a company to allocate this product to.");
       return;
     }
+
+    const derivedSkuSize = values.weightValue && values.weightValue > 0 
+      ? `${values.weightValue} ${values.unit || "Piece"}` 
+      : (values.unit || "Piece");
+
     const payload = {
       ...values,
+      skuSize: values.skuSize || derivedSkuSize,
+      unit: values.unit || "Piece",
+      weightUnit: values.weightUnit || "g",
       isGs1Compliant: isSuperMaster ? values.isGs1Compliant : false,
       companyId: isMaster ? values.companyId : currentUser?.companyId || 1,
       sapDescription: values.sapDescription || undefined,
@@ -469,22 +477,32 @@ export default function NewProduct() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="skuSize"
+                    name="unit"
                     render={({ field }) => (
                       <FormItem className="space-y-1.5">
                         <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                          SKU SIZE / VOLUME
+                          UNIT OF MEASUREMENT
                         </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input 
-                              placeholder="e.g. 500ml / 1kg" 
-                              className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus-visible:border-[#2563EB] focus-visible:ring-0 rounded-lg py-2.5 px-4 pr-10 text-sm text-slate-900 transition-all placeholder:text-slate-400"
-                              {...field} 
-                            />
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">scale</span>
-                          </div>
-                        </FormControl>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value || "Piece"}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-[42px]">
+                              <SelectValue placeholder="Select Unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Piece">Piece (Pc)</SelectItem>
+                            <SelectItem value="Box">Box (Bx)</SelectItem>
+                            <SelectItem value="Bottle">Bottle (Bt)</SelectItem>
+                            <SelectItem value="Pack">Pack (Pk)</SelectItem>
+                            <SelectItem value="Can">Can (Cn)</SelectItem>
+                            <SelectItem value="Drum">Drum (Dr)</SelectItem>
+                            <SelectItem value="Bag">Bag (Bg)</SelectItem>
+                            <SelectItem value="Carton">Carton (Ct)</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -717,34 +735,7 @@ export default function NewProduct() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="unit"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                          UNIT OF MEASUREMENT
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
-                              <SelectValue placeholder="Select Unit" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Piece">Piece (Pc)</SelectItem>
-                            <SelectItem value="Box">Box (Bx)</SelectItem>
-                            <SelectItem value="Bottle">Bottle (Bt)</SelectItem>
-                            <SelectItem value="Kg">Kilogram (Kg)</SelectItem>
-                            <SelectItem value="Litre">Litre (L)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="weightValue"
@@ -775,10 +766,13 @@ export default function NewProduct() {
                         <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
                           WEIGHT / VOLUME UNIT
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value || "g"}
+                        >
                           <FormControl>
-                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
-                              <SelectValue placeholder="Select Unit" />
+                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-[42px]">
+                              <SelectValue placeholder="Select Weight / Volume Unit" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -786,6 +780,7 @@ export default function NewProduct() {
                             <SelectItem value="kg">Kilograms (kg)</SelectItem>
                             <SelectItem value="ml">Millilitres (ml)</SelectItem>
                             <SelectItem value="l">Litres (L)</SelectItem>
+                            <SelectItem value="mg">Milligrams (mg)</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
