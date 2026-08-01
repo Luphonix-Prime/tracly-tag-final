@@ -9,6 +9,7 @@ export interface HierarchicalDatePickerProps {
   onSelect: (date: Date) => void;
   disabled?: (date: Date) => boolean;
   className?: string;
+  initialStep?: ViewStep;
 }
 
 type ViewStep = "range" | "year" | "month" | "day";
@@ -30,13 +31,14 @@ export function HierarchicalDatePicker({
   onSelect,
   disabled,
   className,
+  initialStep = "range",
 }: HierarchicalDatePickerProps) {
   const initialDate = value || new Date();
   const initialYear = initialDate.getFullYear();
   const initialMonth = initialDate.getMonth();
 
   // State
-  const [step, setStep] = useState<ViewStep>("day");
+  const [step, setStep] = useState<ViewStep>(initialStep);
   
   // Decade range start (e.g., 2020 for 2020-2029)
   const [rangeStart, setRangeStart] = useState<number>(() => Math.floor(initialYear / 10) * 10);
