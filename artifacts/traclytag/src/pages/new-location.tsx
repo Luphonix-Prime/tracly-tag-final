@@ -5,6 +5,8 @@ import {
   getListLocationsQueryKey,
   useGetMyCompany,
   useListLocations,
+  useGetCurrentUser,
+  useListCompanies,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -43,6 +45,9 @@ export default function NewLocation() {
   const isEdit = id !== undefined;
 
   const createLocation = useCreateLocation();
+  const { data: currentUser } = useGetCurrentUser();
+  const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
+  const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
   const { data: myCompany } = useGetMyCompany();
   const { data: locations = [] } = useListLocations();
   const loc = locations.find(l => l.id === id);
@@ -50,6 +55,7 @@ export default function NewLocation() {
   const [, setLocation] = useLocation();
 
   // Local/UI Mock States for compliance / address mapping
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("none");
   const [contactPerson, setContactPerson] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
   const [country, setCountry] = useState("India");
@@ -82,15 +88,29 @@ export default function NewLocation() {
         state: loc.state ?? "",
         gln: loc.gln ?? "",
       });
+      if (loc.companyId) {
+        setSelectedCompanyId(String(loc.companyId));
+      } else {
+        setSelectedCompanyId("none");
+      }
     }
   }, [loc, isEdit, form]);
 
   const onSubmit = (values: LocationForm) => {
+    const payload = {
+      ...values,
+      companyId: isMaster
+        ? selectedCompanyId && selectedCompanyId !== "none"
+          ? Number(selectedCompanyId)
+          : null
+        : undefined,
+    };
+
     if (isEdit) {
       fetch(`/api/locations/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       })
         .then(async (res) => {
           if (!res.ok) {
@@ -108,7 +128,7 @@ export default function NewLocation() {
         });
     } else {
       createLocation.mutate(
-        { data: values },
+        { data: payload as any },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({
@@ -275,6 +295,30 @@ export default function NewLocation() {
                     )}
                   />
                 </div>
+
+                {isMaster && (
+                  <div className="mt-6">
+                    <label className="text-[11px] font-bold tracking-wider text-slate-500 uppercase block mb-2">
+                      ASSIGN TO CLIENT COMPANY (OPTIONAL)
+                    </label>
+                    <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                      <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                        <SelectValue placeholder="No Company (System Location)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Company (System Location)</SelectItem>
+                        {companies.map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.name} (ID: {c.id})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Super Master & Master accounts can create global system locations or assign to a specific client company.
+                    </p>
+                  </div>
+                )}
               </section>
 
               {/* Section 2: Contact Information */}

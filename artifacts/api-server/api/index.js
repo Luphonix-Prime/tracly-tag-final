@@ -51122,6 +51122,7 @@ var ListLocationsResponseItem = objectType({
 });
 var ListLocationsResponse = arrayType(ListLocationsResponseItem);
 var CreateLocationBody = objectType({
+  "companyId": numberType().nullish(),
   "locationType": stringType(),
   "uniqueName": stringType(),
   "locationName": stringType(),
@@ -58673,7 +58674,7 @@ var usersTable = sqliteTable("users", {
 // ../../lib/db/src/schema/products.ts
 var productsTable = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  companyId: integer("company_id").notNull().references(() => companiesTable.id, { onDelete: "cascade" }),
+  companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "cascade" }),
   skuId: text("sku_id").notNull(),
   name: text("name").notNull(),
   skuSize: text("sku_size").notNull(),
@@ -58704,7 +58705,7 @@ var productsTable = sqliteTable("products", {
 // ../../lib/db/src/schema/locations.ts
 var locationsTable = sqliteTable("locations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  companyId: integer("company_id").notNull().references(() => companiesTable.id, { onDelete: "cascade" }),
+  companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "cascade" }),
   locationType: text("location_type").notNull(),
   uniqueName: text("unique_name").notNull(),
   locationName: text("location_name").notNull(),
@@ -60434,17 +60435,22 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId : null);
-  if (!companyId) {
-    res.status(400).json({ error: "Master must select a company context to add products" });
+  let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId || null : null);
+  if (!companyId && req.user.role !== "master" && req.user.role !== "super_master") {
+    res.status(400).json({ error: "User has no company context" });
     return;
   }
   const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
   if (isGs1Compliant) {
     if (!parsed.data.gtin) {
-      const [company] = await db.select({ gstin: companiesTable.gstin }).from(companiesTable).where(eq(companiesTable.id, Number(companyId)));
-      if (!company || !company.gstin) {
-        res.status(400).json({ error: "GTIN or Company GST is required for GS1 compliant products" });
+      if (companyId) {
+        const [company] = await db.select({ gstin: companiesTable.gstin }).from(companiesTable).where(eq(companiesTable.id, Number(companyId)));
+        if (!company || !company.gstin) {
+          res.status(400).json({ error: "GTIN or Company GST is required for GS1 compliant products" });
+          return;
+        }
+      } else {
+        res.status(400).json({ error: "GTIN is required for GS1 compliant products without company GSTIN" });
         return;
       }
     } else {
@@ -60455,7 +60461,7 @@ router5.post("/products", async (req, res) => {
     }
   }
   const [row] = await db.insert(productsTable).values({
-    companyId: Number(companyId),
+    companyId: companyId ? Number(companyId) : null,
     skuId: parsed.data.skuId,
     name: parsed.data.name,
     skuSize: parsed.data.skuSize,
@@ -60567,10 +60573,16 @@ router6.post("/locations", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const companyId = req.user.companyId;
-  if (!companyId) {
-    res.status(400).json({ error: "User has no company" });
-    return;
+  let companyId = null;
+  if (req.user.role === "master" || req.user.role === "super_master") {
+    const rawCid = parsed.data.companyId ?? req.body.companyId;
+    companyId = rawCid ? Number(rawCid) : null;
+  } else {
+    companyId = req.user.companyId ?? null;
+    if (!companyId) {
+      res.status(400).json({ error: "User has no company" });
+      return;
+    }
   }
   if (parsed.data.gln) {
     const { validateGs1CheckDigit: validateGs1CheckDigit2 } = await Promise.resolve().then(() => (init_gs1_validation(), gs1_validation_exports));
@@ -60611,7 +60623,7 @@ router6.put("/locations/:id", async (req, res) => {
       return;
     }
   }
-  const [row] = await db.update(locationsTable).set({
+  const updateFields = {
     locationType: parsed.data.locationType,
     uniqueName: parsed.data.uniqueName,
     locationName: parsed.data.locationName,
@@ -60620,7 +60632,14 @@ router6.put("/locations/:id", async (req, res) => {
     city: parsed.data.city,
     address: parsed.data.address,
     gln: parsed.data.gln ?? null
-  }).where(eq(locationsTable.id, id)).returning();
+  };
+  if (req.user.role === "master" || req.user.role === "super_master") {
+    const rawCid = parsed.data.companyId ?? req.body.companyId;
+    if (rawCid !== void 0) {
+      updateFields.companyId = rawCid ? Number(rawCid) : null;
+    }
+  }
+  const [row] = await db.update(locationsTable).set(updateFields).where(eq(locationsTable.id, id)).returning();
   if (!row) {
     res.status(404).json({ error: "Location not found" });
     return;

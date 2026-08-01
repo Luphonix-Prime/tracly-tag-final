@@ -72,6 +72,7 @@ export default function NewProduct() {
   const isEdit = id !== undefined;
 
   const { data: currentUser } = useGetCurrentUser();
+  const isSuperMaster = currentUser?.role === "super_master";
   const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
   const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
   const { data: products = [] } = useListProducts();
@@ -225,6 +226,7 @@ export default function NewProduct() {
     }
     const payload = {
       ...values,
+      isGs1Compliant: isSuperMaster ? values.isGs1Compliant : false,
       companyId: isMaster ? values.companyId : currentUser?.companyId || 1,
       sapDescription: values.sapDescription || undefined,
       registrationNo: values.registrationNo || undefined,
@@ -391,20 +393,29 @@ export default function NewProduct() {
                       <FormLabel className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
                         SERIALIZATION COMPLIANCE MODE
                       </FormLabel>
-                      <Select 
-                        onValueChange={(val) => field.onChange(val === "true")} 
-                        value={String(field.value)}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
-                            <SelectValue placeholder="Select serialization mode" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="false">TracelyTag Internal Compliance (Generates secure non-GS1 serial codes)</SelectItem>
-                          <SelectItem value="true">Official GS1 Compliant Mode (Requires GTIN or Company GST)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {isSuperMaster ? (
+                        <Select 
+                          onValueChange={(val) => field.onChange(val === "true")} 
+                          value={String(field.value)}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                              <SelectValue placeholder="Select serialization mode" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="false">Standardized Compliance Mode (Generates secure non-GS1 serial codes)</SelectItem>
+                            <SelectItem value="true">Official GS1 Compliant Mode (Requires GTIN or Company GST)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input 
+                          readOnly
+                          disabled
+                          value="Standardized Compliance Mode (Generates secure non-GS1 serial codes)"
+                          className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-600 rounded-lg py-2.5 px-4 text-sm transition-all cursor-not-allowed focus-visible:ring-0 font-medium"
+                        />
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

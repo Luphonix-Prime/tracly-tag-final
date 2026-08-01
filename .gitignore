@@ -63,4 +63,6 @@ aws/*
 k8s/*
 
 jenkins-cli.jar
-Jenkinsfile.dev
+terminal_logs/*
+old-dev-built.txt
+docker-strt.bat

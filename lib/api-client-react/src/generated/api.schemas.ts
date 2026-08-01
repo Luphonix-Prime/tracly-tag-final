@@ -263,6 +263,7 @@ export interface Location {
 }
 
 export interface CreateLocationBody {
+  companyId?: number | null;
   locationType: string;
   uniqueName: string;
   locationName: string;
