@@ -62230,7 +62230,7 @@ router12.get("/system-config", requireAuth, async (req, res) => {
   res.json(config2);
 });
 router12.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy } = req.body;
+  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel } = req.body;
   const updates = {};
   if (hideMappingCode !== void 0) {
     if (typeof hideMappingCode !== "boolean") {
@@ -62252,6 +62252,13 @@ router12.post("/system-config", requireAuth, requireRole("super_master"), async 
       return;
     }
     updates.hidePackagingHierarchy = hidePackagingHierarchy;
+  }
+  if (hidePackagingLevel !== void 0) {
+    if (typeof hidePackagingLevel !== "boolean") {
+      res.status(400).json({ error: "Invalid value for hidePackagingLevel" });
+      return;
+    }
+    updates.hidePackagingLevel = hidePackagingLevel;
   }
   await writeConfig(updates);
   const config2 = await readConfig();

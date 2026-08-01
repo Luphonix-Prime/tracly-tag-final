@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { 
   useGenerateCodes, 
@@ -30,8 +30,6 @@ import {
   Link as LinkIcon
 } from "lucide-react";
 import { format } from "date-fns";
-import { useDatamatrixUrlMode } from "@/hooks/use-datamatrix-url-mode";
-import { usePackagingLevelVisibility } from "@/hooks/use-packaging-level-visibility";
 
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -40,365 +38,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import bwipjs from "bwip-js";
-
-function fixGtinCheckDigit(gtin: string): string {
-  if (!gtin) return "";
-  let digitsOnly = gtin.replace(/\D/g, "");
-  if (digitsOnly.length < 14) {
-    digitsOnly = digitsOnly.padStart(14, "0");
-  } else if (digitsOnly.length > 14) {
-    digitsOnly = digitsOnly.slice(0, 14);
-  }
-  
-  const digits = digitsOnly.slice(0, 13).split("").map(Number);
-  let sum = 0;
-  for (let i = 0; i < 13; i++) {
-    const weight = i % 2 === 0 ? 3 : 1;
-    sum += digits[i] * weight;
-  }
-  const checkDigit = (10 - (sum % 10)) % 10;
-  return digitsOnly.slice(0, 13) + checkDigit;
-}
-
-function fixSsccCheckDigit(sscc: string): string {
-  if (!sscc) return "";
-  let digitsOnly = sscc.replace(/\D/g, "");
-  if (digitsOnly.length < 18) {
-    digitsOnly = digitsOnly.padStart(18, "0");
-  } else if (digitsOnly.length > 18) {
-    digitsOnly = digitsOnly.slice(0, 18);
-  }
-  
-  const digits = digitsOnly.slice(0, 17).split("").map(Number);
-  let sum = 0;
-  for (let i = 0; i < 17; i++) {
-    const weight = i % 2 === 0 ? 3 : 1;
-    sum += digits[i] * weight;
-  }
-  const checkDigit = (10 - (sum % 10)) % 10;
-  return digitsOnly.slice(0, 17) + checkDigit;
-}
-
-function DataMatrixBarcode({ 
-  rawString, 
-  size, 
-  urlMode, 
-  verificationUrl 
-}: { 
-  rawString: string; 
-  size: number; 
-  urlMode?: boolean; 
-  verificationUrl?: string; 
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    
-    try {
-      const parsed = parseGs1Raw(rawString);
-      let barcodeType = "datamatrix";
-      let barcodeText = rawString;
-
-      if (urlMode && verificationUrl) {
-        barcodeText = verificationUrl.replace(/^https?:\/\//i, "");
-        barcodeType = "datamatrix";
-      } else if (!parsed.fallback && !parsed.error) {
-        if (parsed.sscc) {
-          const validSscc = fixSsccCheckDigit(parsed.sscc);
-          barcodeText = `(00)${validSscc}`;
-          barcodeType = "gs1datamatrix";
-        } else if (parsed.gtin) {
-          const validGtin = fixGtinCheckDigit(parsed.gtin);
-          barcodeText = `(01)${validGtin}(21)${parsed.serial || ""}(10)${parsed.batch || ""}(17)${parsed.expiry || ""}`;
-          barcodeType = "gs1datamatrix";
-        }
-      }
-
-      bwipjs.toCanvas(canvasRef.current, {
-        bcid: barcodeType,
-        text: barcodeText,
-        scale: 3,
-        height: 10,
-        width: 10,
-        includetext: false,
-      });
-    } catch (err) {
-      console.error("Failed to render barcode locally via bwip-js:", err);
-      const ctx = canvasRef.current.getContext("2d");
-      if (ctx) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        ctx.fillStyle = "#ef4444";
-        ctx.font = "8px monospace";
-        ctx.fillText("Error", 5, 12);
-      }
-    }
-  }, [rawString, urlMode, verificationUrl]);
-
-  return (
-    <canvas 
-      ref={canvasRef} 
-      className="max-w-full aspect-square"
-      style={{ width: `${size}px`, height: `${size}px` }} 
-    />
-  );
-}
-
-function parseGs1Raw(raw: string) {
-  if (!raw) return {};
-  if (raw.startsWith("INVALID_") || raw.startsWith("SH-")) {
-    return { error: raw };
-  }
-  if (raw.startsWith("00") || raw.startsWith("(00)")) {
-    const cleanSscc = raw.replace(/^\(00\)/, "").replace(/^00/, "");
-    return { sscc: cleanSscc };
-  }
-  
-  // Parentheses format e.g. (01)27AABCD1234E1Z5(21)HTKBNT7C9(10)PCM2604A(17)280430
-  if (raw.includes("(01)") || raw.includes("(21)") || raw.includes("(10)") || raw.includes("(17)")) {
-    let gtin = "";
-    let serial = "";
-    let batch = "";
-    let expiry = "";
-    let mfg = "";
-    const m01 = raw.match(/\(01\)([^()]+)/);
-    if (m01) gtin = m01[1];
-    const m21 = raw.match(/\(21\)([^()]+)/);
-    if (m21) serial = m21[1];
-    const m10 = raw.match(/\(10\)([^()]+)/);
-    if (m10) batch = m10[1];
-    const m17 = raw.match(/\(17\)([^()]+)/);
-    if (m17) expiry = m17[1];
-    const m11 = raw.match(/\(11\)([^()]+)/);
-    if (m11) mfg = m11[1];
-
-    if (gtin || serial || batch || expiry) {
-      return { gtin, serial, batch, expiry, mfg };
-    }
-  }
-
-  // Replace separators with a pipe for easy splitting
-  const clean = raw.replace(/<GS>/g, "|").replace(/\u001d/g, "|").replace(/\u00e8/g, "|");
-  
-  let gtin = "";
-  let serial = "";
-  let batch = "";
-  let expiry = "";
-  let mfg = "";
-  
-  let pos = 0;
-  while (pos < clean.length) {
-    const ai = clean.substring(pos, pos + 2);
-    pos += 2;
-    if (ai === "01") {
-      const nextPipe = clean.indexOf("|", pos);
-      if (nextPipe > -1) {
-        gtin = clean.substring(pos, nextPipe);
-        pos = nextPipe + 1;
-      } else {
-        const rest = clean.substring(pos);
-        const matchNext = rest.match(/(21|10|17|11)/);
-        if (matchNext && matchNext.index !== undefined && matchNext.index > 0) {
-          gtin = rest.substring(0, matchNext.index);
-          pos += matchNext.index;
-        } else {
-          gtin = rest.substring(0, 14);
-          pos += 14;
-        }
-      }
-    } else if (ai === "21") {
-      const nextPipe = clean.indexOf("|", pos);
-      if (nextPipe > -1) {
-        serial = clean.substring(pos, nextPipe);
-        pos = nextPipe + 1;
-      } else {
-        const rest = clean.substring(pos);
-        const matchNext = rest.match(/(10|17|11)/);
-        if (matchNext && matchNext.index !== undefined && matchNext.index > 0) {
-          serial = rest.substring(0, matchNext.index);
-          pos += matchNext.index;
-        } else {
-          serial = rest;
-          pos = clean.length;
-        }
-      }
-    } else if (ai === "10") {
-      const nextPipe = clean.indexOf("|", pos);
-      if (nextPipe > -1) {
-        batch = clean.substring(pos, nextPipe);
-        pos = nextPipe + 1;
-      } else {
-        const rest = clean.substring(pos);
-        const matchNext = rest.match(/(17|11)/);
-        if (matchNext && matchNext.index !== undefined && matchNext.index > 0) {
-          batch = rest.substring(0, matchNext.index);
-          pos += matchNext.index;
-        } else {
-          batch = rest;
-          pos = clean.length;
-        }
-      }
-    } else if (ai === "17") {
-      expiry = clean.substring(pos, pos + 6);
-      pos += 6;
-    } else if (ai === "11") {
-      mfg = clean.substring(pos, pos + 6);
-      pos += 6;
-    } else {
-      break;
-    }
-  }
-  
-  if (!gtin && !serial && !batch && !expiry && !mfg) {
-    return { fallback: raw };
-  }
-  
-  return { gtin, serial, batch, expiry, mfg };
-}
-
-const getCustomFormattedCodeLink = (code: any) => {
-  const raw = code.rawString || "";
-  const parsed = parseGs1Raw(raw);
-  
-  // 1. GST / GTIN
-  const gstNo = parsed.gtin || code.companyGstin || "27AAAAA0000A1Z5";
-
-  // 2. Batch No
-  const batchNo = parsed.batch || code.batchNumber || "BN-2026-OCT-01";
-
-  // 3. Manufacturing Year (4 digits)
-  let mfgYear = "";
-  if (parsed.mfg && parsed.mfg.length >= 2) {
-    mfgYear = `20${parsed.mfg.substring(0, 2)}`;
-  } else if (code.mfgDate) {
-    try {
-      mfgYear = format(new Date(code.mfgDate), "yyyy");
-    } catch {
-      mfgYear = "2026";
-    }
-  } else if (code.createdAt) {
-    try {
-      mfgYear = format(new Date(code.createdAt), "yyyy");
-    } catch {
-      mfgYear = "2026";
-    }
-  } else {
-    mfgYear = "2026";
-  }
-
-  // 4. Expiry Year (4 digits)
-  let expYear = "";
-  if (parsed.expiry && parsed.expiry.length >= 2) {
-    expYear = `20${parsed.expiry.substring(0, 2)}`;
-  } else if (code.expiryDate) {
-    try {
-      expYear = format(new Date(code.expiryDate), "yyyy");
-    } catch {
-      expYear = "2028";
-    }
-  } else {
-    expYear = "2028";
-  }
-
-  // 5. Serial No
-  const serialNo = parsed.serial || code.serialNumber || (raw && !raw.startsWith("00") && !raw.startsWith("(01)") && !raw.startsWith("INVALID_") ? raw : "5491794546E0");
-
-  return `${gstNo}-${batchNo}-${mfgYear}-${expYear}-${serialNo}`;
-};
-
-const getProductString = (
-  raw: string, 
-  companyGstin?: string, 
-  fallbackBatch?: string, 
-  fallbackSerial?: string, 
-  fallbackExpiry?: string
-) => {
-  const parsed = parseGs1Raw(raw);
-  if (parsed.sscc) {
-    const validSscc = fixSsccCheckDigit(parsed.sscc);
-    return `(00)${validSscc}`;
-  }
-
-  const displayGtin = parsed.gtin || companyGstin || "27AAAAA0000A1Z5";
-  const serialNum = parsed.serial || fallbackSerial || (raw && !raw.startsWith("00") && !raw.startsWith("(01)") && !raw.startsWith("INVALID_") ? raw : "102DE11E894C");
-  const batchNum = parsed.batch || fallbackBatch || "";
-  
-  let expiryDateStr = parsed.expiry || "";
-  if (!expiryDateStr && fallbackExpiry) {
-    try {
-      expiryDateStr = format(new Date(fallbackExpiry), "yyMMdd");
-    } catch {
-      expiryDateStr = "";
-    }
-  }
-  const expiryYear = expiryDateStr && expiryDateStr.length >= 2 ? `20${expiryDateStr.substring(0, 2)}` : "";
-
-  return `(01)${displayGtin}-${batchNum ? `(10)${batchNum}-` : ""}${expiryYear ? `(17)${expiryYear}-` : ""}(21)${serialNum}`;
-};
-
-const renderGs1Text = (codeObj: any, onCopy: () => void) => {
-  const raw = codeObj.rawString || "";
-  const companyGstin = codeObj.companyGstin;
-  const parsed = parseGs1Raw(raw);
-
-  if (parsed.sscc) {
-    const validSscc = fixSsccCheckDigit(parsed.sscc);
-    return (
-      <div className="w-full flex items-center justify-between gap-1 font-mono">
-        <div className="text-xs font-bold text-slate-900">(00){validSscc}</div>
-        <button type="button" onClick={onCopy} className="text-slate-400 hover:text-blue-600 p-0.5 rounded cursor-pointer transition-colors shrink-0" title="Copy raw DataMatrix code">
-          <Copy className="h-4 w-4" />
-        </button>
-      </div>
-    );
-  }
-
-  const displayGtin = parsed.gtin || companyGstin || "27AAAAA0000A1Z5";
-  const serialNum = parsed.serial || codeObj.serialNumber || (raw && !raw.startsWith("00") && !raw.startsWith("(01)") && !raw.startsWith("INVALID_") ? raw : "102DE11E894C");
-  const batchNum = parsed.batch || codeObj.batchNumber || "";
-
-  let expiryDateStr = parsed.expiry || "";
-  if (!expiryDateStr && codeObj.expiryDate) {
-    try {
-      expiryDateStr = format(new Date(codeObj.expiryDate), "yyMMdd");
-    } catch {
-      expiryDateStr = "";
-    }
-  }
-  const expiryYear = expiryDateStr && expiryDateStr.length >= 2 ? `20${expiryDateStr.substring(0, 2)}` : "";
-
-  const concatenated = `(01)${displayGtin}-${batchNum ? `(10)${batchNum}-` : ""}${expiryYear ? `(17)${expiryYear}-` : ""}(21)${serialNum}`;
-
-  return (
-    <div className="text-[11px] font-mono text-slate-900 text-left space-y-0.5 w-full leading-tight">
-      {/* (01) line with copy icon aligned right */}
-      <div className="flex items-center justify-between gap-1">
-        <span className="font-bold">{displayGtin ? `(01)${displayGtin}` : ""}</span>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="text-slate-400 hover:text-blue-600 p-0.5 rounded cursor-pointer transition-colors shrink-0"
-          title="Copy raw DataMatrix code"
-        >
-          <Copy className="h-4 w-4" />
-        </button>
-      </div>
-      {serialNum && <div className="font-bold">(21){serialNum}</div>}
-      {batchNum && <div className="font-bold">(10){batchNum}</div>}
-      {expiryDateStr && <div className="font-bold">(17){expiryDateStr}</div>}
-
-      {/* Horizontal divider line */}
-      <div className="border-t border-slate-200/80 my-1.5 pt-1.5 text-[10px] text-slate-600 font-mono break-all leading-normal">
-        <span className="font-semibold text-slate-500">Product string: </span>
-        <span className="font-bold text-slate-800">{concatenated}</span>
-      </div>
-    </div>
-  );
-};
-
-// Helper function for building barcode URLs removed in favor of local client-side bwip-js rendering
-
 
 const generateSchema = z.object({
   productId: z.coerce.number().min(1, "Product is required"),
@@ -409,8 +48,6 @@ const generateSchema = z.object({
 
 export default function Codes() {
   const { data: user } = useGetCurrentUser();
-  const { datamatrixUrlMode } = useDatamatrixUrlMode();
-  const { hidePackagingLevel } = usePackagingLevelVisibility();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -423,20 +60,13 @@ export default function Codes() {
   const [gridCols, setGridCols] = useState(3);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const handleViewBatch = async (batchId: number, batchNumber: string, createdAt?: string) => {
+  const handleViewBatch = async (batchId: number, batchNumber: string) => {
     setViewBatchId(batchId);
     setViewBatchNumber(batchNumber);
     setViewCodesDialogOpen(true);
     setLoadingViewCodes(true);
     try {
-      const queryParams = new URLSearchParams({
-        batchId: batchId.toString(),
-        limit: "5000"
-      });
-      if (createdAt) {
-        queryParams.append("createdAt", createdAt);
-      }
-      const response = await fetch(`/api/codes?${queryParams.toString()}`);
+      const response = await fetch(`/api/codes?batchId=${batchId}&limit=5000`);
       if (!response.ok) throw new Error("Failed to fetch codes");
       const codesList = await response.json();
       setViewCodesList(codesList || []);
@@ -471,27 +101,21 @@ export default function Codes() {
   };
 
   // Helper to format creation dates from batches
-  const formatGenerationDate = (dateStr?: string) => {
-    if (!dateStr) return "N/A";
+  const getBatchCreatedAt = (batchId: number) => {
+    const batch = batches.find(b => b.id === batchId);
+    if (!batch?.createdAt) return "N/A";
     try {
-      return format(new Date(dateStr), "dd MMM yyyy, HH:mm");
+      return format(new Date(batch.createdAt), "dd MMM yyyy, HH:mm");
     } catch {
-      return dateStr;
+      return batch.createdAt;
     }
   };
 
   // Handle single batch codes download as CSV
-  const handleDownloadBatch = async (batchId: number, batchNumber: string, createdAt?: string) => {
+  const handleDownloadBatch = async (batchId: number, batchNumber: string) => {
     setDownloadingBatchId(batchId);
     try {
-      const queryParams = new URLSearchParams({
-        batchId: batchId.toString(),
-        limit: "5000"
-      });
-      if (createdAt) {
-        queryParams.append("createdAt", createdAt);
-      }
-      const response = await fetch(`/api/codes?${queryParams.toString()}`);
+      const response = await fetch(`/api/codes?batchId=${batchId}&limit=5000`);
       if (!response.ok) throw new Error("Failed to fetch codes");
       const codesList = await response.json();
       
@@ -545,7 +169,7 @@ export default function Codes() {
         `"${row.size}"`,
         `"${row.batchNumber}"`,
         `"${row.total}"`,
-        `"${formatGenerationDate(row.createdAt)}"`
+        `"${getBatchCreatedAt(row.batchId)}"`
       ].join(","))
     ].join("\n");
 
@@ -750,12 +374,12 @@ export default function Codes() {
                         {Number(row.total).toLocaleString()}
                       </span>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-sm text-[#434655]">{formatGenerationDate(row.createdAt)}</TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-[#434655]">{getBatchCreatedAt(row.batchId)}</TableCell>
                     <TableCell className="px-6 py-4 text-right flex items-center justify-end gap-2">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        onClick={() => handleViewBatch(row.batchId, row.batchNumber, row.createdAt)}
+                        onClick={() => handleViewBatch(row.batchId, row.batchNumber)}
                         className="h-8 w-8 text-[#2563EB] hover:bg-[#2563EB]/10 rounded-lg transition-all cursor-pointer"
                         title="View batch QR codes"
                       >
@@ -765,7 +389,7 @@ export default function Codes() {
                         variant="ghost" 
                         size="icon" 
                         disabled={downloadingBatchId === row.batchId}
-                        onClick={() => handleDownloadBatch(row.batchId, row.batchNumber, row.createdAt)}
+                        onClick={() => handleDownloadBatch(row.batchId, row.batchNumber)}
                         className="h-8 w-8 text-[#2563EB] hover:bg-[#2563EB]/10 rounded-lg transition-all cursor-pointer"
                         title="Download codes as CSV"
                       >
@@ -936,30 +560,28 @@ export default function Codes() {
                 )} />
 
                 {/* Packaging Level */}
-                {!hidePackagingLevel && (
-                  <FormField control={form.control} name="level" render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest flex items-center gap-1">
-                        Packaging Level <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] h-10 rounded-lg focus:ring-0 text-sm text-[#0F172A]">
-                            <SelectValue placeholder="Select Level" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="unit">Unit</SelectItem>
-                          <SelectItem value="l1">Level 1 (L1)</SelectItem>
-                          <SelectItem value="l2">Level 2 (L2)</SelectItem>
-                          <SelectItem value="shipper">Shipper</SelectItem>
-                          <SelectItem value="pallet">Pallet</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                )}
+                <FormField control={form.control} name="level" render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-bold text-[#737686] uppercase tracking-widest flex items-center gap-1">
+                      Packaging Level <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full bg-[#F8FAFC] border border-[#E2E8F0] h-10 rounded-lg focus:ring-0 text-sm text-[#0F172A]">
+                          <SelectValue placeholder="Select Level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="unit">Unit</SelectItem>
+                        <SelectItem value="l1">Level 1 (L1)</SelectItem>
+                        <SelectItem value="l2">Level 2 (L2)</SelectItem>
+                        <SelectItem value="shipper">Shipper</SelectItem>
+                        <SelectItem value="pallet">Pallet</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
                 {/* Quantity */}
                 <FormField control={form.control} name="quantity" render={({ field }) => (
@@ -1089,66 +711,73 @@ export default function Codes() {
                 "grid-cols-6"
               }`}>
                 {viewCodesList.map((code) => {
-                  const parsedCode = parseGs1Raw(code.rawString);
-                  const serialVal = parsedCode.serial || code.serialNumber || (code.rawString && !code.rawString.startsWith("00") && !code.rawString.startsWith("(01)") && !code.rawString.startsWith("INVALID_") ? code.rawString : "");
-                  const formattedLinkCode = getCustomFormattedCodeLink(code);
-
+                  const displayCode = code.serialNumber || code.ssccCode || "";
+                  let prefix = "";
+                  try {
+                    if (code.createdAt) {
+                      const cDate = new Date(code.createdAt);
+                      const dateStr = format(cDate, "yyyyMMdd");
+                      const timeStr = format(cDate, "HHmmss");
+                      const gstin = code.companyGstin || "";
+                      prefix = `${dateStr}_${timeStr}_${gstin}`;
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
+                  let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
-                  const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-                  const isVercel = window.location.hostname.endsWith(".vercel.app");
-                  
-                  let barcodeBaseOrigin = window.location.origin;
                   if (rawUrl) {
                     let cleaned = rawUrl.trim();
                     if (!/^https?:\/\//i.test(cleaned)) {
                       cleaned = `https://${cleaned}`;
                     }
                     cleaned = cleaned.replace(/\/+$/, "");
-                    barcodeBaseOrigin = cleaned;
+                    baseOrigin = cleaned;
                   }
-                  
-                  let linkBaseOrigin = window.location.origin;
-                  if (rawUrl && !isLocalhost && !isVercel) {
-                    let cleaned = rawUrl.trim();
-                    if (!/^https?:\/\//i.test(cleaned)) {
-                      cleaned = `https://${cleaned}`;
-                    }
-                    cleaned = cleaned.replace(/\/+$/, "");
-                    linkBaseOrigin = cleaned;
-                  }
-                  
-                  const shortUrl = `${barcodeBaseOrigin}/code/${encodeURIComponent(serialVal || "5491794546E0")}`;
-                  const verificationUrl = `${linkBaseOrigin}/code/${encodeURIComponent(formattedLinkCode)}`;
+                  const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
+                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=150&height=150`;
                   
                   return (
-                    <div key={code.id} className="border border-slate-200/80 rounded-xl p-3.5 bg-slate-50/50 flex flex-col items-center shadow-xs hover:shadow-md transition-shadow font-sans">
-                      {/* Top Centered Barcode Box */}
-                      <div className="p-2 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-center mb-3">
-                        <DataMatrixBarcode rawString={code.rawString} size={120} urlMode={datamatrixUrlMode} verificationUrl={shortUrl} />
+                    <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-3 bg-slate-50/50 flex flex-col items-center gap-2.5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200">
+                        <img 
+                          src={qrUrl} 
+                          alt="Data Matrix Code" 
+                          className="w-[120px] h-[120px]"
+                          loading="lazy"
+                        />
                       </div>
-                      
-                      {/* GS1 Breakdown Text & Product String */}
-                      <div className="w-full px-0.5">
-                        {renderGs1Text(code, () => {
-                          navigator.clipboard.writeText(code.rawString);
-                          toast.success("Raw DataMatrix code copied!");
-                        })}
+                      <div className="text-center w-full flex items-center justify-between gap-1 px-1">
+                        <div className="text-xs font-bold text-midnight-navy font-mono truncate max-w-[120px]" title={displayCode}>
+                          {displayCode}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-slate-400 hover:text-[#2563EB] hover:bg-slate-100 rounded-md shrink-0 cursor-pointer"
+                          title="Copy raw DataMatrix code"
+                          onClick={() => {
+                            navigator.clipboard.writeText(code.rawString);
+                            toast.success("Raw DataMatrix code copied!");
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
                       </div>
-
-                      {/* Level Badge Centered */}
-                      <div className="text-[10px] font-bold text-slate-400 tracking-widest uppercase text-center w-full mt-3 mb-2">
+                      <div className="text-[9px] text-[#737686] font-semibold uppercase tracking-wider -mt-1.5 text-center w-full">
                         {code.level}
                       </div>
 
-                      {/* Clickable verification link pill button */}
+                      {/* Clickable verification link under the QR code */}
                       <a
                         href={verificationUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full bg-[#eff6ff] border border-blue-100 hover:bg-blue-100/80 text-[#2563EB] text-[10px] font-semibold font-mono py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-center"
+                        className="text-[9px] font-semibold text-[#2563EB] hover:underline font-mono break-all flex items-center gap-1 justify-center py-1 px-2 rounded bg-[#2563EB]/5 border border-[#2563EB]/10 transition-colors w-full mt-1.5"
                         title={verificationUrl}
                       >
-                        <LinkIcon className="h-3 w-3 shrink-0" />
+                        <LinkIcon className="h-2.5 w-2.5 shrink-0" />
                         <span className="truncate">{verificationUrl.replace(/^https?:\/\//, "")}</span>
                       </a>
                     </div>
@@ -1159,59 +788,74 @@ export default function Codes() {
               /* List View Mode */
               <div className="space-y-3">
                 {viewCodesList.map((code) => {
-                  const parsedCode = parseGs1Raw(code.rawString);
-                  const serialVal = parsedCode.serial || code.serialNumber || (code.rawString && !code.rawString.startsWith("00") && !code.rawString.startsWith("(01)") && !code.rawString.startsWith("INVALID_") ? code.rawString : "");
-                  const formattedLinkCode = getCustomFormattedCodeLink(code);
-
+                  const displayCode = code.serialNumber || code.ssccCode || "";
+                  let prefix = "";
+                  try {
+                    if (code.createdAt) {
+                      const cDate = new Date(code.createdAt);
+                      const dateStr = format(cDate, "yyyyMMdd");
+                      const timeStr = format(cDate, "HHmmss");
+                      const gstin = code.companyGstin || "";
+                      prefix = `${dateStr}_${timeStr}_${gstin}`;
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  const qrCodeString = prefix ? `${prefix}::${displayCode}` : displayCode;
+                  let baseOrigin = window.location.origin;
                   const rawUrl = code.companyUrl || user?.companyUrl;
-                  const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-                  const isVercel = window.location.hostname.endsWith(".vercel.app");
-                  
-                  let barcodeBaseOrigin = window.location.origin;
                   if (rawUrl) {
                     let cleaned = rawUrl.trim();
                     if (!/^https?:\/\//i.test(cleaned)) {
                       cleaned = `https://${cleaned}`;
                     }
                     cleaned = cleaned.replace(/\/+$/, "");
-                    barcodeBaseOrigin = cleaned;
+                    baseOrigin = cleaned;
                   }
-                  
-                  let linkBaseOrigin = window.location.origin;
-                  if (rawUrl && !isLocalhost && !isVercel) {
-                    let cleaned = rawUrl.trim();
-                    if (!/^https?:\/\//i.test(cleaned)) {
-                      cleaned = `https://${cleaned}`;
-                    }
-                    cleaned = cleaned.replace(/\/+$/, "");
-                    linkBaseOrigin = cleaned;
-                  }
-                  
-                  const shortUrl = `${barcodeBaseOrigin}/code/${encodeURIComponent(serialVal || "5491794546E0")}`;
-                  const verificationUrl = `${linkBaseOrigin}/code/${encodeURIComponent(formattedLinkCode)}`;
+                  const verificationUrl = `${baseOrigin}/code/${qrCodeString}`;
+                  const qrUrl = `https://quickchart.io/barcode?type=datamatrix&text=${encodeURIComponent(verificationUrl)}&width=90&height=90`;
+
                   return (
-                    <div key={code.id} className="border border-slate-200/80 rounded-xl p-4 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-xs hover:shadow-md transition-shadow">
-                      <div className="p-2 bg-white rounded-xl border border-slate-200/80 shrink-0 flex items-center justify-center">
-                        <DataMatrixBarcode rawString={code.rawString} size={90} urlMode={datamatrixUrlMode} verificationUrl={shortUrl} />
+                    <div key={code.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-slate-50/50 flex flex-row items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200 shrink-0">
+                        <img 
+                          src={qrUrl} 
+                          alt="Data Matrix Code" 
+                          className="w-[90px] h-[90px]"
+                          loading="lazy"
+                        />
                       </div>
-                      <div className="flex-1 min-w-0 space-y-2 w-full">
-                        {renderGs1Text(code, () => {
-                          navigator.clipboard.writeText(code.rawString);
-                          toast.success("Raw DataMatrix code copied!");
-                        })}
-                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/40">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            Level: {code.level}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-midnight-navy font-mono truncate">{displayCode}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#dae2fd] text-[#131b2e] uppercase shrink-0">
+                            {code.level}
                           </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-slate-400 hover:text-[#2563EB] hover:bg-slate-100 rounded-md shrink-0 cursor-pointer"
+                            title="Copy raw DataMatrix code"
+                            onClick={() => {
+                              navigator.clipboard.writeText(code.rawString);
+                              toast.success("Raw DataMatrix code copied!");
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-[#737686] font-bold uppercase tracking-wider block">Verification Link:</span>
                           <a
                             href={verificationUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-[#eff6ff] border border-blue-100 hover:bg-blue-100/80 text-[#2563EB] text-[10px] font-semibold font-mono py-1 px-2.5 rounded-lg flex items-center gap-1.5 transition-colors"
+                            className="text-xs font-semibold text-[#2563EB] hover:underline font-mono break-all flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#2563EB]/5 border border-[#2563EB]/10 transition-colors inline-flex max-w-full"
                             title={verificationUrl}
                           >
                             <LinkIcon className="h-3 w-3 shrink-0" />
-                            <span className="truncate max-w-[240px]">{verificationUrl.replace(/^https?:\/\//, "")}</span>
+                            <span className="truncate">{verificationUrl}</span>
                           </a>
                         </div>
                       </div>

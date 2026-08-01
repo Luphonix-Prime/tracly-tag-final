@@ -19,63 +19,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-
-const MOCK_SCAN_DATA = [
-  {
-    product: "Industrial Resin AX-4",
-    batch: "B24-9981",
-    batchDate: "12 Jun 2024",
-    qr: "...882190",
-    customer: "Aravind Sharma",
-    city: "Mumbai",
-    mobile: "+91 98XXX 00121",
-    scanTime: "14:22:10",
-    scanDate: "15 Jun 2024",
-    count: 1,
-    type: "normal"
-  },
-  {
-    product: "Security Seal Type-B",
-    batch: "B24-8820",
-    batchDate: "05 Jun 2024",
-    qr: "...441029",
-    customer: "Michael Chang",
-    city: "Singapore",
-    mobile: "+65 82XX 1192",
-    scanTime: "13:05:45",
-    scanDate: "15 Jun 2024",
-    count: 12,
-    type: "anomaly"
-  },
-  {
-    product: "Fiber Coil 500m",
-    batch: "B24-9981",
-    batchDate: "12 Jun 2024",
-    qr: "...001923",
-    customer: "Elena Petrova",
-    city: "Dubai",
-    mobile: "+971 50 XXX 441",
-    scanTime: "11:40:02",
-    scanDate: "14 Jun 2024",
-    count: 1,
-    type: "normal"
-  },
-  {
-    product: "Industrial Resin AX-4",
-    batch: "B24-9975",
-    batchDate: "28 May 2024",
-    qr: "...330018",
-    customer: "Rajesh Kumar",
-    city: "New Delhi",
-    mobile: "+91 99XXX 88123",
-    scanTime: "09:15:33",
-    scanDate: "14 Jun 2024",
-    count: 4,
-    type: "error"
-  }
-];
+import { useListProducts } from "@workspace/api-client-react";
 
 export default function CustomerScan() {
+  const { data: products = [] } = useListProducts();
+  const [selectedProductId, setSelectedProductId] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [scans, setScans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,6 +119,12 @@ export default function CustomerScan() {
   };
 
   const filteredScans = scans.filter(row => {
+    if (selectedProductId !== "all") {
+      const prodObj = products.find(p => p.id.toString() === selectedProductId);
+      if (prodObj && row.product && row.product.toLowerCase() !== prodObj.name.toLowerCase()) {
+        return false;
+      }
+    }
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -181,7 +135,6 @@ export default function CustomerScan() {
       row.qr?.toLowerCase().includes(term)
     );
   });
-
 
   return (
     <div className="space-y-6 max-w-[1600px]">
@@ -207,9 +160,17 @@ export default function CustomerScan() {
         </div>
         <div className="w-56">
           <label className="block font-bold text-[10px] text-[#737686] uppercase mb-1.5 ml-1">Product</label>
-          <select className="w-full bg-white border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:border-safety-blue outline-none h-10">
-            <option>All Products</option>
-            <option>Industrial Resin AX-4</option>
+          <select 
+            className="w-full bg-white border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:border-safety-blue outline-none h-10 cursor-pointer"
+            value={selectedProductId}
+            onChange={(e) => setSelectedProductId(e.target.value)}
+          >
+            <option value="all">All Products</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id.toString()}>
+                {p.name}
+              </option>
+            ))}
           </select>
         </div>
         <div className="w-48">

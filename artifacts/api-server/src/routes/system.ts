@@ -87,8 +87,8 @@ router.get("/system-config", requireAuth, async (req, res) => {
 
 // Super master config setter
 router.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy } = req.body;
-  const updates: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean; hidePackagingHierarchy?: boolean } = {};
+  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel } = req.body;
+  const updates: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean; hidePackagingHierarchy?: boolean; hidePackagingLevel?: boolean } = {};
   
   if (hideMappingCode !== undefined) {
     if (typeof hideMappingCode !== "boolean") {
@@ -112,6 +112,14 @@ router.post("/system-config", requireAuth, requireRole("super_master"), async (r
       return;
     }
     updates.hidePackagingHierarchy = hidePackagingHierarchy;
+  }
+
+  if (hidePackagingLevel !== undefined) {
+    if (typeof hidePackagingLevel !== "boolean") {
+      res.status(400).json({ error: "Invalid value for hidePackagingLevel" });
+      return;
+    }
+    updates.hidePackagingLevel = hidePackagingLevel;
   }
   
   await writeConfig(updates);

@@ -8,12 +8,14 @@ import { useDevOptionsVisibility } from "@/hooks/use-dev-options-visibility";
 import { useDatamatrixUrlMode } from "@/hooks/use-datamatrix-url-mode";
 import { useGetCurrentUser } from "@workspace/api-client-react";
 import { usePackagingHierarchyVisibility } from "@/hooks/use-packaging-hierarchy-visibility";
+import { usePackagingLevelVisibility } from "@/hooks/use-packaging-level-visibility";
 
 export default function Settings() {
   const { hideMappingCode, toggleVisibility } = useMappingCodeVisibility();
   const { hideDevOptions, hideSsoOptions, setDevVisibility, setSsoVisibility } = useDevOptionsVisibility();
   const { datamatrixUrlMode, setUrlMode } = useDatamatrixUrlMode();
   const { hidePackagingHierarchy, toggleVisibility: togglePackagingHierarchyVisibility } = usePackagingHierarchyVisibility();
+  const { hidePackagingLevel, toggleVisibility: togglePackagingLevelVisibility } = usePackagingLevelVisibility();
   const { data: currentUser } = useGetCurrentUser();
 
   const [hideRecentSerialization, setHideRecentSerialization] = useState(() => {
@@ -91,6 +93,27 @@ export default function Settings() {
                   id="packaging-hierarchy-toggle"
                   checked={hidePackagingHierarchy}
                   onCheckedChange={togglePackagingHierarchyVisibility}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-safety-blue/10 rounded-lg text-safety-blue mt-0.5">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="packaging-level-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Hide Packaging Level Selection
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      When enabled, the "Packaging Level" dropdown will be hidden from the code generation form.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="packaging-level-toggle"
+                  checked={hidePackagingLevel}
+                  onCheckedChange={togglePackagingLevelVisibility}
                 />
               </div>
 

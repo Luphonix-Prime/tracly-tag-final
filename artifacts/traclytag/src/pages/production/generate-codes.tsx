@@ -19,6 +19,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { usePackagingLevelVisibility } from "@/hooks/use-packaging-level-visibility";
+
 const generateSchema = z.object({
   productId: z.coerce.number().min(1, "Product is required"),
   batchId: z.coerce.number().min(1, "Batch is required"),
@@ -31,6 +33,7 @@ type GenerateForm = z.infer<typeof generateSchema>;
 export default function GenerateCodes() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { hidePackagingLevel } = usePackagingLevelVisibility();
   
   const { data: products = [] } = useListProducts();
   const { data: batches = [] } = useListBatches({});
@@ -216,32 +219,34 @@ export default function GenerateCodes() {
                   />
 
                   {/* Packaging Level */}
-                  <FormField
-                    control={form.control}
-                    name="level"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[11px] font-bold text-[#434655] uppercase flex items-center gap-1">
-                          Packaging Level <span className="text-[#EF4444]">*</span>
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="w-full bg-white border border-[#E2E8F0] h-11 rounded-lg focus:ring-0 text-sm text-[#0F172A] focus:border-[#2563EB]">
-                              <SelectValue placeholder="Select Level" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="unit">Unit</SelectItem>
-                            <SelectItem value="l1">Level 1 (L1)</SelectItem>
-                            <SelectItem value="l2">Level 2 (L2)</SelectItem>
-                            <SelectItem value="shipper">Shipper</SelectItem>
-                            <SelectItem value="pallet">Pallet</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {!hidePackagingLevel && (
+                    <FormField
+                      control={form.control}
+                      name="level"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-[11px] font-bold text-[#434655] uppercase flex items-center gap-1">
+                            Packaging Level <span className="text-[#EF4444]">*</span>
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="w-full bg-white border border-[#E2E8F0] h-11 rounded-lg focus:ring-0 text-sm text-[#0F172A] focus:border-[#2563EB]">
+                                <SelectValue placeholder="Select Level" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="unit">Unit</SelectItem>
+                              <SelectItem value="l1">Level 1 (L1)</SelectItem>
+                              <SelectItem value="l2">Level 2 (L2)</SelectItem>
+                              <SelectItem value="shipper">Shipper</SelectItem>
+                              <SelectItem value="pallet">Pallet</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                 </div>
 
