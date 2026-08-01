@@ -7,14 +7,15 @@ import {
   useCreateUser, 
   useDeleteUser, 
   useListCompanies, 
-  useUpdateUser 
+  useUpdateUser,
+  customFetch
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Trash2, Plus, Users as UsersIcon, Pencil, CheckCircle2, XCircle } from "lucide-react";
+import { Trash2, Plus, Users as UsersIcon, Pencil, CheckCircle2, XCircle, UserCheck } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,23 @@ export default function Users() {
     });
   };
 
+  const handleImpersonate = async (userId: number, username: string) => {
+    try {
+      try {
+        await customFetch(`/api/users/${userId}/impersonate`, { method: "POST" });
+      } catch (err: any) {
+        await customFetch(`/api/auth/impersonate/${userId}`, { method: "POST" });
+      }
+      toast.success(`Logged in as ${username}`);
+      await queryClient.invalidateQueries();
+      setLocation("/dashboard");
+    } catch (err: any) {
+      toast.error(err.message || "Impersonation failed");
+    }
+  };
+
+  const canImpersonate = currentUser?.role === "super_master" || (currentUser as any)?.isImpersonating;
+
   return (
     <div className="space-y-6">
       <div className="mb-4 flex items-center gap-2 text-slate-500">
@@ -274,7 +292,19 @@ export default function Users() {
                         </TableCell>
                       )}
                       <TableCell className="align-middle px-6 py-5">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {canImpersonate && userRow.id !== currentUser?.id && userRow.isActive !== false && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleImpersonate(userRow.id, userRow.username)}
+                              className="h-8 px-2.5 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200 flex items-center gap-1 cursor-pointer transition-colors"
+                              title={`Login as ${userRow.username}`}
+                            >
+                              <UserCheck className="h-3.5 w-3.5 text-amber-600" />
+                              <span>Login As</span>
+                            </Button>
+                          )}
                           {canEdit && (
                             <Button
                               variant="ghost"

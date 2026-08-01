@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useGetCurrentUser, useLogout, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
+import { useGetCurrentUser, useLogout, getGetCurrentUserQueryKey, customFetch } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -8,7 +8,7 @@ import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
 import { 
   LayoutDashboard, Building2, Users, Package, MapPin, 
   Layers, QrCode, FileText, PackageCheck, BarChart3, ListOrdered, LogOut, Menu,
-  Link as LinkIcon, ScanBarcode, Settings, HelpCircle, Lock, Copy, User, Terminal
+  Link as LinkIcon, ScanBarcode, Settings, HelpCircle, Lock, Copy, User, Terminal, Eye, UserCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [requiredTier, setRequiredTier] = useState("");
   const { hideMappingCode } = useMappingCodeVisibility();
 
-
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
@@ -35,6 +34,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         setLocation("/login");
       }
     });
+  };
+
+  const handleStopImpersonation = async () => {
+    try {
+      await customFetch("/api/auth/stop-impersonation", {
+        method: "POST",
+      });
+      toast({
+        title: "Exited Impersonation Mode",
+        description: "Restored Super Master session",
+      });
+      await queryClient.invalidateQueries();
+      setLocation("/users");
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to exit impersonation mode",
+        variant: "destructive",
+      });
+    }
   };
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -181,6 +200,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50/50 dark:bg-slate-950/20">
+        {user.isImpersonating && (
+          <div className="bg-amber-500 text-slate-950 px-6 py-2.5 flex flex-wrap items-center justify-between shadow-md text-xs font-bold font-sans gap-2 border-b border-amber-600 sticky top-0 z-30">
+            <div className="flex items-center gap-2.5">
+              <span className="bg-slate-950 text-amber-400 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1">
+                <Eye className="h-3 w-3" /> IMPERSONATION MODE
+              </span>
+              <span>
+                You are inspecting the system as <strong>{user.username}</strong> ({user.role.replace('_', ' ')}){user.companyName ? ` • Company: ${user.companyName}` : ''}.
+              </span>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleStopImpersonation}
+              className="bg-slate-950 hover:bg-slate-900 text-white text-xs px-3.5 py-1.5 h-7 font-bold rounded-lg cursor-pointer transition-all shadow-sm flex items-center gap-1.5 ml-auto"
+            >
+              <LogOut className="h-3.5 w-3.5 text-amber-400" />
+              <span>Return to {user.impersonatorUsername || "Super Master"}</span>
+            </Button>
+          </div>
+        )}
         <header className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm">
           <div className="flex items-center gap-4">
             <Button
