@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { HierarchicalDatePicker } from "@/components/ui/hierarchical-date-picker";
 import { cn } from "@/lib/utils";
 
 const batchSchema = z.object({
@@ -48,6 +49,8 @@ export default function NewBatch() {
 
   // Local/UI Mock States
   const [factoryLocation, setFactoryLocation] = useState("");
+  const [mfgOpen, setMfgOpen] = useState(false);
+  const [expiryOpen, setExpiryOpen] = useState(false);
 
   const form = useForm<BatchForm>({
     resolver: zodResolver(batchSchema),
@@ -246,13 +249,13 @@ export default function NewBatch() {
                           <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
                             Manufacturing Date <span className="text-[#EF4444]">*</span>
                           </FormLabel>
-                          <Popover>
+                          <Popover open={mfgOpen} onOpenChange={setMfgOpen}>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant={"outline"}
                                   className={cn(
-                                    "w-full pl-3 text-left font-normal bg-[#F8FAFC] border-[#E2E8F0] hover:bg-slate-50 rounded-lg py-3 px-4 text-sm text-slate-900 h-auto",
+                                    "w-full pl-3 text-left font-normal bg-[#F8FAFC] border-[#E2E8F0] hover:bg-slate-50 rounded-lg py-3 px-4 text-sm text-slate-900 h-auto cursor-pointer",
                                     !field.value && "text-slate-500"
                                   )}
                                 >
@@ -265,15 +268,14 @@ export default function NewBatch() {
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date > new Date()
-                                }
-                                initialFocus
+                            <PopoverContent className="w-auto p-0 border-none shadow-none bg-transparent" align="start">
+                              <HierarchicalDatePicker
+                                value={field.value}
+                                onSelect={(d) => {
+                                  field.onChange(d);
+                                  setMfgOpen(false);
+                                }}
+                                disabled={(date) => date > new Date()}
                               />
                             </PopoverContent>
                           </Popover>
@@ -290,13 +292,13 @@ export default function NewBatch() {
                           <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
                             Expiry Date <span className="text-[#EF4444]">*</span>
                           </FormLabel>
-                          <Popover>
+                          <Popover open={expiryOpen} onOpenChange={setExpiryOpen}>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant={"outline"}
                                   className={cn(
-                                    "w-full pl-3 text-left font-normal bg-[#F8FAFC] border-[#E2E8F0] hover:bg-slate-50 rounded-lg py-3 px-4 text-sm text-slate-900 h-auto",
+                                    "w-full pl-3 text-left font-normal bg-[#F8FAFC] border-[#E2E8F0] hover:bg-slate-50 rounded-lg py-3 px-4 text-sm text-slate-900 h-auto cursor-pointer",
                                     !field.value && "text-slate-500"
                                   )}
                                 >
@@ -309,15 +311,18 @@ export default function NewBatch() {
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date()
-                                }
-                                initialFocus
+                            <PopoverContent className="w-auto p-0 border-none shadow-none bg-transparent" align="start">
+                              <HierarchicalDatePicker
+                                value={field.value}
+                                onSelect={(d) => {
+                                  field.onChange(d);
+                                  setExpiryOpen(false);
+                                }}
+                                disabled={(date) => {
+                                  const mfg = form.getValues("mfgDate");
+                                  if (mfg) return date < mfg;
+                                  return false;
+                                }}
                               />
                             </PopoverContent>
                           </Popover>
