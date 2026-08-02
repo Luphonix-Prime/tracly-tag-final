@@ -58629,6 +58629,7 @@ __export(schema_exports, {
   locationsTable: () => locationsTable,
   passkeysTable: () => passkeysTable,
   productsTable: () => productsTable,
+  ssoRequestsTable: () => ssoRequestsTable,
   systemConfigsTable: () => systemConfigsTable,
   usersTable: () => usersTable
 });
@@ -58782,6 +58783,20 @@ var customerScansTable = sqliteTable("customer_scans", {
 var systemConfigsTable = sqliteTable("system_configs", {
   key: text("key").primaryKey(),
   value: text("value").notNull()
+});
+
+// ../../lib/db/src/schema/ssoRequests.ts
+var ssoRequestsTable = sqliteTable("sso_requests", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  username: text("username").notNull(),
+  email: text("email").notNull(),
+  fullName: text("full_name"),
+  phone: text("phone"),
+  provider: text("provider").notNull().default("SSO"),
+  companyName: text("company_name"),
+  requestedRole: text("requested_role").notNull().default("operator"),
+  status: text("status").notNull().default("pending"),
+  createdAt: text("created_at").notNull().$defaultFn(() => (/* @__PURE__ */ new Date()).toISOString())
 });
 
 // ../../lib/db/src/index.ts
@@ -60197,6 +60212,55 @@ var companies_default = router3;
 // src/routes/users.ts
 var import_express4 = __toESM(require_express2(), 1);
 var router4 = (0, import_express4.Router)();
+router4.get("/sso-requests", requireAuth, async (req, res) => {
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    res.status(403).json({ error: "Forbidden: Only master and super_master can view SSO requests" });
+    return;
+  }
+  const requests = await db.select().from(ssoRequestsTable).orderBy(desc(ssoRequestsTable.createdAt));
+  res.json(requests);
+});
+router4.post("/sso-requests", async (req, res) => {
+  const { username, email, fullName, phone, provider, companyName, requestedRole } = req.body;
+  if (!username || !email) {
+    res.status(400).json({ error: "Username and email are required" });
+    return;
+  }
+  const [row] = await db.insert(ssoRequestsTable).values({
+    username,
+    email,
+    fullName: fullName ?? null,
+    phone: phone ?? null,
+    provider: provider ?? "SSO",
+    companyName: companyName ?? null,
+    requestedRole: requestedRole ?? "operator",
+    status: "pending"
+  }).returning();
+  res.status(201).json(row);
+});
+router4.put("/sso-requests/:id/status", requireAuth, async (req, res) => {
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    res.status(403).json({ error: "Forbidden: Only master and super_master can update SSO requests" });
+    return;
+  }
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const { status } = req.body;
+  if (!["pending", "accepted", "rejected"].includes(status)) {
+    res.status(400).json({ error: "Invalid status" });
+    return;
+  }
+  const [updated] = await db.update(ssoRequestsTable).set({ status }).where(eq(ssoRequestsTable.id, id)).returning();
+  if (!updated) {
+    res.status(404).json({ error: "SSO request not found" });
+    return;
+  }
+  res.json(updated);
+});
 router4.post("/users/:id/impersonate", requireAuth, async (req, res) => {
   const existingImpersonatorId = req.signedCookies?.["impersonator_id"];
   let realSuperMasterId = null;
@@ -60393,6 +60457,12 @@ router4.post("/users", async (req, res) => {
     if (row.companyId) {
       const [c] = await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, row.companyId));
       companyName = c?.name ?? null;
+    }
+    if (req.body.ssoRequestId) {
+      const ssoReqId = Number(req.body.ssoRequestId);
+      if (!isNaN(ssoReqId)) {
+        await db.update(ssoRequestsTable).set({ status: "accepted" }).where(eq(ssoRequestsTable.id, ssoReqId));
+      }
     }
     res.status(201).json({
       id: row.id,
