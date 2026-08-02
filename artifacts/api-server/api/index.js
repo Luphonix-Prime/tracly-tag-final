@@ -59374,44 +59374,27 @@ router2.post("/auth/sso/google", async (req, res) => {
     let subscriptionStatus = null;
     let subscriptionExpiresAt = null;
     if (!user2) {
-      let username = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
-      let suffix = 1;
-      const baseUsername = username;
-      while (true) {
-        const [existing] = await db.select().from(usersTable).where(eq(usersTable.username, username));
-        if (!existing) break;
-        username = `${baseUsername}_${suffix}`;
-        suffix++;
+      const [existingReq] = await db.select().from(ssoRequestsTable).where(eq(ssoRequestsTable.email, email));
+      if (!existingReq) {
+        let username = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
+        await db.insert(ssoRequestsTable).values({
+          username,
+          email,
+          fullName: name || username,
+          provider: "Google",
+          companyName: null,
+          requestedRole: "operator",
+          status: "pending"
+        });
       }
-      const targetCompanyName = `${name || username}'s Organization`;
-      const targetWebsite = `https://${username.toLowerCase()}.tracelytag.com`;
-      const [company] = await db.insert(companiesTable).values({
-        name: targetCompanyName,
-        email,
-        address: targetWebsite,
-        gstin: null
-      }).returning();
-      if (!company) {
-        throw new Error("Failed to create company");
-      }
-      resolvedCompanyName = company.name;
-      subscriptionPlan = company.subscriptionPlan;
-      subscriptionStatus = company.subscriptionStatus;
-      subscriptionExpiresAt = company.subscriptionExpiresAt;
-      const randomPassword = crypto2.randomBytes(16).toString("hex");
-      const passwordHash = await bcryptjs_default.hash(randomPassword, 10);
-      const [newUser] = await db.insert(usersTable).values({
-        username,
-        email,
-        phone: null,
-        passwordHash,
-        role: "client_admin",
-        companyId: company.id
-      }).returning();
-      if (!newUser) {
-        throw new Error("Failed to create user");
-      }
-      user2 = newUser;
+      res.status(403).json({
+        error: "SSO account request submitted. Your account must be approved and created by Master or Super Master before you can log in."
+      });
+      return;
+    }
+    if (!user2.isActive) {
+      res.status(403).json({ error: "Your account is deactivated. Please contact administrator." });
+      return;
     } else {
       if (user2.companyId) {
         const [c] = await db.select({
@@ -59474,36 +59457,26 @@ router2.post("/auth/sso", async (req, res) => {
     let subscriptionStatus = null;
     let subscriptionExpiresAt = null;
     if (!user2) {
-      const targetCompanyName = companyName || `${name || username}'s Organization`;
-      const targetWebsite = companyWebsiteUrl || `https://${username.toLowerCase()}.tracelytag.com`;
-      const [company] = await db.insert(companiesTable).values({
-        name: targetCompanyName,
-        email,
-        address: targetWebsite,
-        gstin: null
-      }).returning();
-      if (!company) {
-        throw new Error("Failed to create company");
+      const [existingReq] = await db.select().from(ssoRequestsTable).where(eq(ssoRequestsTable.email, email));
+      if (!existingReq) {
+        await db.insert(ssoRequestsTable).values({
+          username,
+          email,
+          fullName: name || username,
+          provider: provider || "SSO",
+          companyName: companyName || null,
+          requestedRole: "operator",
+          status: "pending"
+        });
       }
-      resolvedCompanyId = company.id;
-      resolvedCompanyName = company.name;
-      subscriptionPlan = company.subscriptionPlan;
-      subscriptionStatus = company.subscriptionStatus;
-      subscriptionExpiresAt = company.subscriptionExpiresAt;
-      const randomPassword = crypto2.randomBytes(16).toString("hex");
-      const passwordHash = await bcryptjs_default.hash(randomPassword, 10);
-      const [newUser] = await db.insert(usersTable).values({
-        username,
-        email,
-        phone: null,
-        passwordHash,
-        role: "client_admin",
-        companyId: resolvedCompanyId
-      }).returning();
-      if (!newUser) {
-        throw new Error("Failed to create user");
-      }
-      user2 = newUser;
+      res.status(403).json({
+        error: "SSO account request submitted. Your account must be approved and created by Master or Super Master before you can log in."
+      });
+      return;
+    }
+    if (!user2.isActive) {
+      res.status(403).json({ error: "Your account is deactivated. Please contact administrator." });
+      return;
     } else {
       if (user2.companyId) {
         const [c] = await db.select({
