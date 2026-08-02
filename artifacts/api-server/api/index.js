@@ -59137,6 +59137,7 @@ router2.get("/auth/me", async (req, res) => {
   }
   let companyName = null;
   let companyUrl = null;
+  let companyGstin = null;
   let subscriptionPlan = null;
   let subscriptionStatus = null;
   let subscriptionExpiresAt = null;
@@ -59144,12 +59145,14 @@ router2.get("/auth/me", async (req, res) => {
     const [c] = await db.select({
       name: companiesTable.name,
       companyUrl: companiesTable.companyUrl,
+      gstin: companiesTable.gstin,
       subscriptionPlan: companiesTable.subscriptionPlan,
       subscriptionStatus: companiesTable.subscriptionStatus,
       subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
     }).from(companiesTable).where(eq(companiesTable.id, req.user.companyId));
     companyName = c?.name ?? null;
     companyUrl = c?.companyUrl ?? null;
+    companyGstin = c?.gstin ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -59162,6 +59165,11 @@ router2.get("/auth/me", async (req, res) => {
     companyId: req.user.companyId,
     companyName,
     companyUrl,
+    companyGstin,
+    company: {
+      name: companyName,
+      gstin: companyGstin
+    },
     isActive: req.user.isActive,
     enabledModules: req.user.enabledModules,
     subscriptionPlan,

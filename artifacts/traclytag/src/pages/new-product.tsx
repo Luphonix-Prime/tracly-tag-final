@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import {
   useGetCurrentUser,
+  useGetMyCompany,
   useCreateProduct,
   useListCompanies,
   getListProductsQueryKey,
@@ -74,6 +75,7 @@ export default function NewProduct() {
   const { data: currentUser } = useGetCurrentUser();
   const isSuperMaster = currentUser?.role === "super_master";
   const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
+  const { data: myCompany } = useGetMyCompany({ query: { enabled: !isMaster } } as any);
   const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
   const { data: products = [] } = useListProducts();
   const product = products.find(p => p.id === id);
@@ -372,7 +374,7 @@ export default function NewProduct() {
                         COMPANY GST
                       </label>
                       <Input 
-                        value={companies.find((c: any) => c.id === form.watch("companyId"))?.gstin || (currentUser as any)?.companyGstin || (currentUser as any)?.company?.gstin || ""}
+                        value={companies.find((c: any) => c.id === form.watch("companyId"))?.gstin || (currentUser as any)?.companyGstin || (currentUser as any)?.company?.gstin || myCompany?.gstin || ""}
                         readOnly
                         placeholder="Selected company GST" 
                         className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-500 rounded-lg py-2.5 px-4 text-sm transition-all font-mono cursor-not-allowed focus-visible:ring-0"
@@ -385,7 +387,7 @@ export default function NewProduct() {
                       COMPANY GST
                     </label>
                     <Input 
-                      value={(currentUser as any)?.companyGstin || (currentUser as any)?.company?.gstin || ""}
+                      value={myCompany?.gstin || (currentUser as any)?.companyGstin || (currentUser as any)?.company?.gstin || ""}
                       readOnly
                       placeholder="Selected company GST" 
                       className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-500 rounded-lg py-2.5 px-4 text-sm transition-all font-mono cursor-not-allowed focus-visible:ring-0"
