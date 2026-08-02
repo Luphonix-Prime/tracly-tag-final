@@ -123,13 +123,17 @@ export default function Users() {
 
   const handleSaveEdit = () => {
     if (!editingUser) return;
+    if ((editRole === "admin" || editRole === "client_admin" || editRole === "operator") && !editCompanyId) {
+      toast.error("Company scope is required for Admin, Manager, and Operator roles");
+      return;
+    }
     const data: any = {
       email: editEmail,
       phone: editPhone || null,
       role: editRole,
       isActive: editIsActive,
       enabledModules: editModules.join(","),
-      companyId: (editRole === "super_master" || editRole === "master") ? null : (editCompanyId || null),
+      companyId: (editRole === "super_master" || editRole === "master") ? null : editCompanyId,
     };
     if (editPassword.trim()) {
       if (editPassword.length < 6) {
@@ -392,14 +396,13 @@ export default function Users() {
 
             {isMaster && (editRole === "admin" || editRole === "client_admin" || editRole === "operator") && (
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">Company Scope</label>
+                <label className="text-xs font-semibold text-slate-500">Company Scope *</label>
                 <Select
-                  value={editCompanyId ? editCompanyId.toString() : "none"}
-                  onValueChange={(val) => setEditCompanyId(val === "none" ? null : Number(val))}
+                  value={editCompanyId ? editCompanyId.toString() : ""}
+                  onValueChange={(val) => setEditCompanyId(val ? Number(val) : null)}
                 >
-                  <SelectTrigger><SelectValue placeholder="No Company (Global / Orphaned)" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select target company node *" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No Company (Global / Orphaned)</SelectItem>
                     {companies.map((c: any) => (
                       <SelectItem key={c.id} value={c.id.toString()}>
                         {c.name}

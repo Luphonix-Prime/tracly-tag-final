@@ -15,17 +15,19 @@ function effectiveCompanyId(user: NonNullable<typeof globalThis> extends never ?
 }
 
 router.get("/products", async (req, res): Promise<void> => {
-  const cid = effectiveCompanyId(req.user!);
-  const rows = cid
+  const isMaster = req.user!.role === "master" || req.user!.role === "super_master";
+  const rows = isMaster
     ? await db
         .select()
         .from(productsTable)
-        .where(eq(productsTable.companyId, cid))
         .orderBy(desc(productsTable.createdAt))
-    : await db
-        .select()
-        .from(productsTable)
-        .orderBy(desc(productsTable.createdAt));
+    : req.user!.companyId
+      ? await db
+          .select()
+          .from(productsTable)
+          .where(eq(productsTable.companyId, req.user!.companyId))
+          .orderBy(desc(productsTable.createdAt))
+      : [];
   res.json(
     rows.map((r) => ({
       ...r,
@@ -42,9 +44,12 @@ router.post("/products", async (req, res): Promise<void> => {
     return;
   }
 
-  let companyId = req.user!.companyId || ((req.user!.role === "master" || req.user!.role === "super_master") ? (req.body.companyId || req.query.companyId || null) : null);
+  let companyId = (req.user!.role === "master" || req.user!.role === "super_master")
+    ? (req.body.companyId || req.query.companyId || null)
+    : req.user!.companyId;
+
   if (!companyId && req.user!.role !== "master" && req.user!.role !== "super_master") {
-    res.status(400).json({ error: "User has no company context" });
+    res.status(403).json({ error: "Forbidden: User has no assigned company context" });
     return;
   }
 
@@ -121,6 +126,23 @@ router.put("/products/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const [targetProduct] = await db
+    .select()
+    .from(productsTable)
+    .where(eq(productsTable.id, id));
+
+  if (!targetProduct) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
+    if (!req.user!.companyId || targetProduct.companyId !== req.user!.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot edit products outside your assigned company" });
+      return;
+    }
+  }
+
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -171,11 +193,6 @@ router.put("/products/:id", async (req, res): Promise<void> => {
     .where(eq(productsTable.id, id))
     .returning();
 
-  if (!row) {
-    res.status(404).json({ error: "Product not found" });
-    return;
-  }
-
   res.json({
     ...row,
     mrp: typeof row.mrp === "string" ? parseFloat(row.mrp) : row.mrp,
@@ -189,6 +206,24 @@ router.delete("/products/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+
+  const [targetProduct] = await db
+    .select()
+    .from(productsTable)
+    .where(eq(productsTable.id, id));
+
+  if (!targetProduct) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
+    if (!req.user!.companyId || targetProduct.companyId !== req.user!.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot delete products outside your assigned company" });
+      return;
+    }
+  }
+
   await db.delete(productsTable).where(eq(productsTable.id, id));
   res.sendStatus(204);
 });

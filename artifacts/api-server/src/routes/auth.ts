@@ -309,6 +309,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
 
   let companyName: string | null = null;
   let companyUrl: string | null = null;
+  let companyGstin: string | null = null;
   let subscriptionPlan: string | null = null;
   let subscriptionStatus: string | null = null;
   let subscriptionExpiresAt: string | null = null;
@@ -317,6 +318,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
       .select({ 
         name: companiesTable.name,
         companyUrl: companiesTable.companyUrl,
+        gstin: companiesTable.gstin,
         subscriptionPlan: companiesTable.subscriptionPlan,
         subscriptionStatus: companiesTable.subscriptionStatus,
         subscriptionExpiresAt: companiesTable.subscriptionExpiresAt,
@@ -325,6 +327,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
       .where(eq(companiesTable.id, req.user.companyId));
     companyName = c?.name ?? null;
     companyUrl = c?.companyUrl ?? null;
+    companyGstin = c?.gstin ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -337,6 +340,11 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     companyId: req.user.companyId,
     companyName,
     companyUrl,
+    companyGstin,
+    company: {
+      name: companyName,
+      gstin: companyGstin,
+    },
     isActive: req.user.isActive,
     enabledModules: req.user.enabledModules,
     subscriptionPlan,

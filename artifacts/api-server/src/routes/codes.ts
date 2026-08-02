@@ -425,7 +425,11 @@ router.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res): P
   if (createdAt)
     conds.push(eq(codesTable.createdAt, createdAt));
   if (req.user!.role !== "master" && req.user!.role !== "super_master") {
-    conds.push(eq(productsTable.companyId, req.user!.companyId!));
+    if (!req.user!.companyId) {
+      res.json([]);
+      return;
+    }
+    conds.push(eq(productsTable.companyId, req.user!.companyId));
   }
   const where =
     conds.length === 0 ? undefined : conds.length === 1 ? conds[0] : and(...conds);
@@ -640,6 +644,13 @@ router.get("/codes/scans", requireAuth, requireModule("customer_scan"), async (r
       .innerJoin(codesTable, eq(customerScansTable.codeId, codesTable.id))
       .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
       .leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id))
+      .where(
+        (req.user!.role === "master" || req.user!.role === "super_master")
+          ? undefined
+          : req.user!.companyId
+            ? eq(productsTable.companyId, req.user!.companyId)
+            : eq(productsTable.companyId, -1)
+      )
       .orderBy(desc(customerScansTable.id));
 
     // Group scans by codeId to get counts and the latest scan

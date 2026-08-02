@@ -59137,6 +59137,7 @@ router2.get("/auth/me", async (req, res) => {
   }
   let companyName = null;
   let companyUrl = null;
+  let companyGstin = null;
   let subscriptionPlan = null;
   let subscriptionStatus = null;
   let subscriptionExpiresAt = null;
@@ -59144,12 +59145,14 @@ router2.get("/auth/me", async (req, res) => {
     const [c] = await db.select({
       name: companiesTable.name,
       companyUrl: companiesTable.companyUrl,
+      gstin: companiesTable.gstin,
       subscriptionPlan: companiesTable.subscriptionPlan,
       subscriptionStatus: companiesTable.subscriptionStatus,
       subscriptionExpiresAt: companiesTable.subscriptionExpiresAt
     }).from(companiesTable).where(eq(companiesTable.id, req.user.companyId));
     companyName = c?.name ?? null;
     companyUrl = c?.companyUrl ?? null;
+    companyGstin = c?.gstin ?? null;
     subscriptionPlan = c?.subscriptionPlan ?? null;
     subscriptionStatus = c?.subscriptionStatus ?? null;
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
@@ -59162,6 +59165,11 @@ router2.get("/auth/me", async (req, res) => {
     companyId: req.user.companyId,
     companyName,
     companyUrl,
+    companyGstin,
+    company: {
+      name: companyName,
+      gstin: companyGstin
+    },
     isActive: req.user.isActive,
     enabledModules: req.user.enabledModules,
     subscriptionPlan,
@@ -60087,9 +60095,10 @@ router3.post("/companies/my-company/regenerate-api-key", async (req, res) => {
   }
   res.json(updated);
 });
-router3.get("/companies", async (_req, res) => {
+router3.get("/companies", async (req, res) => {
   const rows = await db.select().from(companiesTable).orderBy(desc(companiesTable.createdAt));
-  res.json(rows);
+  const filtered = req.user.role === "master" || req.user.role === "super_master" ? rows : rows.filter((c) => c.id === req.user.companyId);
+  res.json(filtered);
 });
 router3.post(
   "/companies",
@@ -60114,6 +60123,10 @@ router3.post(
       iecCode: parsed.data.iecCode ?? null,
       companyPrefix: parsed.data.companyPrefix ?? null
     }).returning();
+    if (req.user.role === "admin" && !req.user.companyId) {
+      await db.update(usersTable).set({ companyId: row.id }).where(eq(usersTable.id, req.user.id));
+      req.user.companyId = row.id;
+    }
     res.status(201).json(row);
   }
 );
@@ -60126,6 +60139,12 @@ router3.put(
     if (Number.isNaN(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
+    }
+    if (req.user.role !== "master" && req.user.role !== "super_master") {
+      if (id !== req.user.companyId) {
+        res.status(403).json({ error: "Forbidden: Cannot edit companies outside your assigned company" });
+        return;
+      }
     }
     const parsed = CreateCompanyBody.safeParse(req.body);
     if (!parsed.success) {
@@ -60162,6 +60181,12 @@ router3.delete(
     if (Number.isNaN(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
+    }
+    if (req.user.role !== "master" && req.user.role !== "super_master") {
+      if (id !== req.user.companyId) {
+        res.status(403).json({ error: "Forbidden: Cannot delete companies outside your assigned company" });
+        return;
+      }
     }
     await db.delete(companiesTable).where(eq(companiesTable.id, id));
     res.sendStatus(204);
@@ -60332,9 +60357,19 @@ router4.post("/users", async (req, res) => {
   }
   let companyId = parsed.data.companyId ?? null;
   if (req.user.role !== "master" && req.user.role !== "super_master") {
-    companyId = req.user.companyId;
     if (parsed.data.role === "master" || parsed.data.role === "super_master") {
-      res.status(403).json({ error: "Cannot create master/super_master users" });
+      res.status(403).json({ error: "Forbidden: Cannot create master or super master users" });
+      return;
+    }
+    if (!req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Your account does not have a company assigned" });
+      return;
+    }
+    companyId = req.user.companyId;
+  }
+  if (parsed.data.role === "admin" || parsed.data.role === "client_admin" || parsed.data.role === "operator") {
+    if (!companyId) {
+      res.status(400).json({ error: "Company scope is required for Admin, Manager, and Operator accounts. No exception allowed." });
       return;
     }
   }
@@ -60412,6 +60447,14 @@ router4.put("/users/:id", async (req, res) => {
       }
       if (targetUser.role === "master" || parsed.data.role === "master") {
         res.status(403).json({ error: "Forbidden: Cannot edit master users or change roles to master" });
+        return;
+      }
+    }
+    const effectiveRole = parsed.data.role ?? targetUser.role;
+    const effectiveCompanyId = parsed.data.companyId !== void 0 ? parsed.data.companyId ?? null : targetUser.companyId;
+    if (effectiveRole !== "master" && effectiveRole !== "super_master") {
+      if (!effectiveCompanyId) {
+        res.status(400).json({ error: "Company is required for Admin, Manager, and Operator roles" });
         return;
       }
     }
@@ -60619,13 +60662,9 @@ function parseGs1Code(rawCode) {
 // src/routes/products.ts
 var router5 = (0, import_express5.Router)();
 router5.use("/products", requireAuth, requireModule("products"));
-function effectiveCompanyId(user2) {
-  if (user2.role === "master" || user2.role === "super_master") return null;
-  return user2.companyId;
-}
 router5.get("/products", async (req, res) => {
-  const cid = effectiveCompanyId(req.user);
-  const rows = cid ? await db.select().from(productsTable).where(eq(productsTable.companyId, cid)).orderBy(desc(productsTable.createdAt)) : await db.select().from(productsTable).orderBy(desc(productsTable.createdAt));
+  const isMaster = req.user.role === "master" || req.user.role === "super_master";
+  const rows = isMaster ? await db.select().from(productsTable).orderBy(desc(productsTable.createdAt)) : req.user.companyId ? await db.select().from(productsTable).where(eq(productsTable.companyId, req.user.companyId)).orderBy(desc(productsTable.createdAt)) : [];
   res.json(
     rows.map((r) => ({
       ...r,
@@ -60640,9 +60679,9 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId || null : null);
+  let companyId = req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId || null : req.user.companyId;
   if (!companyId && req.user.role !== "master" && req.user.role !== "super_master") {
-    res.status(400).json({ error: "User has no company context" });
+    res.status(403).json({ error: "Forbidden: User has no assigned company context" });
     return;
   }
   const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
@@ -60704,6 +60743,17 @@ router5.put("/products/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  const [targetProduct] = await db.select().from(productsTable).where(eq(productsTable.id, id));
+  if (!targetProduct) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (!req.user.companyId || targetProduct.companyId !== req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot edit products outside your assigned company" });
+      return;
+    }
+  }
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -60743,10 +60793,6 @@ router5.put("/products/:id", async (req, res) => {
     labelPdfUrl: parsed.data.labelPdfUrl ?? null,
     expiryDate: expiryDateStr
   }).where(eq(productsTable.id, id)).returning();
-  if (!row) {
-    res.status(404).json({ error: "Product not found" });
-    return;
-  }
   res.json({
     ...row,
     mrp: typeof row.mrp === "string" ? parseFloat(row.mrp) : row.mrp
@@ -60759,6 +60805,17 @@ router5.delete("/products/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  const [targetProduct] = await db.select().from(productsTable).where(eq(productsTable.id, id));
+  if (!targetProduct) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (!req.user.companyId || targetProduct.companyId !== req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot delete products outside your assigned company" });
+      return;
+    }
+  }
   await db.delete(productsTable).where(eq(productsTable.id, id));
   res.sendStatus(204);
 });
@@ -60769,7 +60826,7 @@ var import_express6 = __toESM(require_express2(), 1);
 var router6 = (0, import_express6.Router)();
 router6.use("/locations", requireAuth, requireModule("locations"));
 router6.get("/locations", async (req, res) => {
-  const rows = req.user.role === "master" || req.user.role === "super_master" ? await db.select().from(locationsTable).orderBy(desc(locationsTable.createdAt)) : await db.select().from(locationsTable).where(eq(locationsTable.companyId, req.user.companyId)).orderBy(desc(locationsTable.createdAt));
+  const rows = req.user.role === "master" || req.user.role === "super_master" ? await db.select().from(locationsTable).orderBy(desc(locationsTable.createdAt)) : req.user.companyId ? await db.select().from(locationsTable).where(eq(locationsTable.companyId, req.user.companyId)).orderBy(desc(locationsTable.createdAt)) : [];
   res.json(rows);
 });
 router6.post("/locations", async (req, res) => {
@@ -60782,10 +60839,14 @@ router6.post("/locations", async (req, res) => {
   if (req.user.role === "master" || req.user.role === "super_master") {
     const rawCid = parsed.data.companyId ?? req.body.companyId;
     companyId = rawCid ? Number(rawCid) : null;
+    if (!companyId) {
+      res.status(400).json({ error: "Company is required for locations" });
+      return;
+    }
   } else {
     companyId = req.user.companyId ?? null;
     if (!companyId) {
-      res.status(400).json({ error: "User has no company" });
+      res.status(403).json({ error: "Forbidden: Your account does not have an assigned company" });
       return;
     }
   }
@@ -60816,6 +60877,17 @@ router6.put("/locations/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  const [targetLocation] = await db.select().from(locationsTable).where(eq(locationsTable.id, id));
+  if (!targetLocation) {
+    res.status(404).json({ error: "Location not found" });
+    return;
+  }
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (!req.user.companyId || targetLocation.companyId !== req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot edit locations outside your assigned company" });
+      return;
+    }
+  }
   const parsed = CreateLocationBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -60845,10 +60917,6 @@ router6.put("/locations/:id", async (req, res) => {
     }
   }
   const [row] = await db.update(locationsTable).set(updateFields).where(eq(locationsTable.id, id)).returning();
-  if (!row) {
-    res.status(404).json({ error: "Location not found" });
-    return;
-  }
   res.json(row);
 });
 router6.delete("/locations/:id", async (req, res) => {
@@ -60857,6 +60925,17 @@ router6.delete("/locations/:id", async (req, res) => {
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
+  }
+  const [targetLocation] = await db.select().from(locationsTable).where(eq(locationsTable.id, id));
+  if (!targetLocation) {
+    res.status(404).json({ error: "Location not found" });
+    return;
+  }
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (!req.user.companyId || targetLocation.companyId !== req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot delete locations outside your assigned company" });
+      return;
+    }
   }
   await db.delete(locationsTable).where(eq(locationsTable.id, id));
   res.sendStatus(204);
@@ -60870,11 +60949,16 @@ router7.use("/batches", requireAuth, requireModule("batches"));
 router7.get("/batches", async (req, res) => {
   const rawProductId = req.query.productId;
   const productId = typeof rawProductId === "string" ? parseInt(rawProductId, 10) : null;
+  const isMaster = req.user.role === "master" || req.user.role === "super_master";
+  if (!isMaster && !req.user.companyId) {
+    res.json([]);
+    return;
+  }
   const conds = [];
   if (productId && !Number.isNaN(productId)) {
     conds.push(eq(batchesTable.productId, productId));
   }
-  if (req.user.role !== "master" && req.user.role !== "super_master") {
+  if (!isMaster) {
     conds.push(eq(productsTable.companyId, req.user.companyId));
   }
   const where = conds.length === 0 ? void 0 : conds.length === 1 ? conds[0] : and(...conds);
@@ -60894,6 +60978,17 @@ router7.post("/batches", async (req, res) => {
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
+  }
+  const [product] = await db.select().from(productsTable).where(eq(productsTable.id, parsed.data.productId));
+  if (!product) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (!req.user.companyId || product.companyId !== req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot create batch for product outside your assigned company" });
+      return;
+    }
   }
   try {
     const [row] = await db.insert(batchesTable).values({
@@ -60923,6 +61018,17 @@ router7.put("/batches/:id", async (req, res) => {
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
+  }
+  const [targetBatch] = await db.select({ companyId: productsTable.companyId }).from(batchesTable).innerJoin(productsTable, eq(batchesTable.productId, productsTable.id)).where(eq(batchesTable.id, id));
+  if (!targetBatch) {
+    res.status(404).json({ error: "Batch not found" });
+    return;
+  }
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (!req.user.companyId || targetBatch.companyId !== req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot edit batches outside your assigned company" });
+      return;
+    }
   }
   const parsed = CreateBatchBody.safeParse(req.body);
   if (!parsed.success) {
@@ -60961,6 +61067,17 @@ router7.delete("/batches/:id", async (req, res) => {
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
+  }
+  const [targetBatch] = await db.select({ companyId: productsTable.companyId }).from(batchesTable).innerJoin(productsTable, eq(batchesTable.productId, productsTable.id)).where(eq(batchesTable.id, id));
+  if (!targetBatch) {
+    res.status(404).json({ error: "Batch not found" });
+    return;
+  }
+  if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (!req.user.companyId || targetBatch.companyId !== req.user.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot delete batches outside your assigned company" });
+      return;
+    }
   }
   await db.delete(batchesTable).where(eq(batchesTable.id, id));
   res.sendStatus(204);
@@ -61300,6 +61417,10 @@ router8.get("/codes", requireAuth, requireGenerateOrMapCodes, async (req, res) =
   if (createdAt)
     conds.push(eq(codesTable.createdAt, createdAt));
   if (req.user.role !== "master" && req.user.role !== "super_master") {
+    if (!req.user.companyId) {
+      res.json([]);
+      return;
+    }
     conds.push(eq(productsTable.companyId, req.user.companyId));
   }
   const where = conds.length === 0 ? void 0 : conds.length === 1 ? conds[0] : and(...conds);
@@ -61473,7 +61594,9 @@ router8.get("/codes/scans", requireAuth, requireModule("customer_scan"), async (
       productName: productsTable.name,
       batchNumber: batchesTable.batchNumber,
       batchCreatedAt: batchesTable.createdAt
-    }).from(customerScansTable).innerJoin(codesTable, eq(customerScansTable.codeId, codesTable.id)).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).orderBy(desc(customerScansTable.id));
+    }).from(customerScansTable).innerJoin(codesTable, eq(customerScansTable.codeId, codesTable.id)).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).leftJoin(batchesTable, eq(codesTable.batchId, batchesTable.id)).where(
+      req.user.role === "master" || req.user.role === "super_master" ? void 0 : req.user.companyId ? eq(productsTable.companyId, req.user.companyId) : eq(productsTable.companyId, -1)
+    ).orderBy(desc(customerScansTable.id));
     const groupedMap = /* @__PURE__ */ new Map();
     for (const scan of scans) {
       if (!groupedMap.has(scan.codeId)) {
@@ -61562,7 +61685,9 @@ router9.get("/reports/dashboard", requireModule("dashboard"), async (req, res) =
   const [usersAgg] = await db.select({ count: count() }).from(usersTable).where(
     req.user.role === "master" || req.user.role === "super_master" ? void 0 : eq(usersTable.companyId, req.user.companyId)
   );
-  const [companiesAgg] = await db.select({ count: count() }).from(companiesTable);
+  const [companiesAgg] = await db.select({ count: count() }).from(companiesTable).where(
+    req.user.role === "master" || req.user.role === "super_master" ? void 0 : req.user.companyId ? eq(companiesTable.id, req.user.companyId) : eq(companiesTable.id, -1)
+  );
   const recent = await db.select({
     id: codesTable.id,
     productId: codesTable.productId,

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { 
   useGetCurrentUser, 
@@ -23,6 +24,14 @@ const userSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["super_master", "master", "admin", "client_admin", "operator"]),
   companyId: z.coerce.number().optional(),
+}).refine((data) => {
+  if (["admin", "client_admin", "operator"].includes(data.role)) {
+    return data.companyId !== undefined && data.companyId !== null && !isNaN(data.companyId);
+  }
+  return true;
+}, {
+  message: "Company is required for Admin, Manager, and Operator roles",
+  path: ["companyId"],
 });
 
 export default function NewUser() {
@@ -48,6 +57,12 @@ export default function NewUser() {
       companyId: isMaster ? undefined : currentUser?.companyId || undefined
     },
   });
+
+  useEffect(() => {
+    if (!isMaster && currentUser?.companyId) {
+      form.setValue("companyId", currentUser.companyId);
+    }
+  }, [currentUser, isMaster, form]);
 
   const onSubmit = (values: z.infer<typeof userSchema>) => {
     // Force companyId for non-master users to prevent creation outside their company
@@ -246,36 +261,52 @@ export default function NewUser() {
                     )}
                   />
 
-                  {isMaster && ["admin", "client_admin", "operator"].includes(form.watch("role")) && (
-                    <FormField
-                      control={form.control}
-                      name="companyId"
-                      render={({ field }) => (
-                        <FormItem className="space-y-2">
-                          <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
-                            COMPANY <span className="text-[#EF4444]">*</span>
-                          </FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value?.toString()}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
-                                <SelectValue placeholder="Select company node" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {companies.map((company: any) => (
-                                <SelectItem key={company.id} value={company.id.toString()}>
-                                  {company.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage className="text-[11px] text-[#EF4444]" />
-                        </FormItem>
-                      )}
-                    />
+                  {isMaster ? (
+                    ["admin", "client_admin", "operator"].includes(form.watch("role")) && (
+                      <FormField
+                        control={form.control}
+                        name="companyId"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                              COMPANY SCOPE <span className="text-[#EF4444]">*</span>
+                            </FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value?.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full bg-[#F8FAFC] border-[#E2E8F0] focus:border-[#2563EB] focus:ring-0 rounded-lg py-2.5 px-4 text-sm text-slate-900 transition-all h-auto">
+                                  <SelectValue placeholder="Select target company node *" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {companies.map((company: any) => (
+                                  <SelectItem key={company.id} value={company.id.toString()}>
+                                    {company.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-[11px] text-[#EF4444]" />
+                          </FormItem>
+                        )}
+                      />
+                    )
+                  ) : (
+                    ["admin", "client_admin", "operator"].includes(form.watch("role")) && (
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
+                          ASSIGNED COMPANY
+                        </label>
+                        <Input 
+                          value={(currentUser as any)?.companyName || "Your Company"}
+                          readOnly
+                          className="w-full bg-[#F1F5F9] border-[#E2E8F0] text-slate-700 rounded-lg py-2.5 px-4 text-sm font-semibold cursor-not-allowed focus-visible:ring-0"
+                        />
+                        <p className="text-[11px] text-slate-500 font-medium">New user will automatically be assigned to your company.</p>
+                      </div>
+                    )
                   )}
                 </div>
               </section>
