@@ -415,11 +415,14 @@ export default function Login() {
       if (!response.ok) {
         queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
         queryClient.invalidateQueries();
-        if (response.status === 403) {
-          toast.info(data.error || "SSO User Access Request submitted to Master and Super Master for approval.");
+        if (response.status === 403 || data.error?.includes("SSO account request submitted")) {
+          toast.success(data.error || "SSO User Access Request submitted to Master and Super Master for approval!", { duration: 6000 });
           return;
         }
-        throw new Error(data.error || "Google SSO Login failed");
+        setSsoProvider("Google");
+        setIsSsoOpen(true);
+        toast.info(data.error || "Google account not registered. Please submit your access request below.", { duration: 6000 });
+        return;
       }
 
       toast.success("Authenticated with Google successfully!");
@@ -427,7 +430,9 @@ export default function Login() {
       handleRedirect();
     } catch (err: any) {
       toast.dismiss(loadingToast);
-      toast.error(err.message || "Google SSO Login failed");
+      setSsoProvider("Google");
+      setIsSsoOpen(true);
+      toast.info("Google account not registered yet. Please submit your access request below.");
     }
   };
 
@@ -435,21 +440,25 @@ export default function Login() {
     if (provider === "Google") {
       try {
         const configRes = await fetch("/api/auth/config");
-        if (!configRes.ok) {
-          throw new Error("Failed to fetch OAuth configuration from server");
-        }
-        const configData = await configRes.json();
+        const configData = configRes.ok ? await configRes.json() : {};
         const googleClientId = configData.googleClientId;
 
         if (!googleClientId) {
-          toast.error("Google SSO is not configured on the server. Please define GOOGLE_CLIENT_ID in your server's .env file.");
+          setSsoProvider("Google");
+          setSsoCustomName("");
+          setSsoCustomEmail("");
+          setSsoCustomCompany("");
+          setIsSsoOpen(true);
+          toast.info("Please fill in your details to send your SSO access request to Master & Super Master.");
           return;
         }
 
         await loadGoogleScript();
 
         if (!(window as any).google?.accounts?.oauth2) {
-          toast.error("Failed to load Google Identity Services SDK.");
+          setSsoProvider("Google");
+          setIsSsoOpen(true);
+          toast.info("Please fill in your details to send your SSO access request to Master & Super Master.");
           return;
         }
 
@@ -459,7 +468,9 @@ export default function Login() {
           ux_mode: "popup",
           callback: async (tokenResponse: any) => {
             if (tokenResponse.error) {
-              toast.error(`Google Sign-In failed: ${tokenResponse.error_description || tokenResponse.error}`);
+              setSsoProvider("Google");
+              setIsSsoOpen(true);
+              toast.info("Please fill in your details to send your SSO access request to Master & Super Master.");
               return;
             }
             if (tokenResponse.code) {
@@ -469,7 +480,9 @@ export default function Login() {
         });
         client.requestCode();
       } catch (err: any) {
-        toast.error(`Google SSO failed: ${err.message || err}`);
+        setSsoProvider("Google");
+        setIsSsoOpen(true);
+        toast.info("Please fill in your details to send your SSO access request to Master & Super Master.");
       }
     } else {
       setSsoProvider(provider);
