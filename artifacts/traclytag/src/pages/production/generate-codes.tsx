@@ -13,12 +13,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { usePackagingLevelVisibility } from "@/hooks/use-packaging-level-visibility";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import { usePackagingLevelVisibility } from "@/hooks/use-packaging-level-visibility";
 
 const generateSchema = z.object({
   productId: z.coerce.number().min(1, "Product is required"),
@@ -32,11 +33,11 @@ type GenerateForm = z.infer<typeof generateSchema>;
 export default function GenerateCodes() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { hidePackagingLevel } = usePackagingLevelVisibility();
   
   const { data: products = [] } = useListProducts();
   const { data: batches = [] } = useListBatches({});
   const generateCodes = useGenerateCodes();
-  const { hidePackagingLevel } = usePackagingLevelVisibility();
 
   const form = useForm<GenerateForm>({
     resolver: zodResolver(generateSchema),

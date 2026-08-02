@@ -29,10 +29,17 @@ router.post("/locations", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const companyId = req.user!.companyId;
-  if (!companyId) {
-    res.status(400).json({ error: "User has no company" });
-    return;
+
+  let companyId: number | null = null;
+  if (req.user!.role === "master" || req.user!.role === "super_master") {
+    const rawCid = (parsed.data as any).companyId ?? req.body.companyId;
+    companyId = rawCid ? Number(rawCid) : null;
+  } else {
+    companyId = req.user!.companyId ?? null;
+    if (!companyId) {
+      res.status(400).json({ error: "User has no company" });
+      return;
+    }
   }
 
   if (parsed.data.gln) {
@@ -82,18 +89,27 @@ router.put("/locations/:id", async (req, res): Promise<void> => {
     }
   }
 
+  const updateFields: any = {
+    locationType: parsed.data.locationType,
+    uniqueName: parsed.data.uniqueName,
+    locationName: parsed.data.locationName,
+    contactNo: parsed.data.contactNo,
+    state: parsed.data.state,
+    city: parsed.data.city,
+    address: parsed.data.address,
+    gln: parsed.data.gln ?? null,
+  };
+
+  if (req.user!.role === "master" || req.user!.role === "super_master") {
+    const rawCid = (parsed.data as any).companyId ?? req.body.companyId;
+    if (rawCid !== undefined) {
+      updateFields.companyId = rawCid ? Number(rawCid) : null;
+    }
+  }
+
   const [row] = await db
     .update(locationsTable)
-    .set({
-      locationType: parsed.data.locationType,
-      uniqueName: parsed.data.uniqueName,
-      locationName: parsed.data.locationName,
-      contactNo: parsed.data.contactNo,
-      state: parsed.data.state,
-      city: parsed.data.city,
-      address: parsed.data.address,
-      gln: parsed.data.gln ?? null,
-    })
+    .set(updateFields)
     .where(eq(locationsTable.id, id))
     .returning();
 

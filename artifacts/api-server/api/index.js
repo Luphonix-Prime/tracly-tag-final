@@ -51122,6 +51122,7 @@ var ListLocationsResponseItem = objectType({
 });
 var ListLocationsResponse = arrayType(ListLocationsResponseItem);
 var CreateLocationBody = objectType({
+  "companyId": numberType().nullish(),
   "locationType": stringType(),
   "uniqueName": stringType(),
   "locationName": stringType(),
@@ -58673,7 +58674,7 @@ var usersTable = sqliteTable("users", {
 // ../../lib/db/src/schema/products.ts
 var productsTable = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  companyId: integer("company_id").notNull().references(() => companiesTable.id, { onDelete: "cascade" }),
+  companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "cascade" }),
   skuId: text("sku_id").notNull(),
   name: text("name").notNull(),
   skuSize: text("sku_size").notNull(),
@@ -58704,7 +58705,7 @@ var productsTable = sqliteTable("products", {
 // ../../lib/db/src/schema/locations.ts
 var locationsTable = sqliteTable("locations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  companyId: integer("company_id").notNull().references(() => companiesTable.id, { onDelete: "cascade" }),
+  companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "cascade" }),
   locationType: text("location_type").notNull(),
   uniqueName: text("unique_name").notNull(),
   locationName: text("location_name").notNull(),
@@ -59113,12 +59114,26 @@ router2.post("/auth/verify-otp", async (req, res) => {
 });
 router2.post("/auth/logout", (req, res) => {
   res.clearCookie("connect.sid");
+  res.clearCookie("impersonator_id");
   res.sendStatus(204);
 });
 router2.get("/auth/me", async (req, res) => {
   if (!req.user) {
     res.status(401).json({ error: "Not authenticated" });
     return;
+  }
+  let isImpersonating = false;
+  let impersonatorUsername = void 0;
+  const impersonatorIdRaw = req.signedCookies?.["impersonator_id"];
+  if (impersonatorIdRaw) {
+    const impId = parseInt(impersonatorIdRaw, 10);
+    if (!isNaN(impId)) {
+      const [impUser] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, impId));
+      if (impUser) {
+        isImpersonating = true;
+        impersonatorUsername = impUser.username;
+      }
+    }
   }
   let companyName = null;
   let companyUrl = null;
@@ -59151,7 +59166,128 @@ router2.get("/auth/me", async (req, res) => {
     enabledModules: req.user.enabledModules,
     subscriptionPlan,
     subscriptionStatus,
-    subscriptionExpiresAt
+    subscriptionExpiresAt,
+    isImpersonating,
+    impersonatorUsername
+  });
+});
+router2.post("/auth/impersonate/:userId", async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const existingImpersonatorId = req.signedCookies?.["impersonator_id"];
+  let realSuperMasterId = null;
+  if (req.user.role === "super_master") {
+    realSuperMasterId = req.user.id;
+  } else if (existingImpersonatorId) {
+    const impId = parseInt(existingImpersonatorId, 10);
+    const [impUser2] = await db.select().from(usersTable).where(eq(usersTable.id, impId));
+    if (impUser2 && impUser2.role === "super_master") {
+      realSuperMasterId = impUser2.id;
+    }
+  }
+  if (!realSuperMasterId) {
+    res.status(403).json({ error: "Only super_master can impersonate other users" });
+    return;
+  }
+  const targetUserId = parseInt(req.params["userId"] || "", 10);
+  if (isNaN(targetUserId)) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.id, targetUserId));
+  if (!targetUser) {
+    res.status(404).json({ error: "Target user not found" });
+    return;
+  }
+  if (!targetUser.isActive) {
+    res.status(400).json({ error: "Cannot impersonate an inactive user" });
+    return;
+  }
+  const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  res.cookie("impersonator_id", realSuperMasterId.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1e3 * 60 * 60 * 24,
+    // 24 hours
+    secure: isProduction2,
+    sameSite: "lax"
+  });
+  res.cookie("connect.sid", targetUser.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1e3 * 60 * 60 * 24 * 7,
+    secure: isProduction2,
+    sameSite: "lax"
+  });
+  let companyName = null;
+  let companyUrl = null;
+  if (targetUser.companyId) {
+    const [c] = await db.select({ name: companiesTable.name, companyUrl: companiesTable.companyUrl }).from(companiesTable).where(eq(companiesTable.id, targetUser.companyId));
+    companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
+  }
+  const [impUser] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, realSuperMasterId));
+  res.json({
+    id: targetUser.id,
+    username: targetUser.username,
+    email: targetUser.email,
+    role: targetUser.role,
+    companyId: targetUser.companyId,
+    companyName,
+    companyUrl,
+    isActive: targetUser.isActive,
+    enabledModules: targetUser.enabledModules,
+    isImpersonating: true,
+    impersonatorUsername: impUser?.username ?? "supermaster"
+  });
+});
+router2.post("/auth/stop-impersonation", async (req, res) => {
+  const impersonatorIdRaw = req.signedCookies?.["impersonator_id"];
+  if (!impersonatorIdRaw) {
+    res.status(400).json({ error: "Not currently impersonating" });
+    return;
+  }
+  const realSuperMasterId = parseInt(impersonatorIdRaw, 10);
+  if (isNaN(realSuperMasterId)) {
+    res.clearCookie("impersonator_id");
+    res.status(400).json({ error: "Invalid impersonator cookie" });
+    return;
+  }
+  const [superMasterUser] = await db.select().from(usersTable).where(eq(usersTable.id, realSuperMasterId));
+  if (!superMasterUser) {
+    res.clearCookie("impersonator_id");
+    res.status(404).json({ error: "Super master user not found" });
+    return;
+  }
+  const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  res.clearCookie("impersonator_id");
+  res.cookie("connect.sid", superMasterUser.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1e3 * 60 * 60 * 24 * 7,
+    secure: isProduction2,
+    sameSite: "lax"
+  });
+  let companyName = null;
+  let companyUrl = null;
+  if (superMasterUser.companyId) {
+    const [c] = await db.select({ name: companiesTable.name, companyUrl: companiesTable.companyUrl }).from(companiesTable).where(eq(companiesTable.id, superMasterUser.companyId));
+    companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
+  }
+  res.json({
+    id: superMasterUser.id,
+    username: superMasterUser.username,
+    email: superMasterUser.email,
+    role: superMasterUser.role,
+    companyId: superMasterUser.companyId,
+    companyName,
+    companyUrl,
+    isActive: superMasterUser.isActive,
+    enabledModules: superMasterUser.enabledModules,
+    isImpersonating: false
   });
 });
 router2.get("/auth/config", async (req, res) => {
@@ -60036,6 +60172,74 @@ var companies_default = router3;
 // src/routes/users.ts
 var import_express4 = __toESM(require_express2(), 1);
 var router4 = (0, import_express4.Router)();
+router4.post("/users/:id/impersonate", requireAuth, async (req, res) => {
+  const existingImpersonatorId = req.signedCookies?.["impersonator_id"];
+  let realSuperMasterId = null;
+  if (req.user.role === "super_master") {
+    realSuperMasterId = req.user.id;
+  } else if (existingImpersonatorId) {
+    const impId = parseInt(existingImpersonatorId, 10);
+    const [impUser2] = await db.select().from(usersTable).where(eq(usersTable.id, impId));
+    if (impUser2 && impUser2.role === "super_master") {
+      realSuperMasterId = impUser2.id;
+    }
+  }
+  if (!realSuperMasterId) {
+    res.status(403).json({ error: "Only super_master can impersonate other users" });
+    return;
+  }
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const targetUserId = parseInt(rawId || "", 10);
+  if (isNaN(targetUserId)) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.id, targetUserId));
+  if (!targetUser) {
+    res.status(404).json({ error: "Target user not found" });
+    return;
+  }
+  if (!targetUser.isActive) {
+    res.status(400).json({ error: "Cannot impersonate an inactive user" });
+    return;
+  }
+  const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  res.cookie("impersonator_id", realSuperMasterId.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1e3 * 60 * 60 * 24,
+    secure: isProduction2,
+    sameSite: "lax"
+  });
+  res.cookie("connect.sid", targetUser.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1e3 * 60 * 60 * 24 * 7,
+    secure: isProduction2,
+    sameSite: "lax"
+  });
+  let companyName = null;
+  let companyUrl = null;
+  if (targetUser.companyId) {
+    const [c] = await db.select({ name: companiesTable.name, companyUrl: companiesTable.companyUrl }).from(companiesTable).where(eq(companiesTable.id, targetUser.companyId));
+    companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
+  }
+  const [impUser] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, realSuperMasterId));
+  res.json({
+    id: targetUser.id,
+    username: targetUser.username,
+    email: targetUser.email,
+    role: targetUser.role,
+    companyId: targetUser.companyId,
+    companyName,
+    companyUrl,
+    isActive: targetUser.isActive,
+    enabledModules: targetUser.enabledModules,
+    isImpersonating: true,
+    impersonatorUsername: impUser?.username ?? "supermaster"
+  });
+});
 router4.put("/users/profile", requireAuth, async (req, res) => {
   const { username, email, phone, currentPassword, password } = req.body;
   if (!email) {
@@ -60434,17 +60638,22 @@ router5.post("/products", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId : null);
-  if (!companyId) {
-    res.status(400).json({ error: "Master must select a company context to add products" });
+  let companyId = req.user.companyId || (req.user.role === "master" || req.user.role === "super_master" ? req.body.companyId || req.query.companyId || null : null);
+  if (!companyId && req.user.role !== "master" && req.user.role !== "super_master") {
+    res.status(400).json({ error: "User has no company context" });
     return;
   }
   const isGs1Compliant = parsed.data.isGs1Compliant ?? false;
   if (isGs1Compliant) {
     if (!parsed.data.gtin) {
-      const [company] = await db.select({ gstin: companiesTable.gstin }).from(companiesTable).where(eq(companiesTable.id, Number(companyId)));
-      if (!company || !company.gstin) {
-        res.status(400).json({ error: "GTIN or Company GST is required for GS1 compliant products" });
+      if (companyId) {
+        const [company] = await db.select({ gstin: companiesTable.gstin }).from(companiesTable).where(eq(companiesTable.id, Number(companyId)));
+        if (!company || !company.gstin) {
+          res.status(400).json({ error: "GTIN or Company GST is required for GS1 compliant products" });
+          return;
+        }
+      } else {
+        res.status(400).json({ error: "GTIN is required for GS1 compliant products without company GSTIN" });
         return;
       }
     } else {
@@ -60455,7 +60664,7 @@ router5.post("/products", async (req, res) => {
     }
   }
   const [row] = await db.insert(productsTable).values({
-    companyId: Number(companyId),
+    companyId: companyId ? Number(companyId) : null,
     skuId: parsed.data.skuId,
     name: parsed.data.name,
     skuSize: parsed.data.skuSize,
@@ -60567,10 +60776,16 @@ router6.post("/locations", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const companyId = req.user.companyId;
-  if (!companyId) {
-    res.status(400).json({ error: "User has no company" });
-    return;
+  let companyId = null;
+  if (req.user.role === "master" || req.user.role === "super_master") {
+    const rawCid = parsed.data.companyId ?? req.body.companyId;
+    companyId = rawCid ? Number(rawCid) : null;
+  } else {
+    companyId = req.user.companyId ?? null;
+    if (!companyId) {
+      res.status(400).json({ error: "User has no company" });
+      return;
+    }
   }
   if (parsed.data.gln) {
     const { validateGs1CheckDigit: validateGs1CheckDigit2 } = await Promise.resolve().then(() => (init_gs1_validation(), gs1_validation_exports));
@@ -60611,7 +60826,7 @@ router6.put("/locations/:id", async (req, res) => {
       return;
     }
   }
-  const [row] = await db.update(locationsTable).set({
+  const updateFields = {
     locationType: parsed.data.locationType,
     uniqueName: parsed.data.uniqueName,
     locationName: parsed.data.locationName,
@@ -60620,7 +60835,14 @@ router6.put("/locations/:id", async (req, res) => {
     city: parsed.data.city,
     address: parsed.data.address,
     gln: parsed.data.gln ?? null
-  }).where(eq(locationsTable.id, id)).returning();
+  };
+  if (req.user.role === "master" || req.user.role === "super_master") {
+    const rawCid = parsed.data.companyId ?? req.body.companyId;
+    if (rawCid !== void 0) {
+      updateFields.companyId = rawCid ? Number(rawCid) : null;
+    }
+  }
+  const [row] = await db.update(locationsTable).set(updateFields).where(eq(locationsTable.id, id)).returning();
   if (!row) {
     res.status(404).json({ error: "Location not found" });
     return;
@@ -62008,7 +62230,7 @@ router12.get("/system-config", requireAuth, async (req, res) => {
   res.json(config2);
 });
 router12.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy } = req.body;
+  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel } = req.body;
   const updates = {};
   if (hideMappingCode !== void 0) {
     if (typeof hideMappingCode !== "boolean") {
@@ -62030,6 +62252,13 @@ router12.post("/system-config", requireAuth, requireRole("super_master"), async 
       return;
     }
     updates.hidePackagingHierarchy = hidePackagingHierarchy;
+  }
+  if (hidePackagingLevel !== void 0) {
+    if (typeof hidePackagingLevel !== "boolean") {
+      res.status(400).json({ error: "Invalid value for hidePackagingLevel" });
+      return;
+    }
+    updates.hidePackagingLevel = hidePackagingLevel;
   }
   await writeConfig(updates);
   const config2 = await readConfig();

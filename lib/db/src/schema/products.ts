@@ -3,7 +3,7 @@ import { companiesTable } from "./companies";
 
 export const productsTable = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  companyId: integer("company_id").notNull().references(() => companiesTable.id, { onDelete: "cascade" }),
+  companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "cascade" }),
   skuId: text("sku_id").notNull(),
   name: text("name").notNull(),
   skuSize: text("sku_size").notNull(),

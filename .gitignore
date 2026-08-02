@@ -54,10 +54,15 @@ wiki/diagrams
 wiki/24-drawio-diagrams.md
 docs/
 
-jenkins-cli.jar
-Jenkinsfile
-.github/workflows/ci-cd.yml
-aws/deploy-aws.bat
-aws/*
+run-secops.bat
 devsecops-audit/*
+.github/workflows/ci-cd.yml
+k8s/deployment.yaml
+Jenkinsfile
+aws/*
 k8s/*
+
+jenkins-cli.jar
+terminal_logs/*
+old-dev-built.txt
+docker-strt.bat

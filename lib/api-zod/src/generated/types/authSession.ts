@@ -20,4 +20,6 @@ export interface AuthSession {
   companyUrl?: string | null;
   isActive: boolean;
   enabledModules: string;
+  isImpersonating?: boolean;
+  impersonatorUsername?: string;
 }

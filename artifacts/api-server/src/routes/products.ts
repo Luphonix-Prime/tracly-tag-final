@@ -42,11 +42,9 @@ router.post("/products", async (req, res): Promise<void> => {
     return;
   }
 
-  let companyId = req.user!.companyId || ((req.user!.role === "master" || req.user!.role === "super_master") ? (req.body.companyId || req.query.companyId) : null);
-  if (!companyId) {
-    res
-      .status(400)
-      .json({ error: "Master must select a company context to add products" });
+  let companyId = req.user!.companyId || ((req.user!.role === "master" || req.user!.role === "super_master") ? (req.body.companyId || req.query.companyId || null) : null);
+  if (!companyId && req.user!.role !== "master" && req.user!.role !== "super_master") {
+    res.status(400).json({ error: "User has no company context" });
     return;
   }
 
@@ -54,13 +52,18 @@ router.post("/products", async (req, res): Promise<void> => {
 
   if (isGs1Compliant) {
     if (!parsed.data.gtin) {
-      const [company] = await db
-        .select({ gstin: companiesTable.gstin })
-        .from(companiesTable)
-        .where(eq(companiesTable.id, Number(companyId)));
+      if (companyId) {
+        const [company] = await db
+          .select({ gstin: companiesTable.gstin })
+          .from(companiesTable)
+          .where(eq(companiesTable.id, Number(companyId)));
 
-      if (!company || !company.gstin) {
-        res.status(400).json({ error: "GTIN or Company GST is required for GS1 compliant products" });
+        if (!company || !company.gstin) {
+          res.status(400).json({ error: "GTIN or Company GST is required for GS1 compliant products" });
+          return;
+        }
+      } else {
+        res.status(400).json({ error: "GTIN is required for GS1 compliant products without company GSTIN" });
         return;
       }
     } else {
@@ -74,7 +77,7 @@ router.post("/products", async (req, res): Promise<void> => {
   const [row] = await db
     .insert(productsTable)
     .values({
-      companyId: Number(companyId!),
+      companyId: companyId ? Number(companyId) : null,
       skuId: parsed.data.skuId,
       name: parsed.data.name,
       skuSize: parsed.data.skuSize,

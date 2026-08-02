@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    triggers {
+        pollSCM('* * * * *') // Poll Git SCM for changes every minute
+    }
+
+    environment {
+        DOCKER_IMAGE = 'tracly-tag-final'
+        DOCKER_TAG = "dev-${env.BUILD_NUMBER}"
+        DOCKER_LATEST_TAG = 'dev'
+        DOCKER_REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
+        DOCKER_REGISTRY_USER = 'luphonixprime'
+        GIT_BRANCH = 'dockerize'
+        GIT_URL = 'https://github.com/lapislui/tracly-tag-final.git'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    try {
+                        checkout scm
+                    } catch (Exception e) {
+                        echo "checkout scm failed or not available, falling back to explicit git clone..."
+                        git branch: env.GIT_BRANCH, url: env.GIT_URL
+                    }
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Building local Docker image for development: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} and rolling ${env.DOCKER_IMAGE}:${env.DOCKER_LATEST_TAG}"
+                sh "docker build --target runner -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} -t ${env.DOCKER_IMAGE}:${env.DOCKER_LATEST_TAG} ."
+            }
+        }
+
+        stage('Push') {
+            steps {
+                script {
+                    echo 'Logging into Docker Hub and pushing image tags...'
+                    withCredentials([usernamePassword(credentialsId: env.DOCKER_REGISTRY_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo \${DOCKER_PASS} | docker login -u \${DOCKER_USER} --password-stdin"
+                        sh "docker tag ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} ${env.DOCKER_REGISTRY_USER}/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+                        sh "docker tag ${env.DOCKER_IMAGE}:${env.DOCKER_LATEST_TAG} ${env.DOCKER_REGISTRY_USER}/${env.DOCKER_IMAGE}:${env.DOCKER_LATEST_TAG}"
+                        sh "docker push ${env.DOCKER_REGISTRY_USER}/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+                        sh "docker push ${env.DOCKER_REGISTRY_USER}/${env.DOCKER_IMAGE}:${env.DOCKER_LATEST_TAG}"
+                    }
+                }
+            }
+        }
+
+        stage('Run') {
+            steps {
+                echo 'Deploying locally using Docker Compose...'
+                sh 'touch .env'
+                sh 'docker compose down --remove-orphans'
+                sh 'docker compose up -d'
+                echo 'Application successfully deployed and running!'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up build workspace...'
+            cleanWs()
+        }
+        success {
+            echo 'Dev Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Dev Pipeline execution failed. Please check build logs.'
+        }
+    }
+}

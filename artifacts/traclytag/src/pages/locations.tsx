@@ -5,6 +5,8 @@ import {
   getListLocationsQueryKey,
   useCreateLocation,
   useDeleteLocation,
+  useGetCurrentUser,
+  useListCompanies,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -68,6 +70,9 @@ type LocationForm = z.infer<typeof locationSchema>;
 
 export default function Locations() {
   const [, setLocation] = useLocation();
+  const { data: currentUser } = useGetCurrentUser();
+  const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
+  const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
   const { data: locations = [], isLoading } = useListLocations();
   const createLocation = useCreateLocation();
   const deleteLocation = useDeleteLocation();
@@ -164,25 +169,26 @@ export default function Locations() {
           <Table className="w-full text-left table-fixed">
             <TableHeader>
               <TableRow className="border-b border-[#E2E8F0] bg-slate-50/50 hover:bg-slate-50/50">
-                <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">LOCATION NAME</TableHead>
-                <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">TYPE</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[18%] text-[11px] font-bold px-6 py-4 uppercase">LOCATION NAME</TableHead>
+                {isMaster && <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">COMPANY</TableHead>}
+                <TableHead className="text-slate-500 tracking-wider w-[12%] text-[11px] font-bold px-6 py-4 uppercase">TYPE</TableHead>
                 <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">UNIQUE ID</TableHead>
                 <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">CONTACT NO.</TableHead>
-                <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">ADDRESS</TableHead>
+                <TableHead className="text-slate-500 tracking-wider w-[15%] text-[11px] font-bold px-6 py-4 uppercase">ADDRESS</TableHead>
                 <TableHead className="text-slate-500 tracking-wider w-[10%] text-[11px] font-bold px-6 py-4 uppercase text-right">ACTION</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-[#E2E8F0]">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-xs text-slate-400">
+                  <TableCell colSpan={isMaster ? 7 : 6} className="text-center py-8 text-xs text-slate-400">
                     Loading facility registry...
                   </TableCell>
                 </TableRow>
               ) : locations.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={isMaster ? 7 : 6}
                     className="text-center py-12 text-slate-400"
                   >
                     <div className="flex flex-col items-center gap-2">
@@ -192,13 +198,26 @@ export default function Locations() {
                   </TableCell>
                 </TableRow>
               ) : (
-                locations.map((location) => (
-                  <TableRow key={location.id} className="hover:bg-slate-50 transition-colors group border-0">
-                    <TableCell className="align-middle px-6 py-5">
-                      <span className="text-[#0F172A] font-bold text-[14px]">
-                        {location.locationName}
-                      </span>
-                    </TableCell>
+                locations.map((location) => {
+                  const companyObj = companies.find((c: any) => c.id === location.companyId);
+                  return (
+                    <TableRow key={location.id} className="hover:bg-slate-50 transition-colors group border-0">
+                      <TableCell className="align-middle px-6 py-5">
+                        <span className="text-[#0F172A] font-bold text-[14px]">
+                          {location.locationName}
+                        </span>
+                      </TableCell>
+                      {isMaster && (
+                        <TableCell className="align-middle px-6 py-5 text-[13px]">
+                          {companyObj ? (
+                            <Badge variant="outline" className="font-semibold text-slate-700 bg-slate-100 border-slate-200">
+                              {companyObj.name}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">System / Global</span>
+                          )}
+                        </TableCell>
+                      )}
                     <TableCell className="align-middle px-6 py-5">
                       <Badge className="text-[10px] font-bold tracking-widest uppercase bg-[#E2E8F0] text-[#0F172A] hover:bg-[#cbd5e1] border-none shadow-none h-5 px-1.5">
                         {location.locationType}
@@ -254,8 +273,9 @@ export default function Locations() {
                       </AlertDialog>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                );
+              })
+            )}
             </TableBody>
           </Table>
         </div>

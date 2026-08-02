@@ -103,10 +103,10 @@ export default function Settings() {
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="packaging-level-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
-                      Hide Packaging Level
+                      Hide Packaging Level Selection
                     </Label>
                     <p className="text-xs text-on-surface-variant dark:text-slate-400">
-                      When enabled, the "Packaging Level" dropdown will be hidden from the code generation screen.
+                      When enabled, the "Packaging Level" dropdown will be hidden from the code generation form.
                     </p>
                   </div>
                 </div>

@@ -283,6 +283,7 @@ router.post("/auth/verify-otp", async (req, res): Promise<void> => {
 
 router.post("/auth/logout", (req, res): void => {
   res.clearCookie("connect.sid");
+  res.clearCookie("impersonator_id");
   res.sendStatus(204);
 });
 
@@ -291,6 +292,21 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
+
+  let isImpersonating = false;
+  let impersonatorUsername: string | undefined = undefined;
+  const impersonatorIdRaw = req.signedCookies?.["impersonator_id"];
+  if (impersonatorIdRaw) {
+    const impId = parseInt(impersonatorIdRaw, 10);
+    if (!isNaN(impId)) {
+      const [impUser] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, impId));
+      if (impUser) {
+        isImpersonating = true;
+        impersonatorUsername = impUser.username;
+      }
+    }
+  }
+
   let companyName: string | null = null;
   let companyUrl: string | null = null;
   let subscriptionPlan: string | null = null;
@@ -326,6 +342,153 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     subscriptionPlan,
     subscriptionStatus,
     subscriptionExpiresAt,
+    isImpersonating,
+    impersonatorUsername,
+  });
+});
+
+router.post("/auth/impersonate/:userId", async (req, res): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const existingImpersonatorId = req.signedCookies?.["impersonator_id"];
+  let realSuperMasterId: number | null = null;
+
+  if (req.user.role === "super_master") {
+    realSuperMasterId = req.user.id;
+  } else if (existingImpersonatorId) {
+    const impId = parseInt(existingImpersonatorId, 10);
+    const [impUser] = await db.select().from(usersTable).where(eq(usersTable.id, impId));
+    if (impUser && impUser.role === "super_master") {
+      realSuperMasterId = impUser.id;
+    }
+  }
+
+  if (!realSuperMasterId) {
+    res.status(403).json({ error: "Only super_master can impersonate other users" });
+    return;
+  }
+
+  const targetUserId = parseInt(req.params["userId"] || "", 10);
+  if (isNaN(targetUserId)) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+
+  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.id, targetUserId));
+  if (!targetUser) {
+    res.status(404).json({ error: "Target user not found" });
+    return;
+  }
+
+  if (!targetUser.isActive) {
+    res.status(400).json({ error: "Cannot impersonate an inactive user" });
+    return;
+  }
+
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+
+  res.cookie("impersonator_id", realSuperMasterId.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    secure: isProduction,
+    sameSite: "lax",
+  });
+
+  res.cookie("connect.sid", targetUser.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    secure: isProduction,
+    sameSite: "lax",
+  });
+
+  let companyName: string | null = null;
+  let companyUrl: string | null = null;
+  if (targetUser.companyId) {
+    const [c] = await db
+      .select({ name: companiesTable.name, companyUrl: companiesTable.companyUrl })
+      .from(companiesTable)
+      .where(eq(companiesTable.id, targetUser.companyId));
+    companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
+  }
+
+  const [impUser] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, realSuperMasterId));
+
+  res.json({
+    id: targetUser.id,
+    username: targetUser.username,
+    email: targetUser.email,
+    role: targetUser.role,
+    companyId: targetUser.companyId,
+    companyName,
+    companyUrl,
+    isActive: targetUser.isActive,
+    enabledModules: targetUser.enabledModules,
+    isImpersonating: true,
+    impersonatorUsername: impUser?.username ?? "supermaster",
+  });
+});
+
+router.post("/auth/stop-impersonation", async (req, res): Promise<void> => {
+  const impersonatorIdRaw = req.signedCookies?.["impersonator_id"];
+  if (!impersonatorIdRaw) {
+    res.status(400).json({ error: "Not currently impersonating" });
+    return;
+  }
+
+  const realSuperMasterId = parseInt(impersonatorIdRaw, 10);
+  if (isNaN(realSuperMasterId)) {
+    res.clearCookie("impersonator_id");
+    res.status(400).json({ error: "Invalid impersonator cookie" });
+    return;
+  }
+
+  const [superMasterUser] = await db.select().from(usersTable).where(eq(usersTable.id, realSuperMasterId));
+  if (!superMasterUser) {
+    res.clearCookie("impersonator_id");
+    res.status(404).json({ error: "Super master user not found" });
+    return;
+  }
+
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+
+  res.clearCookie("impersonator_id");
+
+  res.cookie("connect.sid", superMasterUser.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    secure: isProduction,
+    sameSite: "lax",
+  });
+
+  let companyName: string | null = null;
+  let companyUrl: string | null = null;
+  if (superMasterUser.companyId) {
+    const [c] = await db
+      .select({ name: companiesTable.name, companyUrl: companiesTable.companyUrl })
+      .from(companiesTable)
+      .where(eq(companiesTable.id, superMasterUser.companyId));
+    companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
+  }
+
+  res.json({
+    id: superMasterUser.id,
+    username: superMasterUser.username,
+    email: superMasterUser.email,
+    role: superMasterUser.role,
+    companyId: superMasterUser.companyId,
+    companyName,
+    companyUrl,
+    isActive: superMasterUser.isActive,
+    enabledModules: superMasterUser.enabledModules,
+    isImpersonating: false,
   });
 });
 

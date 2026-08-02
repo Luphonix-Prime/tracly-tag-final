@@ -371,6 +371,7 @@ export const ListLocationsResponse = zod.array(ListLocationsResponseItem)
 
 
 export const CreateLocationBody = zod.object({
+  "companyId": zod.number().nullish(),
   "locationType": zod.string(),
   "uniqueName": zod.string(),
   "locationName": zod.string(),

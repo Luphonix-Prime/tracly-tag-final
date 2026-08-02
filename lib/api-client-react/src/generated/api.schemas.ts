@@ -53,6 +53,8 @@ export interface AuthSession {
   companyUrl?: string | null;
   isActive: boolean;
   enabledModules: string;
+  isImpersonating?: boolean;
+  impersonatorUsername?: string;
 }
 
 export interface Company {
@@ -263,6 +265,7 @@ export interface Location {
 }
 
 export interface CreateLocationBody {
+  companyId?: number | null;
   locationType: string;
   uniqueName: string;
   locationName: string;

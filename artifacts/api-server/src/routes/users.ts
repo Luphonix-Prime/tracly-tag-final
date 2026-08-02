@@ -7,6 +7,89 @@ import { requireAuth, requireModule } from '../lib/session.js';
 
 const router: IRouter = Router();
 
+router.post("/users/:id/impersonate", requireAuth, async (req, res): Promise<void> => {
+  const existingImpersonatorId = req.signedCookies?.["impersonator_id"];
+  let realSuperMasterId: number | null = null;
+
+  if (req.user!.role === "super_master") {
+    realSuperMasterId = req.user!.id;
+  } else if (existingImpersonatorId) {
+    const impId = parseInt(existingImpersonatorId, 10);
+    const [impUser] = await db.select().from(usersTable).where(eq(usersTable.id, impId));
+    if (impUser && impUser.role === "super_master") {
+      realSuperMasterId = impUser.id;
+    }
+  }
+
+  if (!realSuperMasterId) {
+    res.status(403).json({ error: "Only super_master can impersonate other users" });
+    return;
+  }
+
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const targetUserId = parseInt(rawId || "", 10);
+  if (isNaN(targetUserId)) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+
+  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.id, targetUserId));
+  if (!targetUser) {
+    res.status(404).json({ error: "Target user not found" });
+    return;
+  }
+
+  if (!targetUser.isActive) {
+    res.status(400).json({ error: "Cannot impersonate an inactive user" });
+    return;
+  }
+
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+
+  res.cookie("impersonator_id", realSuperMasterId.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24,
+    secure: isProduction,
+    sameSite: "lax",
+  });
+
+  res.cookie("connect.sid", targetUser.id.toString(), {
+    signed: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    secure: isProduction,
+    sameSite: "lax",
+  });
+
+  let companyName: string | null = null;
+  let companyUrl: string | null = null;
+  if (targetUser.companyId) {
+    const [c] = await db
+      .select({ name: companiesTable.name, companyUrl: companiesTable.companyUrl })
+      .from(companiesTable)
+      .where(eq(companiesTable.id, targetUser.companyId));
+    companyName = c?.name ?? null;
+    companyUrl = c?.companyUrl ?? null;
+  }
+
+  const [impUser] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, realSuperMasterId));
+
+  res.json({
+    id: targetUser.id,
+    username: targetUser.username,
+    email: targetUser.email,
+    role: targetUser.role,
+    companyId: targetUser.companyId,
+    companyName,
+    companyUrl,
+    isActive: targetUser.isActive,
+    enabledModules: targetUser.enabledModules,
+    isImpersonating: true,
+    impersonatorUsername: impUser?.username ?? "supermaster",
+  });
+});
+
 router.put("/users/profile", requireAuth, async (req, res): Promise<void> => {
   const { username, email, phone, currentPassword, password } = req.body;
   if (!email) {

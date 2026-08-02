@@ -1,0 +1,46 @@
+# Dependecies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+api
+**/api
+.next
+.nuxt
+.cache
+**/*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Sandbox and test folders that aren't needed
+artifacts/mockup-sandbox
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+devsecops-audit/**
