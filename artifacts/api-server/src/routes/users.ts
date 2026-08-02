@@ -222,10 +222,23 @@ router.post("/users", async (req, res): Promise<void> => {
 
   let companyId = parsed.data.companyId ?? null;
   if (req.user!.role !== "master" && req.user!.role !== "super_master") {
-    // Force company scope for non-masters
-    companyId = req.user!.companyId;
+    // Non-masters cannot create master/super_master
     if (parsed.data.role === "master" || parsed.data.role === "super_master") {
-      res.status(403).json({ error: "Cannot create master/super_master users" });
+      res.status(403).json({ error: "Forbidden: Cannot create master or super master users" });
+      return;
+    }
+    // Automatically force non-master user's companyId
+    if (!req.user!.companyId) {
+      res.status(403).json({ error: "Forbidden: Your account does not have a company assigned" });
+      return;
+    }
+    companyId = req.user!.companyId;
+  }
+
+  // Enforce company requirement for admin, manager, and operator roles with no exception
+  if (parsed.data.role === "admin" || parsed.data.role === "client_admin" || parsed.data.role === "operator") {
+    if (!companyId) {
+      res.status(400).json({ error: "Company scope is required for Admin, Manager, and Operator accounts. No exception allowed." });
       return;
     }
   }
@@ -329,6 +342,15 @@ router.put("/users/:id", async (req, res): Promise<void> => {
       }
       if (targetUser.role === "master" || parsed.data.role === "master") {
         res.status(403).json({ error: "Forbidden: Cannot edit master users or change roles to master" });
+        return;
+      }
+    }
+
+    const effectiveRole = parsed.data.role ?? targetUser.role;
+    const effectiveCompanyId = parsed.data.companyId !== undefined ? (parsed.data.companyId ?? null) : targetUser.companyId;
+    if (effectiveRole !== "master" && effectiveRole !== "super_master") {
+      if (!effectiveCompanyId) {
+        res.status(400).json({ error: "Company is required for Admin, Manager, and Operator roles" });
         return;
       }
     }

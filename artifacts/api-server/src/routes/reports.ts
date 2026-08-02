@@ -86,7 +86,14 @@ router.get("/reports/dashboard", requireModule("dashboard"), async (req, res): P
 
   const [companiesAgg] = await db
     .select({ count: count() })
-    .from(companiesTable);
+    .from(companiesTable)
+    .where(
+      (req.user!.role === "master" || req.user!.role === "super_master")
+        ? undefined
+        : req.user!.companyId
+          ? eq(companiesTable.id, req.user!.companyId)
+          : eq(companiesTable.id, -1),
+    );
 
   const recent = await db
     .select({

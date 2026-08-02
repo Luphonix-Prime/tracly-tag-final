@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
-import { db, companiesTable } from "@workspace/db";
+import { db, companiesTable, usersTable } from "@workspace/db";
 import { CreateCompanyBody } from "@workspace/api-zod";
 import { requireAuth, requireRole } from '../lib/session.js';
 
@@ -106,12 +106,18 @@ router.post("/companies/my-company/regenerate-api-key", async (req, res): Promis
   res.json(updated);
 });
 
-router.get("/companies", async (_req, res): Promise<void> => {
+router.get("/companies", async (req, res): Promise<void> => {
   const rows = await db
     .select()
     .from(companiesTable)
     .orderBy(desc(companiesTable.createdAt));
-  res.json(rows);
+
+  const filtered =
+    (req.user!.role === "master" || req.user!.role === "super_master")
+      ? rows
+      : rows.filter((c) => c.id === req.user!.companyId);
+
+  res.json(filtered);
 });
 
 router.post(
@@ -140,6 +146,13 @@ router.post(
         companyPrefix: parsed.data.companyPrefix ?? null,
       })
       .returning();
+
+    // If an admin creates a company and currently has no companyId, assign it to them
+    if (req.user!.role === "admin" && !req.user!.companyId) {
+      await db.update(usersTable).set({ companyId: row.id }).where(eq(usersTable.id, req.user!.id));
+      req.user!.companyId = row.id;
+    }
+
     res.status(201).json(row);
   },
 );
@@ -153,6 +166,12 @@ router.put(
     if (Number.isNaN(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
+    }
+    if (req.user!.role !== "master" && req.user!.role !== "super_master") {
+      if (id !== req.user!.companyId) {
+        res.status(403).json({ error: "Forbidden: Cannot edit companies outside your assigned company" });
+        return;
+      }
     }
     const parsed = CreateCompanyBody.safeParse(req.body);
     if (!parsed.success) {
@@ -194,6 +213,12 @@ router.delete(
     if (Number.isNaN(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
+    }
+    if (req.user!.role !== "master" && req.user!.role !== "super_master") {
+      if (id !== req.user!.companyId) {
+        res.status(403).json({ error: "Forbidden: Cannot delete companies outside your assigned company" });
+        return;
+      }
     }
     await db.delete(companiesTable).where(eq(companiesTable.id, id));
     res.sendStatus(204);

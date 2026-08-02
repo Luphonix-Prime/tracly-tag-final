@@ -15,11 +15,13 @@ router.get("/locations", async (req, res): Promise<void> => {
           .select()
           .from(locationsTable)
           .orderBy(desc(locationsTable.createdAt))
-      : await db
-          .select()
-          .from(locationsTable)
-          .where(eq(locationsTable.companyId, req.user!.companyId!))
-          .orderBy(desc(locationsTable.createdAt));
+      : req.user!.companyId
+        ? await db
+            .select()
+            .from(locationsTable)
+            .where(eq(locationsTable.companyId, req.user!.companyId))
+            .orderBy(desc(locationsTable.createdAt))
+        : [];
   res.json(rows);
 });
 
@@ -34,10 +36,14 @@ router.post("/locations", async (req, res): Promise<void> => {
   if (req.user!.role === "master" || req.user!.role === "super_master") {
     const rawCid = (parsed.data as any).companyId ?? req.body.companyId;
     companyId = rawCid ? Number(rawCid) : null;
+    if (!companyId) {
+      res.status(400).json({ error: "Company is required for locations" });
+      return;
+    }
   } else {
     companyId = req.user!.companyId ?? null;
     if (!companyId) {
-      res.status(400).json({ error: "User has no company" });
+      res.status(403).json({ error: "Forbidden: Your account does not have an assigned company" });
       return;
     }
   }
@@ -73,6 +79,23 @@ router.put("/locations/:id", async (req, res): Promise<void> => {
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
+  }
+
+  const [targetLocation] = await db
+    .select()
+    .from(locationsTable)
+    .where(eq(locationsTable.id, id));
+
+  if (!targetLocation) {
+    res.status(404).json({ error: "Location not found" });
+    return;
+  }
+
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
+    if (!req.user!.companyId || targetLocation.companyId !== req.user!.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot edit locations outside your assigned company" });
+      return;
+    }
   }
 
   const parsed = CreateLocationBody.safeParse(req.body);
@@ -113,11 +136,6 @@ router.put("/locations/:id", async (req, res): Promise<void> => {
     .where(eq(locationsTable.id, id))
     .returning();
 
-  if (!row) {
-    res.status(404).json({ error: "Location not found" });
-    return;
-  }
-
   res.json(row);
 });
 
@@ -128,6 +146,24 @@ router.delete("/locations/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+
+  const [targetLocation] = await db
+    .select()
+    .from(locationsTable)
+    .where(eq(locationsTable.id, id));
+
+  if (!targetLocation) {
+    res.status(404).json({ error: "Location not found" });
+    return;
+  }
+
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
+    if (!req.user!.companyId || targetLocation.companyId !== req.user!.companyId) {
+      res.status(403).json({ error: "Forbidden: Cannot delete locations outside your assigned company" });
+      return;
+    }
+  }
+
   await db.delete(locationsTable).where(eq(locationsTable.id, id));
   res.sendStatus(204);
 });
