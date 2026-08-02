@@ -1,10 +1,10 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { db, usersTable, companiesTable, passkeysTable, deviceCodesTable, ssoRequestsTable } from "@workspace/db";
 import { LoginBody, LoginResponse, RegisterBody } from "@workspace/api-zod";
 import crypto from "crypto";
-import { sendOtpEmail } from '../lib/mail.js';
+import { sendOtpEmail, sendSsoRequestUserEmail, sendSsoRequestAdminEmail } from '../lib/mail.js';
 
 const router: IRouter = Router();
 
@@ -587,16 +587,28 @@ router.post("/auth/sso/google", async (req, res): Promise<void> => {
         .where(eq(ssoRequestsTable.email, email));
 
       if (!existingReq) {
-        let username = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
+        let reqUsername = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
         await db.insert(ssoRequestsTable).values({
-          username,
+          username: reqUsername,
           email,
-          fullName: name || username,
+          fullName: name || reqUsername,
           provider: "Google",
           companyName: null,
           requestedRole: "operator",
           status: "pending",
         });
+
+        try {
+          await sendSsoRequestUserEmail(email, reqUsername);
+          const masters = await db
+            .select({ email: usersTable.email })
+            .from(usersTable)
+            .where(or(eq(usersTable.role, "master"), eq(usersTable.role, "super_master")));
+          const adminEmails = masters.map((m) => m.email).filter(Boolean);
+          await sendSsoRequestAdminEmail(adminEmails, reqUsername, email, "Google", undefined);
+        } catch (e) {
+          req.log.error({ err: e }, "Failed to send Google SSO emails");
+        }
       }
 
       res.status(403).json({
@@ -701,6 +713,18 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
           requestedRole: "operator",
           status: "pending",
         });
+
+        try {
+          await sendSsoRequestUserEmail(email, username);
+          const masters = await db
+            .select({ email: usersTable.email })
+            .from(usersTable)
+            .where(or(eq(usersTable.role, "master"), eq(usersTable.role, "super_master")));
+          const adminEmails = masters.map((m) => m.email).filter(Boolean);
+          await sendSsoRequestAdminEmail(adminEmails, username, email, provider || "SSO", companyName || undefined);
+        } catch (e) {
+          req.log.error({ err: e }, "Failed to send SSO request emails");
+        }
       }
 
       res.status(403).json({

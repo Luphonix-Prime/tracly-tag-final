@@ -72,7 +72,11 @@ export default function NewUser() {
     if (ssoRole && ["super_master", "master", "admin", "client_admin", "operator"].includes(ssoRole)) {
       form.setValue("role", ssoRole as any);
     }
-  }, [ssoUsername, ssoEmail, ssoPhone, ssoRole, form]);
+    if (ssoRequestId && !form.getValues("password")) {
+      const generatedPwd = `TTPass@${Math.floor(100000 + Math.random() * 900000)}`;
+      form.setValue("password", generatedPwd);
+    }
+  }, [ssoUsername, ssoEmail, ssoPhone, ssoRole, ssoRequestId, form]);
 
   useEffect(() => {
     if (!isMaster && currentUser?.companyId) {
@@ -126,7 +130,7 @@ export default function NewUser() {
               <div>
                 <span className="font-bold text-sm">SSO User Access Request Approval (Request #{ssoRequestId})</span>
                 <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                  Account details have been pre-filled from the SSO access request. Please select an assigned company scope and set initial password to finish creating the user.
+                  Account details and a default login password have been pre-filled. Select an assigned company scope and click Save User to finalize. Upon creation, account details and login password will be automatically emailed to the user.
                 </p>
               </div>
             </div>
