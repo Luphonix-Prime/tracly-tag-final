@@ -784,6 +784,62 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
   }
 });
 
+const handleSsoRequestCreation = async (req: any, res: any): Promise<void> => {
+  const { username, email, fullName, phone, provider, companyName, requestedRole } = req.body;
+  const targetEmail = email || req.body.emailAddress;
+  const targetUsername = username || (targetEmail ? targetEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_") : undefined);
+
+  if (!targetEmail || !targetUsername) {
+    res.status(400).json({ error: "Email and username are required" });
+    return;
+  }
+
+  const [existingReq] = await db
+    .select()
+    .from(ssoRequestsTable)
+    .where(eq(ssoRequestsTable.email, targetEmail));
+
+  let row = existingReq;
+  if (!existingReq) {
+    const [inserted] = await db
+      .insert(ssoRequestsTable)
+      .values({
+        username: targetUsername,
+        email: targetEmail,
+        fullName: fullName ?? targetUsername,
+        phone: phone ?? null,
+        provider: provider ?? "SSO",
+        companyName: companyName ?? null,
+        requestedRole: requestedRole ?? "operator",
+        status: "pending",
+      })
+      .returning();
+    row = inserted;
+
+    try {
+      await sendSsoRequestUserEmail(targetEmail, targetUsername);
+      const masters = await db
+        .select({ email: usersTable.email })
+        .from(usersTable)
+        .where(or(eq(usersTable.role, "master"), eq(usersTable.role, "super_master")));
+      const adminEmails = masters.map((m) => m.email).filter(Boolean);
+      await sendSsoRequestAdminEmail(adminEmails, targetUsername, targetEmail, provider || "SSO", companyName);
+    } catch (err) {
+      req.log.error({ err }, "Failed to send SSO request emails");
+    }
+  }
+
+  res.clearCookie("connect.sid");
+  res.clearCookie("impersonator_id");
+  res.status(201).json({
+    message: "SSO User Access Request submitted successfully! Super Master and Master administrators have been notified via email.",
+    request: row,
+  });
+};
+
+router.post("/auth/sso-request", handleSsoRequestCreation);
+router.post("/auth/sso-requests", handleSsoRequestCreation);
+
 // --- Passkey WebAuthn Endpoints ---
 router.post("/auth/passkey/register-options", async (req, res): Promise<void> => {
   const { username } = req.body;
