@@ -497,6 +497,35 @@ export default function Login() {
     }
   };
 
+  const handleSsoRequestSubmit = async () => {
+    if (!ssoCustomName || !ssoCustomEmail || !ssoCustomCompany) {
+      toast.error("Please fill in Name, Email, and Company to request SSO account creation.");
+      return;
+    }
+    const userSlug = ssoCustomName.toLowerCase().replace(/\s+/g, "_");
+    try {
+      const response = await fetch("/api/sso-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: `${userSlug}_sso`,
+          email: ssoCustomEmail,
+          fullName: ssoCustomName,
+          companyName: ssoCustomCompany,
+          provider: ssoProvider || "SSO",
+          requestedRole: "operator",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to submit request");
+
+      toast.success("SSO User Creation Request submitted to Master / Super Master for approval!");
+      setIsSsoOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit SSO request");
+    }
+  };
+
   // --- Passkey Actions ---
   const handlePasskeyLogin = async (username: string) => {
     if (!username) {
@@ -1653,27 +1682,37 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="p-6 border-t flex justify-end gap-2.5 bg-muted/10">
+              <div className="p-6 border-t flex items-center justify-between gap-2.5 bg-muted/10">
                 <Button variant="outline" onClick={() => setIsSsoOpen(false)} className="rounded-full h-10 font-medium">Cancel</Button>
-                <Button
-                  onClick={() => {
-                    if (!ssoCustomName || !ssoCustomEmail || !ssoCustomCompany) {
-                      toast.error("Please fill in Name, Email, and Company to proceed.");
-                      return;
-                    }
-                    const userSlug = ssoCustomName.toLowerCase().replace(/\s+/g, "_");
-                    handleSsoSubmit({
-                      username: `${userSlug}_sso`,
-                      email: ssoCustomEmail,
-                      name: ssoCustomName,
-                      companyName: ssoCustomCompany,
-                      companyWebsiteUrl: `https://${userSlug}.com`
-                    });
-                  }}
-                  className="rounded-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5"
-                >
-                  Authenticate SSO
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSsoRequestSubmit}
+                    className="rounded-full h-10 border-amber-500 text-amber-700 hover:bg-amber-50 font-semibold px-4"
+                  >
+                    Request Account Creation
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (!ssoCustomName || !ssoCustomEmail || !ssoCustomCompany) {
+                        toast.error("Please fill in Name, Email, and Company to proceed.");
+                        return;
+                      }
+                      const userSlug = ssoCustomName.toLowerCase().replace(/\s+/g, "_");
+                      handleSsoSubmit({
+                        username: `${userSlug}_sso`,
+                        email: ssoCustomEmail,
+                        name: ssoCustomName,
+                        companyName: ssoCustomCompany,
+                        companyWebsiteUrl: `https://${userSlug}.com`
+                      });
+                    }}
+                    className="rounded-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5"
+                  >
+                    Authenticate SSO
+                  </Button>
+                </div>
               </div>
             </motion.div>
           </div>

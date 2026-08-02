@@ -1,11 +1,80 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import { eq, desc } from "drizzle-orm";
-import { db, usersTable, companiesTable } from "@workspace/db";
+import { db, usersTable, companiesTable, ssoRequestsTable } from "@workspace/db";
 import { CreateUserBody, UpdateUserBody } from "@workspace/api-zod";
 import { requireAuth, requireModule } from '../lib/session.js';
 
 const router: IRouter = Router();
+
+// SSO / User Access Requests Endpoints
+router.get("/sso-requests", requireAuth, async (req, res): Promise<void> => {
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
+    res.status(403).json({ error: "Forbidden: Only master and super_master can view SSO requests" });
+    return;
+  }
+  const requests = await db
+    .select()
+    .from(ssoRequestsTable)
+    .orderBy(desc(ssoRequestsTable.createdAt));
+  res.json(requests);
+});
+
+router.post("/sso-requests", async (req, res): Promise<void> => {
+  const { username, email, fullName, phone, provider, companyName, requestedRole } = req.body;
+  if (!username || !email) {
+    res.status(400).json({ error: "Username and email are required" });
+    return;
+  }
+
+  const [row] = await db
+    .insert(ssoRequestsTable)
+    .values({
+      username,
+      email,
+      fullName: fullName ?? null,
+      phone: phone ?? null,
+      provider: provider ?? "SSO",
+      companyName: companyName ?? null,
+      requestedRole: requestedRole ?? "operator",
+      status: "pending",
+    })
+    .returning();
+
+  res.status(201).json(row);
+});
+
+router.put("/sso-requests/:id/status", requireAuth, async (req, res): Promise<void> => {
+  if (req.user!.role !== "master" && req.user!.role !== "super_master") {
+    res.status(403).json({ error: "Forbidden: Only master and super_master can update SSO requests" });
+    return;
+  }
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId ?? "", 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const { status } = req.body;
+  if (!["pending", "accepted", "rejected"].includes(status)) {
+    res.status(400).json({ error: "Invalid status" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(ssoRequestsTable)
+    .set({ status })
+    .where(eq(ssoRequestsTable.id, id))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "SSO request not found" });
+    return;
+  }
+
+  res.json(updated);
+});
 
 router.post("/users/:id/impersonate", requireAuth, async (req, res): Promise<void> => {
   const existingImpersonatorId = req.signedCookies?.["impersonator_id"];
@@ -273,6 +342,13 @@ router.post("/users", async (req, res): Promise<void> => {
         .from(companiesTable)
         .where(eq(companiesTable.id, row!.companyId));
       companyName = c?.name ?? null;
+    }
+
+    if (req.body.ssoRequestId) {
+      const ssoReqId = Number(req.body.ssoRequestId);
+      if (!isNaN(ssoReqId)) {
+        await db.update(ssoRequestsTable).set({ status: "accepted" }).where(eq(ssoRequestsTable.id, ssoReqId));
+      }
     }
 
     res.status(201).json({

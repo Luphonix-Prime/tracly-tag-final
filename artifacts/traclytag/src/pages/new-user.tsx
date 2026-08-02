@@ -58,6 +58,22 @@ export default function NewUser() {
     },
   });
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const ssoRequestId = searchParams.get("ssoRequestId");
+  const ssoUsername = searchParams.get("username");
+  const ssoEmail = searchParams.get("email");
+  const ssoPhone = searchParams.get("phone");
+  const ssoRole = searchParams.get("role");
+
+  useEffect(() => {
+    if (ssoUsername) form.setValue("username", ssoUsername);
+    if (ssoEmail) form.setValue("email", ssoEmail);
+    if (ssoPhone) form.setValue("phone", ssoPhone);
+    if (ssoRole && ["super_master", "master", "admin", "client_admin", "operator"].includes(ssoRole)) {
+      form.setValue("role", ssoRole as any);
+    }
+  }, [ssoUsername, ssoEmail, ssoPhone, ssoRole, form]);
+
   useEffect(() => {
     if (!isMaster && currentUser?.companyId) {
       form.setValue("companyId", currentUser.companyId);
@@ -70,7 +86,9 @@ export default function NewUser() {
       values.companyId = currentUser.companyId;
     }
 
-    createUser.mutate({ data: values }, {
+    const payload = ssoRequestId ? { ...values, ssoRequestId } : values;
+
+    createUser.mutate({ data: payload as any }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
         toast.success("User created successfully");
@@ -103,6 +121,17 @@ export default function NewUser() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {ssoRequestId && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-900 dark:text-amber-300 flex items-center justify-between shadow-sm">
+              <div>
+                <span className="font-bold text-sm">SSO User Access Request Approval (Request #{ssoRequestId})</span>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                  Account details have been pre-filled from the SSO access request. Please select an assigned company scope and set initial password to finish creating the user.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Header Section */}
           <div className="flex justify-between items-end">
             <div>
