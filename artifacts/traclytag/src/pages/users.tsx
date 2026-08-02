@@ -192,57 +192,7 @@ export default function Users() {
 
   const canImpersonate = currentUser?.role === "super_master" || (currentUser as any)?.isImpersonating;
 
-  const [activeTab, setActiveTab] = useState<"users" | "sso-requests">("users");
 
-  // Fetch SSO requests if master/super_master
-  const [ssoRequests, setSsoRequests] = useState<any[]>([]);
-  const [isSsoLoading, setIsSsoLoading] = useState(false);
-
-  const fetchSsoRequests = async () => {
-    if (!isMaster) return;
-    setIsSsoLoading(true);
-    try {
-      const res = await customFetch("/api/sso-requests");
-      setSsoRequests(Array.isArray(res) ? res : []);
-    } catch (e) {
-      // ignore
-    } finally {
-      setIsSsoLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isMaster && activeTab === "sso-requests") {
-      fetchSsoRequests();
-    }
-  }, [isMaster, activeTab]);
-
-  const handleUpdateSsoStatus = async (id: number, status: "accepted" | "rejected", reqData?: any) => {
-    try {
-      await customFetch(`/api/sso-requests/${id}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      });
-      toast.success(`Request marked as ${status}`);
-      fetchSsoRequests();
-
-      if (status === "accepted" && reqData) {
-        const query = new URLSearchParams({
-          username: reqData.username,
-          email: reqData.email,
-          phone: reqData.phone || "",
-          role: reqData.requestedRole || "operator",
-          companyName: reqData.companyName || "",
-          ssoRequestId: String(id),
-        }).toString();
-        setLocation(`/users/new?${query}`);
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update request status");
-    }
-  };
-
-  const pendingSsoCount = ssoRequests.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-6">
@@ -254,7 +204,7 @@ export default function Users() {
       <div className="flex justify-between items-end mb-8">
         <div>
           <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">Users</h2>
-          <p className="text-[16px] text-slate-600 mt-1">Manage system access, roles, and SSO user creation requests.</p>
+          <p className="text-[16px] text-slate-600 mt-1">Manage system access, roles, and user accounts.</p>
         </div>
         {(isMaster || currentUser?.role === "client_admin") && (
           <Button 
@@ -267,130 +217,6 @@ export default function Users() {
         )}
       </div>
 
-      {isMaster && (
-        <div className="flex border-b border-slate-200 gap-6 mb-4">
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === "users"
-                ? "border-[#2563EB] text-[#2563EB]"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            <UsersIcon className="h-4 w-4" /> System Users ({users.length})
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("sso-requests");
-              fetchSsoRequests();
-            }}
-            className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === "sso-requests"
-                ? "border-[#2563EB] text-[#2563EB]"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            SSO User Requests
-            {pendingSsoCount > 0 && (
-              <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                {pendingSsoCount} PENDING
-              </span>
-            )}
-          </button>
-        </div>
-      )}
-
-      {Boolean(activeTab === "sso-requests" && isMaster) ? (
-        <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
-          <div className="px-6 border-b border-[#E2E8F0] bg-[#faf8ff] flex items-center justify-between py-4">
-            <div className="flex items-center gap-3">
-              <span className="text-[18px] font-semibold text-[#0F172A]">SSO & User Creation Access Requests</span>
-              <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">
-                Master Approval Queue
-              </span>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <Table className="w-full text-left table-fixed">
-              <TableHeader>
-                <TableRow className="border-b border-[#E2E8F0] bg-slate-50/50 hover:bg-slate-50/50">
-                  <TableHead className="text-slate-500 tracking-wider w-[20%] text-[11px] font-bold px-6 py-4 uppercase">REQUESTER</TableHead>
-                  <TableHead className="text-slate-500 tracking-wider w-[22%] text-[11px] font-bold px-6 py-4 uppercase">EMAIL / CONTACT</TableHead>
-                  <TableHead className="text-slate-500 tracking-wider w-[12%] text-[11px] font-bold px-6 py-4 uppercase">PROVIDER</TableHead>
-                  <TableHead className="text-slate-500 tracking-wider w-[18%] text-[11px] font-bold px-6 py-4 uppercase">COMPANY / ROLE</TableHead>
-                  <TableHead className="text-slate-500 tracking-wider w-[12%] text-[11px] font-bold px-6 py-4 uppercase">STATUS</TableHead>
-                  <TableHead className="text-slate-500 tracking-wider w-[16%] text-[11px] font-bold px-6 py-4 uppercase text-right">ACTIONS</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="divide-y divide-[#E2E8F0]">
-                {isSsoLoading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8">Loading requests...</TableCell></TableRow>
-                ) : ssoRequests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-slate-500">
-                      No pending SSO or user creation requests found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  ssoRequests.map((reqRow) => (
-                    <TableRow key={reqRow.id} className="hover:bg-slate-50 transition-colors">
-                      <TableCell className="align-middle px-6 py-4 font-bold text-[#0F172A]">
-                        <div>{reqRow.username}</div>
-                        {reqRow.fullName && <div className="text-xs text-slate-500 font-normal">{reqRow.fullName}</div>}
-                      </TableCell>
-                      <TableCell className="align-middle px-6 py-4 text-slate-600 text-xs">
-                        <div>{reqRow.email}</div>
-                        {reqRow.phone && <div className="text-[11px] text-slate-400">{reqRow.phone}</div>}
-                      </TableCell>
-                      <TableCell className="align-middle px-6 py-4 text-xs font-semibold">
-                        <Badge variant="outline" className="bg-slate-100">{reqRow.provider || "SSO"}</Badge>
-                      </TableCell>
-                      <TableCell className="align-middle px-6 py-4 text-xs">
-                        <div className="font-semibold text-slate-800">{reqRow.companyName || "Unassigned"}</div>
-                        <div className="text-[10px] text-slate-500 uppercase">{reqRow.requestedRole}</div>
-                      </TableCell>
-                      <TableCell className="align-middle px-6 py-4">
-                        {reqRow.status === "pending" && (
-                          <Badge className="bg-amber-100 text-amber-800 border-none font-bold text-[10px]">PENDING</Badge>
-                        )}
-                        {reqRow.status === "accepted" && (
-                          <Badge className="bg-emerald-100 text-emerald-800 border-none font-bold text-[10px]">ACCEPTED</Badge>
-                        )}
-                        {reqRow.status === "rejected" && (
-                          <Badge className="bg-red-100 text-red-800 border-none font-bold text-[10px]">REJECTED</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="align-middle px-6 py-4 text-right">
-                        {reqRow.status === "pending" ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleUpdateSsoStatus(reqRow.id, "accepted", reqRow)}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 h-8 rounded-lg"
-                            >
-                              Accept & Add User
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleUpdateSsoStatus(reqRow.id, "rejected")}
-                              className="text-red-600 hover:bg-red-50 border-red-200 text-xs px-2.5 h-8 rounded-lg"
-                            >
-                              Reject
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 font-medium">Completed</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      ) : (
       <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
         <div className="px-6 border-b border-[#E2E8F0] bg-[#faf8ff] flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
@@ -532,7 +358,6 @@ export default function Users() {
           </Table>
         </div>
       </div>
-    )}
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[500px]">

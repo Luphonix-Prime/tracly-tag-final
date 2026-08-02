@@ -25,8 +25,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FcGoogle } from "react-icons/fc";
-import { FaGithub, FaMicrosoft } from "react-icons/fa";
 import { useDevOptionsVisibility } from "@/hooks/use-dev-options-visibility";
 
 const loginSchema = z.object({
@@ -46,22 +44,6 @@ const signUpSchema = z.object({
   location: z.string().optional(),
 });
 
-const loadGoogleScript = (): Promise<void> => {
-  return new Promise((resolve) => {
-    if ((window as any).google?.accounts?.oauth2) {
-      resolve();
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => resolve();
-    document.head.appendChild(script);
-  });
-};
-
 export default function Login() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -70,13 +52,6 @@ export default function Login() {
   const { hideDevOptions, hideSsoOptions } = useDevOptionsVisibility();
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-
-  // --- SSO States ---
-  const [isSsoOpen, setIsSsoOpen] = useState(false);
-  const [ssoProvider, setSsoProvider] = useState("");
-  const [ssoCustomName, setSsoCustomName] = useState("");
-  const [ssoCustomEmail, setSsoCustomEmail] = useState("");
-  const [ssoCustomCompany, setSsoCustomCompany] = useState("");
 
   // --- Passkey States ---
   const [isPasskeySimulatorOpen, setIsPasskeySimulatorOpen] = useState(false);
@@ -400,193 +375,7 @@ export default function Login() {
     });
   }
 
-  // --- SSO Actions ---
-  const handleGoogleSsoSubmit = async (code: string) => {
-    const loadingToast = toast.loading("Verifying Google account...");
-    try {
-      const response = await fetch("/api/auth/sso/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      const data = await response.json();
-      toast.dismiss(loadingToast);
 
-      if (!response.ok) {
-        queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
-        queryClient.invalidateQueries();
-        if (response.status === 403 || data.error?.includes("SSO account request submitted")) {
-          toast.success(data.error || "SSO User Access Request submitted to Master and Super Master for approval!", { duration: 6000 });
-          return;
-        }
-        setSsoProvider("Google");
-        setIsSsoOpen(true);
-        toast.info(data.error || "Google account not registered. Please submit your access request below.", { duration: 6000 });
-        return;
-      }
-
-      toast.success("Authenticated with Google successfully!");
-      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-      handleRedirect();
-    } catch (err: any) {
-      toast.dismiss(loadingToast);
-      setSsoProvider("Google");
-      setIsSsoOpen(true);
-      toast.info("Google account not registered yet. Please submit your access request below.");
-    }
-  };
-
-  const handleSsoLogin = async (provider: string) => {
-    if (provider === "Google") {
-      try {
-        const configRes = await fetch("/api/auth/config");
-        const configData = configRes.ok ? await configRes.json() : {};
-        const googleClientId = configData.googleClientId;
-
-        if (!googleClientId) {
-          setSsoProvider("Google");
-          setSsoCustomName("");
-          setSsoCustomEmail("");
-          setSsoCustomCompany("");
-          setIsSsoOpen(true);
-          toast.info("Please fill in your details to send your SSO access request to Master & Super Master.");
-          return;
-        }
-
-        await loadGoogleScript();
-
-        if (!(window as any).google?.accounts?.oauth2) {
-          setSsoProvider("Google");
-          setIsSsoOpen(true);
-          toast.info("Please fill in your details to send your SSO access request to Master & Super Master.");
-          return;
-        }
-
-        const client = (window as any).google.accounts.oauth2.initCodeClient({
-          client_id: googleClientId,
-          scope: "openid email profile",
-          ux_mode: "popup",
-          callback: async (tokenResponse: any) => {
-            if (tokenResponse.error) {
-              setSsoProvider("Google");
-              setIsSsoOpen(true);
-              toast.info("Please fill in your details to send your SSO access request to Master & Super Master.");
-              return;
-            }
-            if (tokenResponse.code) {
-              await handleGoogleSsoSubmit(tokenResponse.code);
-            }
-          },
-        });
-        client.requestCode();
-      } catch (err: any) {
-        setSsoProvider("Google");
-        setIsSsoOpen(true);
-        toast.info("Please fill in your details to send your SSO access request to Master & Super Master.");
-      }
-    } else {
-      setSsoProvider(provider);
-      setSsoCustomName("");
-      setSsoCustomEmail("");
-      setSsoCustomCompany("");
-      setIsSsoOpen(true);
-    }
-  };
-
-  const handleSsoSubmit = async (ssoData: any) => {
-    try {
-      const response = await fetch("/api/auth/sso", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: ssoProvider,
-          username: ssoData.username,
-          email: ssoData.email,
-          name: ssoData.name,
-          companyName: ssoData.companyName,
-          companyWebsiteUrl: ssoData.companyWebsiteUrl,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
-        queryClient.invalidateQueries();
-        if (response.status === 403) {
-          setIsSsoOpen(false);
-          toast.info(data.error || "SSO User Access Request submitted to Master and Super Master for approval.");
-          return;
-        }
-        throw new Error(data.error || "SSO Login failed");
-      }
-
-      toast.success(`Authenticated with ${ssoProvider} successfully!`);
-      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-      setIsSsoOpen(false);
-      handleRedirect();
-    } catch (err: any) {
-      toast.error(err.message || "SSO Login failed");
-    }
-  };
-
-  const handleSsoRequestSubmit = async () => {
-    if (!ssoCustomName || !ssoCustomEmail || !ssoCustomCompany) {
-      toast.error("Please fill in Name, Email, and Company Name to request account creation.");
-      return;
-    }
-    const userSlug = ssoCustomName.toLowerCase().replace(/\s+/g, "_");
-    const payload = {
-      username: `${userSlug}_sso`,
-      email: ssoCustomEmail,
-      fullName: ssoCustomName,
-      companyName: ssoCustomCompany,
-      provider: ssoProvider || "SSO",
-      requestedRole: "operator",
-    };
-
-    const loadingToast = toast.loading("Submitting access request to Master & Super Master...");
-
-    try {
-      let response = await fetch("/api/auth/sso-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok && response.status === 404) {
-        response = await fetch("/api/sso-requests", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
-
-      let data: any = {};
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        data = { message: text || "Access request submitted" };
-      }
-
-      toast.dismiss(loadingToast);
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || "Failed to submit SSO request");
-      }
-
-      queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
-      queryClient.invalidateQueries();
-      toast.success(data.message || "SSO User Access Request submitted to Master & Super Master for approval!", { duration: 6000 });
-      setIsSsoOpen(false);
-      setSsoCustomName("");
-      setSsoCustomEmail("");
-      setSsoCustomCompany("");
-    } catch (err: any) {
-      toast.dismiss(loadingToast);
-      toast.error(err.message || "Failed to submit SSO request");
-    }
-  };
 
   // --- Passkey Actions ---
   const handlePasskeyLogin = async (username: string) => {
@@ -1170,50 +959,7 @@ export default function Login() {
                           )}
                         </div>
 
-                        <div className="relative my-2.5">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-slate-200 dark:border-slate-800" />
-                          </div>
-                          <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
-                            <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 dark:text-slate-500 font-bold">
-                              Or continue with
-                            </span>
-                          </div>
-                        </div>
 
-                        <div className={`grid gap-2 ${hideSsoOptions ? "grid-cols-1" : "grid-cols-3"}`}>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleSsoLogin("Google")}
-                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                          >
-                            <FcGoogle className="h-4.5 w-4.5" />
-                            <span>Google</span>
-                          </Button>
-                          {!hideSsoOptions && (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => handleSsoLogin("Microsoft")}
-                                className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                              >
-                                <FaMicrosoft className="h-4 w-4 text-[#00a4ef]" />
-                                <span>Microsoft</span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => handleSsoLogin("GitHub")}
-                                className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                              >
-                                <FaGithub className="h-4.5 w-4.5" />
-                                <span>GitHub</span>
-                              </Button>
-                            </>
-                          )}
-                        </div>
 
                         <div className="flex justify-center pt-2">
                           <button
@@ -1458,50 +1204,7 @@ export default function Login() {
                           </Button>
                         </div>
 
-                        <div className="relative my-2.5">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-slate-200 dark:border-slate-800" />
-                          </div>
-                          <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
-                            <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 dark:text-slate-500 font-bold">
-                              Or register with
-                            </span>
-                          </div>
-                        </div>
 
-                        <div className={`grid gap-2 ${hideSsoOptions ? "grid-cols-1" : "grid-cols-3"}`}>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleSsoLogin("Google")}
-                            className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                          >
-                            <FcGoogle className="h-4.5 w-4.5" />
-                            <span>Google</span>
-                          </Button>
-                          {!hideSsoOptions && (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => handleSsoLogin("Microsoft")}
-                                className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                              >
-                                <FaMicrosoft className="h-4 w-4 text-[#00a4ef]" />
-                                <span>Microsoft</span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => handleSsoLogin("GitHub")}
-                                className="w-full text-xs py-1 h-11 rounded-lg flex items-center justify-center gap-1.5 border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer transition-colors"
-                              >
-                                <FaGithub className="h-4.5 w-4.5" />
-                                <span>GitHub</span>
-                              </Button>
-                            </>
-                          )}
-                        </div>
 
                         <div className="flex justify-center pt-2">
                           <button
@@ -1660,63 +1363,7 @@ export default function Login() {
 
 
 
-      {/* --- SSO Identity Provider Access Request Modal --- */}
-      <AnimatePresence>
-        {isSsoOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card text-card-foreground border border-border rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
-            >
-              <div className="p-6 border-b flex justify-between items-center bg-muted/30">
-                <div className="flex items-center gap-2">
-                  {ssoProvider === "Microsoft" && <FaMicrosoft className="h-4.5 w-4.5 text-[#00a4ef]" />}
-                  {ssoProvider === "GitHub" && <FaGithub className="h-5 w-5" />}
-                  <span className="font-bold">{ssoProvider || "SSO"} Account Creation Request</span>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setIsSsoOpen(false)} className="rounded-full h-8 w-8 hover:bg-muted">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
 
-              <div className="p-6 space-y-5">
-                <div className="text-xs text-muted-foreground bg-blue-500/10 text-blue-700 dark:text-blue-300 p-3.5 rounded-2xl border border-blue-500/20">
-                  Fill in your details below to send an official account access request to Super Master & Master administrators. Upon approval, your account details and login password will be emailed to you.
-                </div>
-
-                {/* Custom Profile Form */}
-                <div className="grid grid-cols-2 gap-3.5 text-sm">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-foreground">Full Name *</label>
-                    <Input placeholder="John Doe" value={ssoCustomName} onChange={e => setSsoCustomName(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-foreground">Email Address *</label>
-                    <Input type="email" placeholder="john@company.com" value={ssoCustomEmail} onChange={e => setSsoCustomEmail(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
-                  </div>
-                  <div className="space-y-1 col-span-2">
-                    <label className="text-xs font-medium text-foreground">Company / Workspace Name *</label>
-                    <Input placeholder="Acme Logistics Enterprises" value={ssoCustomCompany} onChange={e => setSsoCustomCompany(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 border-t flex items-center justify-between gap-2.5 bg-muted/10">
-                <Button variant="outline" onClick={() => setIsSsoOpen(false)} className="rounded-full h-10 font-medium">Cancel</Button>
-                <Button
-                  type="button"
-                  onClick={handleSsoRequestSubmit}
-                  className="rounded-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 shadow-md"
-                >
-                  Request Account Creation
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* --- Passkey Biometric Authenticator Simulator --- */}
       <AnimatePresence>

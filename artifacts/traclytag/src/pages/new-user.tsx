@@ -58,26 +58,6 @@ export default function NewUser() {
     },
   });
 
-  const searchParams = new URLSearchParams(window.location.search);
-  const ssoRequestId = searchParams.get("ssoRequestId");
-  const ssoUsername = searchParams.get("username");
-  const ssoEmail = searchParams.get("email");
-  const ssoPhone = searchParams.get("phone");
-  const ssoRole = searchParams.get("role");
-
-  useEffect(() => {
-    if (ssoUsername) form.setValue("username", ssoUsername);
-    if (ssoEmail) form.setValue("email", ssoEmail);
-    if (ssoPhone) form.setValue("phone", ssoPhone);
-    if (ssoRole && ["super_master", "master", "admin", "client_admin", "operator"].includes(ssoRole)) {
-      form.setValue("role", ssoRole as any);
-    }
-    if (ssoRequestId && !form.getValues("password")) {
-      const generatedPwd = `TTPass@${Math.floor(100000 + Math.random() * 900000)}`;
-      form.setValue("password", generatedPwd);
-    }
-  }, [ssoUsername, ssoEmail, ssoPhone, ssoRole, ssoRequestId, form]);
-
   useEffect(() => {
     if (!isMaster && currentUser?.companyId) {
       form.setValue("companyId", currentUser.companyId);
@@ -90,9 +70,7 @@ export default function NewUser() {
       values.companyId = currentUser.companyId;
     }
 
-    const payload = ssoRequestId ? { ...values, ssoRequestId } : values;
-
-    createUser.mutate({ data: payload as any }, {
+    createUser.mutate({ data: values as any }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
         toast.success("User created successfully");
@@ -125,16 +103,6 @@ export default function NewUser() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {ssoRequestId && (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-900 dark:text-amber-300 flex items-center justify-between shadow-sm">
-              <div>
-                <span className="font-bold text-sm">SSO User Access Request Approval (Request #{ssoRequestId})</span>
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                  Account details and a default login password have been pre-filled. Select an assigned company scope and click Save User to finalize. Upon creation, account details and login password will be automatically emailed to the user.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Header Section */}
           <div className="flex justify-between items-end">
