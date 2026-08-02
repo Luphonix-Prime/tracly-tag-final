@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 import { db, usersTable, companiesTable, ssoRequestsTable } from "@workspace/db";
 import { CreateUserBody, UpdateUserBody } from "@workspace/api-zod";
 import { requireAuth, requireModule } from '../lib/session.js';
+import { sendSsoRequestUserEmail, sendSsoRequestAdminEmail, sendSsoApprovedWelcomeEmail } from '../lib/mail.js';
 
 const router: IRouter = Router();
 
@@ -40,6 +41,19 @@ router.post("/sso-requests", async (req, res): Promise<void> => {
       status: "pending",
     })
     .returning();
+
+  // Send email notifications to user and all Master/Super Master accounts
+  try {
+    await sendSsoRequestUserEmail(email, username);
+    const masters = await db
+      .select({ email: usersTable.email })
+      .from(usersTable)
+      .where(or(eq(usersTable.role, "master"), eq(usersTable.role, "super_master")));
+    const adminEmails = masters.map((m) => m.email).filter(Boolean);
+    await sendSsoRequestAdminEmail(adminEmails, username, email, provider || "SSO", companyName);
+  } catch (err) {
+    req.log.error({ err }, "Failed to send SSO request emails");
+  }
 
   res.status(201).json(row);
 });
@@ -349,6 +363,18 @@ router.post("/users", async (req, res): Promise<void> => {
       if (!isNaN(ssoReqId)) {
         await db.update(ssoRequestsTable).set({ status: "accepted" }).where(eq(ssoRequestsTable.id, ssoReqId));
       }
+    }
+
+    try {
+      await sendSsoApprovedWelcomeEmail(
+        row!.email,
+        row!.username,
+        parsed.data.password,
+        row!.role,
+        companyName || undefined
+      );
+    } catch (err) {
+      req.log.error({ err }, "Failed to send welcome email to new user");
     }
 
     res.status(201).json({
