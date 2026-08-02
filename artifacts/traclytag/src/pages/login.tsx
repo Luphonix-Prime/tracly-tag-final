@@ -530,31 +530,60 @@ export default function Login() {
 
   const handleSsoRequestSubmit = async () => {
     if (!ssoCustomName || !ssoCustomEmail || !ssoCustomCompany) {
-      toast.error("Please fill in Name, Email, and Company to request SSO account creation.");
+      toast.error("Please fill in Name, Email, and Company Name to request account creation.");
       return;
     }
     const userSlug = ssoCustomName.toLowerCase().replace(/\s+/g, "_");
+    const payload = {
+      username: `${userSlug}_sso`,
+      email: ssoCustomEmail,
+      fullName: ssoCustomName,
+      companyName: ssoCustomCompany,
+      provider: ssoProvider || "SSO",
+      requestedRole: "operator",
+    };
+
+    const loadingToast = toast.loading("Submitting access request to Master & Super Master...");
+
     try {
-      const response = await fetch("/api/sso-requests", {
+      let response = await fetch("/api/auth/sso-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: `${userSlug}_sso`,
-          email: ssoCustomEmail,
-          fullName: ssoCustomName,
-          companyName: ssoCustomCompany,
-          provider: ssoProvider || "SSO",
-          requestedRole: "operator",
-        }),
+        body: JSON.stringify(payload),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to submit request");
+
+      if (!response.ok && response.status === 404) {
+        response = await fetch("/api/sso-requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { message: text || "Access request submitted" };
+      }
+
+      toast.dismiss(loadingToast);
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || "Failed to submit SSO request");
+      }
 
       queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
       queryClient.invalidateQueries();
-      toast.success("SSO User Creation Request submitted to Master / Super Master for approval!");
+      toast.success(data.message || "SSO User Access Request submitted to Master & Super Master for approval!", { duration: 6000 });
       setIsSsoOpen(false);
+      setSsoCustomName("");
+      setSsoCustomEmail("");
+      setSsoCustomCompany("");
     } catch (err: any) {
+      toast.dismiss(loadingToast);
       toast.error(err.message || "Failed to submit SSO request");
     }
   };
@@ -1631,7 +1660,7 @@ export default function Login() {
 
 
 
-      {/* --- SSO Identity Provider Modal --- */}
+      {/* --- SSO Identity Provider Access Request Modal --- */}
       <AnimatePresence>
         {isSsoOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -1645,7 +1674,7 @@ export default function Login() {
                 <div className="flex items-center gap-2">
                   {ssoProvider === "Microsoft" && <FaMicrosoft className="h-4.5 w-4.5 text-[#00a4ef]" />}
                   {ssoProvider === "GitHub" && <FaGithub className="h-5 w-5" />}
-                  <span className="font-bold">Mock {ssoProvider} Identity Provider</span>
+                  <span className="font-bold">{ssoProvider || "SSO"} Account Creation Request</span>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setIsSsoOpen(false)} className="rounded-full h-8 w-8 hover:bg-muted">
                   <X className="h-4 w-4" />
@@ -1653,99 +1682,36 @@ export default function Login() {
               </div>
 
               <div className="p-6 space-y-5">
-                <div className="text-xs text-muted-foreground bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 p-3.5 rounded-2xl border border-indigo-500/20">
-                  Select a mock profile to log in immediately, or fill in custom details to test registering a new company workspace.
-                </div>
-
-                {/* Preset Profiles */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">Preset Social Profiles</span>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => handleSsoSubmit({
-                        username: "jane_sso",
-                        email: "jane.sso@acme.com",
-                        name: "Jane Doe",
-                        companyName: "Acme Logistics",
-                        companyWebsiteUrl: "https://acmelogistics.com"
-                      })}
-                      className="flex flex-col text-left p-3.5 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-500/5 cursor-pointer transition-all duration-200"
-                    >
-                      <span className="font-semibold text-sm text-foreground">Jane Doe</span>
-                      <span className="text-[10px] text-muted-foreground">jane.sso@acme.com</span>
-                      <span className="text-[9px] mt-1 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full w-fit">Acme Logistics</span>
-                    </button>
-                    <button
-                      onClick={() => handleSsoSubmit({
-                        username: "bob_sso",
-                        email: "bob.sso@prime.org",
-                        name: "Bob Smith",
-                        companyName: "Prime Retailers",
-                        companyWebsiteUrl: "https://primeretailers.org"
-                      })}
-                      className="flex flex-col text-left p-3.5 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-500/5 cursor-pointer transition-all duration-200"
-                    >
-                      <span className="font-semibold text-sm text-foreground">Bob Smith</span>
-                      <span className="text-[10px] text-muted-foreground">bob.sso@prime.org</span>
-                      <span className="text-[9px] mt-1 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full w-fit">Prime Retailers</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="relative flex py-1 items-center">
-                  <div className="flex-grow border-t border-border"></div>
-                  <span className="flex-shrink mx-4 text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Or use custom profile</span>
-                  <div className="flex-grow border-t border-border"></div>
+                <div className="text-xs text-muted-foreground bg-blue-500/10 text-blue-700 dark:text-blue-300 p-3.5 rounded-2xl border border-blue-500/20">
+                  Fill in your details below to send an official account access request to Super Master & Master administrators. Upon approval, your account details and login password will be emailed to you.
                 </div>
 
                 {/* Custom Profile Form */}
                 <div className="grid grid-cols-2 gap-3.5 text-sm">
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Full Name</label>
-                    <Input placeholder="Alice Brown" value={ssoCustomName} onChange={e => setSsoCustomName(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
+                    <label className="text-xs font-medium text-foreground">Full Name *</label>
+                    <Input placeholder="John Doe" value={ssoCustomName} onChange={e => setSsoCustomName(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Email</label>
-                    <Input type="email" placeholder="alice@company.com" value={ssoCustomEmail} onChange={e => setSsoCustomEmail(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
+                    <label className="text-xs font-medium text-foreground">Email Address *</label>
+                    <Input type="email" placeholder="john@company.com" value={ssoCustomEmail} onChange={e => setSsoCustomEmail(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
                   </div>
                   <div className="space-y-1 col-span-2">
-                    <label className="text-xs text-muted-foreground">Company Name</label>
-                    <Input placeholder="Brown Enterprises" value={ssoCustomCompany} onChange={e => setSsoCustomCompany(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
+                    <label className="text-xs font-medium text-foreground">Company / Workspace Name *</label>
+                    <Input placeholder="Acme Logistics Enterprises" value={ssoCustomCompany} onChange={e => setSsoCustomCompany(e.target.value)} className="rounded-xl h-10 border-gray-300 dark:border-gray-800" />
                   </div>
                 </div>
               </div>
 
               <div className="p-6 border-t flex items-center justify-between gap-2.5 bg-muted/10">
                 <Button variant="outline" onClick={() => setIsSsoOpen(false)} className="rounded-full h-10 font-medium">Cancel</Button>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleSsoRequestSubmit}
-                    className="rounded-full h-10 border-amber-500 text-amber-700 hover:bg-amber-50 font-semibold px-4"
-                  >
-                    Request Account Creation
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      if (!ssoCustomName || !ssoCustomEmail || !ssoCustomCompany) {
-                        toast.error("Please fill in Name, Email, and Company to proceed.");
-                        return;
-                      }
-                      const userSlug = ssoCustomName.toLowerCase().replace(/\s+/g, "_");
-                      handleSsoSubmit({
-                        username: `${userSlug}_sso`,
-                        email: ssoCustomEmail,
-                        name: ssoCustomName,
-                        companyName: ssoCustomCompany,
-                        companyWebsiteUrl: `https://${userSlug}.com`
-                      });
-                    }}
-                    className="rounded-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5"
-                  >
-                    Authenticate SSO
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  onClick={handleSsoRequestSubmit}
+                  className="rounded-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 shadow-md"
+                >
+                  Request Account Creation
+                </Button>
               </div>
             </motion.div>
           </div>
