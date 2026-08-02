@@ -22,40 +22,45 @@ router.get("/sso-requests", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.post("/sso-requests", async (req, res): Promise<void> => {
-  const { username, email, fullName, phone, provider, companyName, requestedRole } = req.body;
-  if (!username || !email) {
-    res.status(400).json({ error: "Username and email are required" });
-    return;
-  }
-
-  const [row] = await db
-    .insert(ssoRequestsTable)
-    .values({
-      username,
-      email,
-      fullName: fullName ?? null,
-      phone: phone ?? null,
-      provider: provider ?? "SSO",
-      companyName: companyName ?? null,
-      requestedRole: requestedRole ?? "operator",
-      status: "pending",
-    })
-    .returning();
-
-  // Send email notifications to user and all Master/Super Master accounts
   try {
-    await sendSsoRequestUserEmail(email, username);
-    const masters = await db
-      .select({ email: usersTable.email })
-      .from(usersTable)
-      .where(or(eq(usersTable.role, "master"), eq(usersTable.role, "super_master")));
-    const adminEmails = masters.map((m) => m.email).filter(Boolean);
-    await sendSsoRequestAdminEmail(adminEmails, username, email, provider || "SSO", companyName);
-  } catch (err) {
-    req.log.error({ err }, "Failed to send SSO request emails");
-  }
+    const { username, email, fullName, phone, provider, companyName, requestedRole } = req.body || {};
+    if (!username || !email) {
+      res.status(400).json({ error: "Username and email are required" });
+      return;
+    }
 
-  res.status(201).json(row);
+    const [row] = await db
+      .insert(ssoRequestsTable)
+      .values({
+        username,
+        email,
+        fullName: fullName ?? null,
+        phone: phone ?? null,
+        provider: provider ?? "SSO",
+        companyName: companyName ?? null,
+        requestedRole: requestedRole ?? "operator",
+        status: "pending",
+      })
+      .returning();
+
+    // Send email notifications to user and all Master/Super Master accounts
+    try {
+      await sendSsoRequestUserEmail(email, username);
+      const masters = await db
+        .select({ email: usersTable.email })
+        .from(usersTable)
+        .where(or(eq(usersTable.role, "master"), eq(usersTable.role, "super_master")));
+      const adminEmails = masters.map((m) => m.email).filter(Boolean);
+      await sendSsoRequestAdminEmail(adminEmails, username, email, provider || "SSO", companyName);
+    } catch (err) {
+      console.error("Failed to send SSO request emails:", err);
+    }
+
+    res.status(201).json(row);
+  } catch (err: any) {
+    console.error("Error creating SSO request in users.ts:", err);
+    res.status(500).json({ error: err.message || "Failed to submit SSO request" });
+  }
 });
 
 router.put("/sso-requests/:id/status", requireAuth, async (req, res): Promise<void> => {
