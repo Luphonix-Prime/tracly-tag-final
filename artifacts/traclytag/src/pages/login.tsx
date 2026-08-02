@@ -486,7 +486,16 @@ export default function Login() {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "SSO Login failed");
+      if (!response.ok) {
+        queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
+        queryClient.invalidateQueries();
+        if (response.status === 403) {
+          setIsSsoOpen(false);
+          toast.info(data.error || "SSO User Access Request submitted to Master and Super Master for approval.");
+          return;
+        }
+        throw new Error(data.error || "SSO Login failed");
+      }
 
       toast.success(`Authenticated with ${ssoProvider} successfully!`);
       queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
@@ -519,6 +528,8 @@ export default function Login() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to submit request");
 
+      queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
+      queryClient.invalidateQueries();
       toast.success("SSO User Creation Request submitted to Master / Super Master for approval!");
       setIsSsoOpen(false);
     } catch (err: any) {

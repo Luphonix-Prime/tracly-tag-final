@@ -611,6 +611,8 @@ router.post("/auth/sso/google", async (req, res): Promise<void> => {
         }
       }
 
+      res.clearCookie("connect.sid");
+      res.clearCookie("impersonator_id");
       res.status(403).json({
         error: "SSO account request submitted. Your account must be approved and created by Master or Super Master before you can log in.",
       });
@@ -727,6 +729,8 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
         }
       }
 
+      res.clearCookie("connect.sid");
+      res.clearCookie("impersonator_id");
       res.status(403).json({
         error: "SSO account request submitted. Your account must be approved and created by Master or Super Master before you can log in.",
       });
