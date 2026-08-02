@@ -410,9 +410,18 @@ export default function Login() {
         body: JSON.stringify({ code }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Google SSO Login failed");
-
       toast.dismiss(loadingToast);
+
+      if (!response.ok) {
+        queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
+        queryClient.invalidateQueries();
+        if (response.status === 403) {
+          toast.info(data.error || "SSO User Access Request submitted to Master and Super Master for approval.");
+          return;
+        }
+        throw new Error(data.error || "Google SSO Login failed");
+      }
+
       toast.success("Authenticated with Google successfully!");
       queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
       handleRedirect();
