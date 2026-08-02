@@ -196,11 +196,15 @@ router.get("/users", async (req, res): Promise<void> => {
     .leftJoin(companiesTable, eq(usersTable.companyId, companiesTable.id))
     .orderBy(desc(usersTable.createdAt));
 
-  // Scope: non-master sees only own company
+  // Scope: master/super_master sees all users across companies.
+  // Non-master with an assigned company sees only their company's users.
+  // Non-master without an assigned company sees only their own account.
   const filtered =
     (req.user!.role === "master" || req.user!.role === "super_master")
       ? rows
-      : rows.filter((r) => r.companyId === req.user!.companyId);
+      : req.user!.companyId
+        ? rows.filter((r) => r.companyId === req.user!.companyId)
+        : rows.filter((r) => r.id === req.user!.id);
   res.json(filtered);
 });
 
@@ -316,7 +320,10 @@ router.put("/users/:id", async (req, res): Promise<void> => {
 
     // Security constraints
     if (req.user!.role !== "master" && req.user!.role !== "super_master") {
-      if (targetUser.companyId !== req.user!.companyId) {
+      const allowed = req.user!.companyId
+        ? targetUser.companyId === req.user!.companyId
+        : targetUser.id === req.user!.id;
+      if (!allowed) {
         res.status(403).json({ error: "Forbidden: Cannot edit users outside your company" });
         return;
       }
@@ -409,7 +416,10 @@ router.delete("/users/:id", async (req, res): Promise<void> => {
   }
 
   if (req.user!.role !== "master" && req.user!.role !== "super_master") {
-    if (targetUser.companyId !== req.user!.companyId) {
+    const allowed = req.user!.companyId
+      ? targetUser.companyId === req.user!.companyId
+      : targetUser.id === req.user!.id;
+    if (!allowed) {
       res.status(403).json({ error: "Forbidden: Cannot delete users outside your company" });
       return;
     }
