@@ -126,34 +126,35 @@ export default function NewProduct() {
 
   useEffect(() => {
     if (isEdit && product) {
+      const currentValues = form.getValues();
       form.reset({
-        skuId: product.skuId ?? "",
-        name: product.name ?? "",
-        skuSize: product.skuSize ?? "",
-        marketedBy: product.marketedBy ?? "",
-        sapDescription: product.sapDescription ?? "",
-        mrp: product.mrp ?? 0,
-        registrationNo: product.registrationNo ?? "",
-        hsnCode: product.hsnCode ?? "",
-        gstRate: product.gstRate ?? 18,
-        unit: product.unit ?? "Piece",
-        weightValue: product.weightValue ?? 0,
-        weightUnit: product.weightUnit ?? "g",
-        packagingType: product.packagingType ?? "Bottle",
-        shelfLifeDays: product.shelfLifeDays ?? 365,
-        countryOfOrigin: product.countryOfOrigin ?? "IND",
-        isGs1Compliant: product.isGs1Compliant ?? false,
-        l1Size: product.l1Size ?? 0,
-        l2Size: product.l2Size ?? 100,
-        shipperSize: product.shipperSize ?? 0,
-        cautionLogoUrl: product.cautionLogoUrl ?? "Flammable",
-        productLogoUrl: product.productLogoUrl ?? "",
-        labelPdfUrl: product.labelPdfUrl ?? "",
-        expiryDate: product.expiryDate ? new Date(product.expiryDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        companyId: product.companyId ?? undefined,
+        skuId: currentValues.skuId || product.skuId || "",
+        name: currentValues.name || product.name || "",
+        skuSize: currentValues.skuSize || product.skuSize || "",
+        marketedBy: currentValues.marketedBy || product.marketedBy || "",
+        sapDescription: currentValues.sapDescription || product.sapDescription || "",
+        mrp: currentValues.mrp || product.mrp || 0,
+        registrationNo: currentValues.registrationNo || product.registrationNo || "",
+        hsnCode: currentValues.hsnCode || product.hsnCode || "",
+        gstRate: currentValues.gstRate || product.gstRate || 18,
+        unit: currentValues.unit || product.unit || "Piece",
+        weightValue: currentValues.weightValue || product.weightValue || 0,
+        weightUnit: currentValues.weightUnit || product.weightUnit || "g",
+        packagingType: currentValues.packagingType || product.packagingType || "Bottle",
+        shelfLifeDays: currentValues.shelfLifeDays || product.shelfLifeDays || 365,
+        countryOfOrigin: currentValues.countryOfOrigin || product.countryOfOrigin || "IND",
+        isGs1Compliant: currentValues.isGs1Compliant ?? product.isGs1Compliant ?? false,
+        l1Size: currentValues.l1Size || product.l1Size || 0,
+        l2Size: currentValues.l2Size || product.l2Size || 100,
+        shipperSize: currentValues.shipperSize || product.shipperSize || 0,
+        cautionLogoUrl: currentValues.cautionLogoUrl || product.cautionLogoUrl || "Flammable",
+        productLogoUrl: currentValues.productLogoUrl || product.productLogoUrl || "",
+        labelPdfUrl: currentValues.labelPdfUrl || product.labelPdfUrl || "",
+        expiryDate: currentValues.expiryDate || (product.expiryDate ? new Date(product.expiryDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
+        companyId: currentValues.companyId || product.companyId || undefined,
       });
     }
-  }, [product, isEdit, form]);
+  }, [product?.id, isEdit]);
 
   useEffect(() => {
     if (currentUser?.companyName && !isMaster) {

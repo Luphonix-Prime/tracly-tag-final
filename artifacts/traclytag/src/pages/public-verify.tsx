@@ -34,6 +34,16 @@ interface VerificationDetails {
   companyAddress: string | null;
   productLogoUrl: string | null;
   sapDescription: string | null;
+  alreadyScanned?: boolean;
+  scanCount?: number;
+  firstScannedAt?: string | null;
+  previousScan?: {
+    customerName?: string;
+    city?: string;
+    scanDate?: string;
+    scanTime?: string;
+    createdAt?: string;
+  } | null;
 }
 
 export default function PublicVerify() {
@@ -132,6 +142,12 @@ export default function PublicVerify() {
 
     if (!mobileNumber.trim()) {
       setError("Mobile Number is required.");
+      return;
+    }
+
+    const cleanMobile = mobileNumber.replace(/[\s\-\(\)\+]/g, "");
+    if (!/^\d{10,12}$/.test(cleanMobile)) {
+      setError("Please enter a valid 10-digit Mobile Number.");
       return;
     }
 
@@ -272,7 +288,7 @@ export default function PublicVerify() {
                 <div className="relative">
                   <Input 
                     className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm" 
-                    placeholder="+1 (555) 000-0000" 
+                    placeholder="e.g. 9876543210 or +91 9876543210" 
                     value={mobileNumber}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMobileNumber(e.target.value)}
                     type="tel"
@@ -378,13 +394,29 @@ export default function PublicVerify() {
               )}
             </div>
 
-            {/* Light Green Authenticity Banner */}
-            <div className="border border-green-200 bg-green-50/70 rounded-lg py-2.5 px-4 text-center">
-              <div className="flex items-center justify-center gap-1.5 text-green-700 font-bold text-xs sm:text-sm">
-                <ShieldCheck className="h-4.5 w-4.5 text-green-600 flex-shrink-0" />
-                <span>This is a Genuine Pack</span>
+            {/* Authenticity / Already Scanned Warning Banner */}
+            {data.alreadyScanned ? (
+              <div className="border border-amber-300 bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 text-left space-y-1.5 shadow-sm">
+                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-bold text-xs sm:text-sm">
+                  <AlertCircle className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Warning: QR Code Already Scanned</span>
+                </div>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed pl-6">
+                  This code has been scanned <span className="font-extrabold">{data.scanCount} times</span>. 
+                  {data.previousScan?.scanDate && (
+                    <> First scanned on <span className="font-bold">{data.previousScan.scanDate} {data.previousScan.scanTime ? `at ${data.previousScan.scanTime}` : ''}</span>{data.previousScan.city ? ` from ${data.previousScan.city}` : ''}.</>
+                  )}
+                  {" "}Please verify the package seal if you purchased it as new.
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="border border-green-200 bg-green-50/70 rounded-lg py-2.5 px-4 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-green-700 font-bold text-xs sm:text-sm">
+                  <ShieldCheck className="h-4.5 w-4.5 text-green-600 flex-shrink-0" />
+                  <span>This is a Genuine Pack</span>
+                </div>
+              </div>
+            )}
 
             {/* Uppercase Product Name Title */}
             <div className="border-b border-slate-200 dark:border-slate-800 pb-2">

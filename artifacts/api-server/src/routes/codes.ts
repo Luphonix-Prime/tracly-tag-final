@@ -123,6 +123,17 @@ const logCustomerScan = async (codeId: number, query: any) => {
     const zipCode = String(query.zipCode || "N/A");
     const city = getCityFromZip(zipCode);
     
+    const previousScans = await db
+      .select()
+      .from(customerScansTable)
+      .where(eq(customerScansTable.codeId, codeId))
+      .orderBy(customerScansTable.createdAt);
+
+    const scanCountBeforeThis = previousScans.length;
+    const alreadyScanned = scanCountBeforeThis > 0;
+    const firstScannedAt = alreadyScanned ? (previousScans[0].createdAt || `${previousScans[0].scanDate} ${previousScans[0].scanTime}`) : null;
+    const previousScan = alreadyScanned ? previousScans[previousScans.length - 1] : null;
+
     const now = new Date();
     const scanTime = now.toTimeString().split(" ")[0];
     const day = String(now.getDate()).padStart(2, "0");
@@ -140,10 +151,23 @@ const logCustomerScan = async (codeId: number, query: any) => {
       scanTime,
       scanDate,
     });
-    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city})`);
+    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city}) - scan #${scanCountBeforeThis + 1}`);
+
+    return {
+      alreadyScanned,
+      scanCount: scanCountBeforeThis + 1,
+      firstScannedAt,
+      previousScan: previousScan ? {
+        customerName: previousScan.customerName,
+        city: previousScan.city,
+        scanDate: previousScan.scanDate,
+        scanTime: previousScan.scanTime,
+        createdAt: previousScan.createdAt
+      } : null
+    };
   } catch (err) {
     console.error("Failed to log customer scan:", err);
-    throw err;
+    return { alreadyScanned: false, scanCount: 1, firstScannedAt: null, previousScan: null };
   }
 };
 
@@ -267,8 +291,8 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
     
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by serialNumber/ssccCode`);
-      await logCustomerScan(rows[0].id, req.query);
-      res.json(rows[0]);
+      const scanInfo = await logCustomerScan(rows[0].id, req.query);
+      res.json({ ...rows[0], ...scanInfo });
       return;
     }
 
@@ -276,8 +300,8 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
     rows = await buildQuery(eq(codesTable.rawString, searchSerial));
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by rawString (barcode match)`);
-      await logCustomerScan(rows[0].id, req.query);
-      res.json(rows[0]);
+      const scanInfo = await logCustomerScan(rows[0].id, req.query);
+      res.json({ ...rows[0], ...scanInfo });
       return;
     }
 
@@ -298,8 +322,8 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
         rows = await buildQuery(or(...searchConditions));
         if (rows.length > 0) {
           console.log(`[Public Verify] Found by GS1 parsing`);
-          await logCustomerScan(rows[0].id, req.query);
-          res.json(rows[0]);
+          const scanInfo = await logCustomerScan(rows[0].id, req.query);
+          res.json({ ...rows[0], ...scanInfo });
           return;
         }
       }

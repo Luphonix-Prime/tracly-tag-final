@@ -78,15 +78,16 @@ export default function NewLocation() {
 
   useEffect(() => {
     if (isEdit && loc) {
+      const currentValues = form.getValues();
       form.reset({
-        locationType: loc.locationType ?? "Warehouse",
-        uniqueName: loc.uniqueName ?? "",
-        locationName: loc.locationName ?? "",
-        contactNo: loc.contactNo ?? "",
-        address: loc.address ?? "",
-        city: loc.city ?? "",
-        state: loc.state ?? "",
-        gln: loc.gln ?? "",
+        locationType: currentValues.locationType || loc.locationType || "Warehouse",
+        uniqueName: currentValues.uniqueName || loc.uniqueName || "",
+        locationName: currentValues.locationName || loc.locationName || "",
+        contactNo: currentValues.contactNo || loc.contactNo || "",
+        address: currentValues.address || loc.address || "",
+        city: currentValues.city || loc.city || "",
+        state: currentValues.state || loc.state || "",
+        gln: currentValues.gln || loc.gln || "",
       });
       if (loc.companyId) {
         setSelectedCompanyId(String(loc.companyId));
@@ -94,7 +95,7 @@ export default function NewLocation() {
         setSelectedCompanyId("none");
       }
     }
-  }, [loc, isEdit, form]);
+  }, [loc?.id, isEdit]);
 
   const onSubmit = (values: LocationForm) => {
     const payload = {
