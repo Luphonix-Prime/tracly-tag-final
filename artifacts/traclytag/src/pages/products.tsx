@@ -106,7 +106,16 @@ export default function Products() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
 
-  const filteredProducts = products.filter((product) => {
+  // Dynamically derive categories from existing products created by the company/team
+  const availableCategories = Array.from(
+    new Set(
+      products
+        .map((p: any) => p.packagingType || p.unit)
+        .filter((cat: any): cat is string => Boolean(cat && String(cat).trim()))
+    )
+  );
+
+  const filteredProducts = products.filter((product: any) => {
     const companyGstin = companies.find((c: any) => c.id === product.companyId)?.gstin || 
       (currentUser as any)?.companyGstin || 
       (currentUser as any)?.company?.gstin || 
@@ -118,7 +127,12 @@ export default function Products() {
       (product.gtin && product.gtin.toLowerCase().includes(search.toLowerCase())) ||
       (companyGstin && companyGstin.toLowerCase().includes(search.toLowerCase())) ||
       (product.marketedBy && product.marketedBy.toLowerCase().includes(search.toLowerCase()));
-    return matchesSearch;
+
+    const productCategory = product.packagingType || product.unit || "";
+    const matchesCategory =
+      category === "All Categories" || productCategory.toLowerCase() === category.toLowerCase();
+
+    return matchesSearch && matchesCategory;
   });
 
   const handleUpload = (fieldName: "cautionLogoUrl" | "productLogoUrl" | "labelPdfUrl") => {
@@ -276,9 +290,11 @@ export default function Products() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All Categories">All Categories</SelectItem>
-              <SelectItem value="Pharmaceuticals">Pharmaceuticals</SelectItem>
-              <SelectItem value="Medical Devices">Medical Devices</SelectItem>
-              <SelectItem value="Safety Equipment">Safety Equipment</SelectItem>
+              {availableCategories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

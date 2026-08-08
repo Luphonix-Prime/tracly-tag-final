@@ -17,11 +17,10 @@ const companySchema = z.object({
   address: z.string().min(1, "Physical Address is required"),
   gstin: z
     .string()
-    .optional()
-    .or(z.literal(""))
+    .min(1, "GSTIN is required")
     .transform((val) => val?.trim().toUpperCase())
     .refine(
-      (val) => !val || /^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]Z[A-Z0-9]?$/.test(val),
+      (val) => /^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]Z[A-Z0-9]?$/.test(val),
       "Invalid GSTIN format. Expected: 2-digit state code, 10-char PAN, 1-char registration code, 'Z', and optional check code (e.g., 27AAAAA0000A1Z5)."
     ),
   companyUrl: z
@@ -115,22 +114,23 @@ export default function NewCompany() {
 
   useEffect(() => {
     if (isEdit && company) {
+      const currentValues = form.getValues();
       form.reset({
-        name: company.name ?? "",
-        email: company.email ?? "",
-        address: company.address ?? "",
-        gstin: company.gstin ?? "",
-        companyUrl: company.companyUrl ?? "",
-        pan: company.pan ?? "",
-        cin: company.cin ?? "",
-        msmeRegistrationNo: company.msmeRegistrationNo ?? "",
-        fssaiLicenseNo: company.fssaiLicenseNo ?? "",
-        drugLicenseNo: company.drugLicenseNo ?? "",
-        iecCode: company.iecCode ?? "",
-        companyPrefix: company.companyPrefix ?? "",
+        name: currentValues.name || company.name || "",
+        email: currentValues.email || company.email || "",
+        address: currentValues.address || company.address || "",
+        gstin: currentValues.gstin || company.gstin || "",
+        companyUrl: currentValues.companyUrl || company.companyUrl || "",
+        pan: currentValues.pan || company.pan || "",
+        cin: currentValues.cin || company.cin || "",
+        msmeRegistrationNo: currentValues.msmeRegistrationNo || company.msmeRegistrationNo || "",
+        fssaiLicenseNo: currentValues.fssaiLicenseNo || company.fssaiLicenseNo || "",
+        drugLicenseNo: currentValues.drugLicenseNo || company.drugLicenseNo || "",
+        iecCode: currentValues.iecCode || company.iecCode || "",
+        companyPrefix: currentValues.companyPrefix || company.companyPrefix || "",
       });
     }
-  }, [company, isEdit, form]);
+  }, [company?.id, isEdit]);
 
   if (user?.role !== "master" && user?.role !== "super_master" && user?.role !== "admin") {
     return <div className="p-8 text-center text-destructive">Access denied. Master or Admin role required.</div>;
@@ -295,7 +295,7 @@ export default function NewCompany() {
                     render={({ field }) => (
                       <FormItem className="space-y-2">
                         <FormLabel className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1 uppercase">
-                          GSTIN (OPTIONAL)
+                          GSTIN <span className="text-[#EF4444]">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input 

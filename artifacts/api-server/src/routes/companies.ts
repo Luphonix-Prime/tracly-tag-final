@@ -129,6 +129,10 @@ router.post(
       res.status(400).json({ error: parsed.error.message });
       return;
     }
+    if (!parsed.data.gstin || !parsed.data.gstin.trim()) {
+      res.status(400).json({ error: "GSTIN is required" });
+      return;
+    }
     const [row] = await db
       .insert(companiesTable)
       .values({
