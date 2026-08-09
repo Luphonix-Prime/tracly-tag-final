@@ -12,6 +12,7 @@ const readConfig = async () => {
   let hideMappingCode = true;
   let datamatrixUrlMode = false;
   let hidePackagingHierarchy = true;
+  let enableOtpSystem = true;
   try {
     const rows = await db
       .select()
@@ -29,14 +30,18 @@ const readConfig = async () => {
     if (phRow) {
       hidePackagingHierarchy = phRow.value === "true";
     }
+    const otpRow = rows.find(r => r.key === "enableOtpSystem");
+    if (otpRow) {
+      enableOtpSystem = otpRow.value !== "false";
+    }
   } catch (err) {
     // ignore
   }
-  return { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy };
+  return { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, enableOtpSystem };
 };
 
 // Helper to write config to database
-const writeConfig = async (config: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean; hidePackagingHierarchy?: boolean }) => {
+const writeConfig = async (config: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean; hidePackagingHierarchy?: boolean; enableOtpSystem?: boolean }) => {
   try {
     if (config.hideMappingCode !== undefined) {
       await db
@@ -74,6 +79,18 @@ const writeConfig = async (config: { hideMappingCode?: boolean; datamatrixUrlMod
           set: { value: String(config.hidePackagingHierarchy) },
         });
     }
+    if (config.enableOtpSystem !== undefined) {
+      await db
+        .insert(systemConfigsTable)
+        .values({
+          key: "enableOtpSystem",
+          value: String(config.enableOtpSystem),
+        })
+        .onConflictDoUpdate({
+          target: systemConfigsTable.key,
+          set: { value: String(config.enableOtpSystem) },
+        });
+    }
   } catch (err) {
     // ignore
   }
@@ -87,8 +104,8 @@ router.get("/system-config", requireAuth, async (req, res) => {
 
 // Super master config setter
 router.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel } = req.body;
-  const updates: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean; hidePackagingHierarchy?: boolean; hidePackagingLevel?: boolean } = {};
+  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel, enableOtpSystem } = req.body;
+  const updates: { hideMappingCode?: boolean; datamatrixUrlMode?: boolean; hidePackagingHierarchy?: boolean; hidePackagingLevel?: boolean; enableOtpSystem?: boolean } = {};
   
   if (hideMappingCode !== undefined) {
     if (typeof hideMappingCode !== "boolean") {
@@ -120,6 +137,14 @@ router.post("/system-config", requireAuth, requireRole("super_master"), async (r
       return;
     }
     updates.hidePackagingLevel = hidePackagingLevel;
+  }
+
+  if (enableOtpSystem !== undefined) {
+    if (typeof enableOtpSystem !== "boolean") {
+      res.status(400).json({ error: "Invalid value for enableOtpSystem" });
+      return;
+    }
+    updates.enableOtpSystem = enableOtpSystem;
   }
   
   await writeConfig(updates);

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings as SettingsIcon, Link2, ShieldAlert, Database, Layers } from "lucide-react";
+import { Settings as SettingsIcon, Link2, ShieldAlert, Database, Layers, KeyRound } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMappingCodeVisibility } from "@/hooks/use-mapping-code-visibility";
@@ -9,6 +9,7 @@ import { useDatamatrixUrlMode } from "@/hooks/use-datamatrix-url-mode";
 import { useGetCurrentUser } from "@workspace/api-client-react";
 import { usePackagingHierarchyVisibility } from "@/hooks/use-packaging-hierarchy-visibility";
 import { usePackagingLevelVisibility } from "@/hooks/use-packaging-level-visibility";
+import { useConfirmAlerts } from "@/hooks/useConfirmAlerts";
 
 export default function Settings() {
   const { hideMappingCode, toggleVisibility } = useMappingCodeVisibility();
@@ -16,7 +17,34 @@ export default function Settings() {
   const { datamatrixUrlMode, setUrlMode } = useDatamatrixUrlMode();
   const { hidePackagingHierarchy, toggleVisibility: togglePackagingHierarchyVisibility } = usePackagingHierarchyVisibility();
   const { hidePackagingLevel, toggleVisibility: togglePackagingLevelVisibility } = usePackagingLevelVisibility();
+  const { confirmCount, updateConfirmCount } = useConfirmAlerts();
   const { data: currentUser } = useGetCurrentUser();
+
+  const [enableOtpSystem, setEnableOtpSystem] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/system-config")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.enableOtpSystem === "boolean") {
+          setEnableOtpSystem(data.enableOtpSystem);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleOtpSystem = async (enabled: boolean) => {
+    setEnableOtpSystem(enabled);
+    try {
+      await fetch("/api/system-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enableOtpSystem: enabled }),
+      });
+    } catch (err) {
+      // ignore
+    }
+  };
 
   const [hideRecentSerialization, setHideRecentSerialization] = useState(() => {
     return localStorage.getItem("traclytag_hide_recent_serialization") === "true";
@@ -199,6 +227,55 @@ export default function Settings() {
                   checked={hideSsoOptions}
                   onCheckedChange={setSsoVisibility}
                 />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500 mt-0.5">
+                    <KeyRound className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="otp-system-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Enable OTP Verification System
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      When enabled, standard user accounts will be required to verify email OTP during login. When disabled, login bypasses OTP step.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="otp-system-toggle"
+                  checked={enableOtpSystem}
+                  onCheckedChange={toggleOtpSystem}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500 mt-0.5">
+                    <ShieldAlert className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="confirm-alerts-count" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Number of Edit Confirmation Alerts
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      Set how many confirmation dialogs a user must confirm when saving edited section changes.
+                    </p>
+                  </div>
+                </div>
+                <select
+                  id="confirm-alerts-count"
+                  value={confirmCount}
+                  onChange={(e) => updateConfirmCount(Number(e.target.value))}
+                  className="bg-[#F8FAFC] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={1}>1 Alert</option>
+                  <option value={2}>2 Alerts</option>
+                  <option value={3}>3 Alerts</option>
+                  <option value={4}>4 Alerts</option>
+                  <option value={5}>5 Alerts</option>
+                </select>
               </div>
             </>
           )}

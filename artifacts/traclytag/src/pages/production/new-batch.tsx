@@ -33,11 +33,14 @@ const batchSchema = z.object({
 
 type BatchForm = z.infer<typeof batchSchema>;
 
+import { useConfirmAlerts, requestMultipleConfirmations } from "@/hooks/useConfirmAlerts";
+
 export default function NewBatch() {
   const { id: idStr } = useParams<{ id?: string }>();
   const id = idStr ? parseInt(idStr, 10) : undefined;
   const isEdit = id !== undefined;
 
+  const { confirmCount } = useConfirmAlerts();
   const { data: products = [] } = useListProducts();
   const { data: locations = [] } = useListLocations();
   const { data: batches = [] } = useListBatches();
@@ -51,6 +54,40 @@ export default function NewBatch() {
   const [factoryLocation, setFactoryLocation] = useState("");
   const [mfgOpen, setMfgOpen] = useState(false);
   const [expiryOpen, setExpiryOpen] = useState(false);
+
+  const [dirtySections, setDirtySections] = useState<Record<string, boolean>>({});
+
+  const markSectionDirty = (sectionName: string) => {
+    setDirtySections((prev) => ({ ...prev, [sectionName]: true }));
+  };
+
+  const markSectionClean = (sectionName: string) => {
+    setDirtySections((prev) => ({ ...prev, [sectionName]: false }));
+  };
+
+  const hasAnyDirtySection = Object.values(dirtySections).some(Boolean);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isEdit && hasAnyDirtySection) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved edited changes! Please confirm or save your changes before leaving.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isEdit, hasAnyDirtySection]);
+
+  const confirmNavigation = (targetPath: string) => {
+    if (isEdit && hasAnyDirtySection) {
+      const confirmLeave = window.confirm(
+        "You have unconfirmed changes in one or more sections! Are you sure you want to leave without saving?"
+      );
+      if (!confirmLeave) return;
+    }
+    setLocation(targetPath);
+  };
 
   const form = useForm<BatchForm>({
     resolver: zodResolver(batchSchema),
@@ -70,18 +107,51 @@ export default function NewBatch() {
         mfgDate: batch.mfgDate ? new Date(batch.mfgDate) : undefined as any,
         expiryDate: batch.expiryDate ? new Date(batch.expiryDate) : undefined as any,
       });
+      setDirtySections({});
     }
   }, [batch, isEdit, form]);
 
   const watchBatchNumber = form.watch("batchNumber") || "";
 
-  const onSubmit = (values: BatchForm) => {
-    const payload = {
+  const getPayload = () => {
+    const values = form.getValues();
+    return {
       productId: values.productId,
       batchNumber: values.batchNumber,
-      mfgDate: format(values.mfgDate, "yyyy-MM-dd"),
-      expiryDate: format(values.expiryDate, "yyyy-MM-dd"),
+      mfgDate: values.mfgDate ? format(values.mfgDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      expiryDate: values.expiryDate ? format(values.expiryDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
     };
+  };
+
+  const handleSaveSection = async (sectionName: string) => {
+    if (!isEdit || !id) return;
+    const confirmed = await requestMultipleConfirmations(confirmCount, sectionName);
+    if (!confirmed) return;
+
+    const payload = getPayload();
+
+    try {
+      const res = await fetch(`/api/batches/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to update ${sectionName}`);
+      }
+      queryClient.invalidateQueries({
+        queryKey: getListBatchesQueryKey(),
+      });
+      markSectionClean(sectionName);
+      toast.success(`${sectionName} saved successfully`);
+    } catch (error: any) {
+      toast.error(error.message || `Failed to update ${sectionName}`);
+    }
+  };
+
+  const onSubmit = (values: BatchForm) => {
+    const payload = getPayload();
 
     if (isEdit) {
       fetch(`/api/batches/${id}`, {
@@ -97,6 +167,7 @@ export default function NewBatch() {
           queryClient.invalidateQueries({
             queryKey: getListBatchesQueryKey(),
           });
+          setDirtySections({});
           toast.success("Batch updated successfully");
           setLocation("/production/batches");
         })
@@ -126,9 +197,9 @@ export default function NewBatch() {
     <div className="max-w-[1200px] mx-auto space-y-6 pb-12 font-sans">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-slate-500">
-        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => setLocation("/dashboard")}>Master Data</a>
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => confirmNavigation("/dashboard")}>Master Data</a>
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => setLocation("/production/batches")}>Batches</a>
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => confirmNavigation("/production/batches")}>Batches</a>
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
         <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">
           {isEdit ? "Edit Batch" : "Add Batch"}
@@ -144,26 +215,28 @@ export default function NewBatch() {
                 {isEdit ? "Edit Batch Lot" : "Add New Batch"}
               </h2>
               <p className="text-[16px] text-slate-600 mt-1">
-                {isEdit ? "Update details for this production lot." : "Initialize a new production lot for GS1 serialization tracking."}
+                {isEdit ? "Update details for this production lot using section save buttons." : "Initialize a new production lot for GS1 serialization tracking."}
               </p>
             </div>
             <div className="flex gap-3">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setLocation("/production/batches")}
+                onClick={() => confirmNavigation("/production/batches")}
                 className="px-6 py-2.5 border border-slate-200 text-[#0F172A] font-semibold rounded-lg hover:bg-slate-50 transition-colors h-auto cursor-pointer"
               >
-                Discard
+                {isEdit ? "Back to Batches" : "Discard"}
               </Button>
-              <Button
-                type="submit"
-                disabled={createBatch.isPending}
-                className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[20px]">save</span>
-                Save Batch
-              </Button>
+              {!isEdit && (
+                <Button
+                  type="submit"
+                  disabled={createBatch.isPending}
+                  className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px]">save</span>
+                  Save Batch
+                </Button>
+              )}
             </div>
           </div>
 
@@ -171,10 +244,27 @@ export default function NewBatch() {
             {/* Left Column: Form Fields */}
             <div className="col-span-12 lg:col-span-8">
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-8 shadow-sm">
-                <h3 className="text-lg font-bold text-[#0F172A] mb-6 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>inventory_2</span>
-                  Batch Identification & Manufacturing
-                </h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <h3 className="text-lg font-bold text-[#0F172A] flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>inventory_2</span>
+                    Batch Identification & Manufacturing
+                    {isEdit && dirtySections["Batch Identification"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </h3>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Batch Identification")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Batch Identification
+                    </Button>
+                  )}
+                </div>
                 <div className="space-y-6">
                   {/* Select Product */}
                   <FormField

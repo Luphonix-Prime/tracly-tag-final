@@ -8,6 +8,7 @@ import { useEffect } from "react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import NotFound from "@/pages/not-found";
+import { useDevToolsProtection } from "./hooks/useDevToolsProtection";
 
 import Login from "@/pages/login";
 import PublicVerify from "@/pages/public-verify";
@@ -241,6 +242,8 @@ function Router() {
 }
 
 function App() {
+  useDevToolsProtection();
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

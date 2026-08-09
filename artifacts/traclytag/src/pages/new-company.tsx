@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useGetCurrentUser, useCreateCompany, useUpdateCompany, useListCompanies, getListCompaniesQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -80,17 +80,54 @@ const companySchema = z.object({
     ),
 });
 
+import { useConfirmAlerts, requestMultipleConfirmations } from "@/hooks/useConfirmAlerts";
+
 export default function NewCompany() {
   const { id: idStr } = useParams<{ id?: string }>();
   const id = idStr ? parseInt(idStr, 10) : undefined;
   const isEdit = id !== undefined;
 
+  const { confirmCount } = useConfirmAlerts();
   const { data: user } = useGetCurrentUser();
   const createCompany = useCreateCompany();
   const updateCompany = useUpdateCompany();
   const { data: companies = [] } = useListCompanies();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+
+  const [dirtySections, setDirtySections] = useState<Record<string, boolean>>({});
+
+  const markSectionDirty = (sectionName: string) => {
+    setDirtySections((prev) => ({ ...prev, [sectionName]: true }));
+  };
+
+  const markSectionClean = (sectionName: string) => {
+    setDirtySections((prev) => ({ ...prev, [sectionName]: false }));
+  };
+
+  const hasAnyDirtySection = Object.values(dirtySections).some(Boolean);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isEdit && hasAnyDirtySection) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved edited changes! Please confirm or save your changes before leaving.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isEdit, hasAnyDirtySection]);
+
+  const confirmNavigation = (targetPath: string) => {
+    if (isEdit && hasAnyDirtySection) {
+      const confirmLeave = window.confirm(
+        "You have unconfirmed changes in one or more sections! Are you sure you want to leave without saving?"
+      );
+      if (!confirmLeave) return;
+    }
+    setLocation(targetPath);
+  };
 
   const form = useForm<z.infer<typeof companySchema>>({
     resolver: zodResolver(companySchema),
@@ -114,33 +151,56 @@ export default function NewCompany() {
 
   useEffect(() => {
     if (isEdit && company) {
-      const currentValues = form.getValues();
       form.reset({
-        name: currentValues.name || company.name || "",
-        email: currentValues.email || company.email || "",
-        address: currentValues.address || company.address || "",
-        gstin: currentValues.gstin || company.gstin || "",
-        companyUrl: currentValues.companyUrl || company.companyUrl || "",
-        pan: currentValues.pan || company.pan || "",
-        cin: currentValues.cin || company.cin || "",
-        msmeRegistrationNo: currentValues.msmeRegistrationNo || company.msmeRegistrationNo || "",
-        fssaiLicenseNo: currentValues.fssaiLicenseNo || company.fssaiLicenseNo || "",
-        drugLicenseNo: currentValues.drugLicenseNo || company.drugLicenseNo || "",
-        iecCode: currentValues.iecCode || company.iecCode || "",
-        companyPrefix: currentValues.companyPrefix || company.companyPrefix || "",
+        name: company.name || "",
+        email: company.email || "",
+        address: company.address || "",
+        gstin: company.gstin || "",
+        companyUrl: company.companyUrl || "",
+        pan: company.pan || "",
+        cin: company.cin || "",
+        msmeRegistrationNo: company.msmeRegistrationNo || "",
+        fssaiLicenseNo: company.fssaiLicenseNo || "",
+        drugLicenseNo: company.drugLicenseNo || "",
+        iecCode: company.iecCode || "",
+        companyPrefix: company.companyPrefix || "",
       });
+      setDirtySections({});
     }
-  }, [company?.id, isEdit]);
+  }, [company, isEdit]);
 
   if (user?.role !== "master" && user?.role !== "super_master" && user?.role !== "admin") {
     return <div className="p-8 text-center text-destructive">Access denied. Master or Admin role required.</div>;
   }
+
+  const handleSaveSection = async (sectionName: string) => {
+    if (!isEdit || !id) return;
+    const confirmed = await requestMultipleConfirmations(confirmCount, sectionName);
+    if (!confirmed) return;
+
+    const values = form.getValues();
+
+    updateCompany.mutate(
+      { id, data: values },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListCompaniesQueryKey() });
+          markSectionClean(sectionName);
+          toast.success(`${sectionName} saved successfully`);
+        },
+        onError: (error: any) => {
+          toast.error(error?.data?.error || `Failed to update ${sectionName}`);
+        },
+      }
+    );
+  };
 
   const onSubmit = (values: z.infer<typeof companySchema>) => {
     if (isEdit) {
       updateCompany.mutate({ id, data: values }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListCompaniesQueryKey() });
+          setDirtySections({});
           toast.success("Company updated successfully");
           setLocation("/companies");
         },
@@ -166,9 +226,9 @@ export default function NewCompany() {
     <div className="max-w-[1200px] mx-auto space-y-6">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-slate-500">
-        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => setLocation("/dashboard")}>Master Data</a>
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => confirmNavigation("/dashboard")}>Master Data</a>
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => setLocation("/companies")}>Companies</a>
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => confirmNavigation("/companies")}>Companies</a>
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
         <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">{isEdit ? "Edit Company" : "Add New Company"}</span>
       </nav>
@@ -179,25 +239,27 @@ export default function NewCompany() {
           <div className="flex justify-between items-end">
             <div>
               <h2 className="text-[30px] leading-[36px] font-bold text-[#0F172A] tracking-[-0.02em]">{isEdit ? "Edit Company" : "Add New Company"}</h2>
-              <p className="text-[16px] text-slate-600 mt-1">{isEdit ? "Modify corporate settings and regulatory information." : "Initialize a new secure corporate node in the TracelyTag network."}</p>
+              <p className="text-[16px] text-slate-600 mt-1">{isEdit ? "Modify corporate settings and regulatory information using section save buttons." : "Initialize a new secure corporate node in the TracelyTag network."}</p>
             </div>
             <div className="flex gap-3">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setLocation("/companies")}
+                onClick={() => confirmNavigation("/companies")}
                 className="px-6 py-2.5 border border-slate-200 text-[#0F172A] font-semibold rounded-lg hover:bg-slate-50 transition-colors h-auto cursor-pointer"
               >
-                Discard
+                {isEdit ? "Back to Companies" : "Discard"}
               </Button>
-              <Button
-                type="submit"
-                disabled={isEdit ? updateCompany.isPending : createCompany.isPending}
-                className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[20px]">save</span>
-                {isEdit ? "Update Company" : "Save Company"}
-              </Button>
+              {!isEdit && (
+                <Button
+                  type="submit"
+                  disabled={createCompany.isPending}
+                  className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px]">save</span>
+                  Save Company
+                </Button>
+              )}
             </div>
           </div>
 
@@ -206,9 +268,26 @@ export default function NewCompany() {
             <div className="col-span-12 lg:col-span-8 space-y-6">
               {/* Section 1: Basic Company Details */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">Basic Company Details</h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
+                    <h3 className="text-lg font-bold text-[#0F172A]">Basic Company Details</h3>
+                    {isEdit && dirtySections["Basic Company Details"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Basic Company Details")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Basic Details
+                    </Button>
+                  )}
                 </div>
                 <div className="space-y-6">
                   <FormField
@@ -256,9 +335,26 @@ export default function NewCompany() {
 
               {/* Section 2: Contact Information */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>alternate_email</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">Contact Information</h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>alternate_email</span>
+                    <h3 className="text-lg font-bold text-[#0F172A]">Contact Information</h3>
+                    {isEdit && dirtySections["Contact Information"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Contact Information")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Contact Info
+                    </Button>
+                  )}
                 </div>
                 <FormField
                   control={form.control}
@@ -284,9 +380,26 @@ export default function NewCompany() {
 
               {/* Section 3: Indian Corporate & Regulatory Information */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>assignment</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">Indian Corporate & Regulatory Identifiers</h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>assignment</span>
+                    <h3 className="text-lg font-bold text-[#0F172A]">Indian Corporate & Regulatory Identifiers</h3>
+                    {isEdit && dirtySections["Indian Corporate Identifiers"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Indian Corporate Identifiers")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Identifiers
+                    </Button>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
@@ -433,9 +546,26 @@ export default function NewCompany() {
 
               {/* Section 4: GS1 Company Registry */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>badge</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">GS1 Company Registry</h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>badge</span>
+                    <h3 className="text-lg font-bold text-[#0F172A]">GS1 Company Registry</h3>
+                    {isEdit && dirtySections["GS1 Company Registry"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("GS1 Company Registry")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save GS1 Registry
+                    </Button>
+                  )}
                 </div>
                 <FormField
                   control={form.control}
@@ -461,11 +591,28 @@ export default function NewCompany() {
                 />
               </section>
 
-              {/* Section 4: Custom Domain / Portal Setup */}
+              {/* Section 5: Custom Domain / Portal Setup */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>dns</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">Custom Domain / Portal URL</h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>dns</span>
+                    <h3 className="text-lg font-bold text-[#0F172A]">Custom Domain / Portal URL</h3>
+                    {isEdit && dirtySections["Custom Domain Setup"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Custom Domain Setup")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Portal URL
+                    </Button>
+                  )}
                 </div>
                 <FormField
                   control={form.control}

@@ -59008,7 +59008,16 @@ router2.post("/auth/login", async (req, res) => {
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
   }
   const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
-  if (user2.role !== "master" && user2.role !== "super_master") {
+  let enableOtpSystem = true;
+  try {
+    const rows = await db.select().from(systemConfigsTable);
+    const otpRow = rows.find((r) => r.key === "enableOtpSystem");
+    if (otpRow) {
+      enableOtpSystem = otpRow.value !== "false";
+    }
+  } catch (err) {
+  }
+  if (enableOtpSystem && user2.role !== "master" && user2.role !== "super_master") {
     const otpCode = Math.floor(1e5 + Math.random() * 9e5).toString();
     try {
       await sendOtpEmail(user2.email, otpCode);
@@ -59893,6 +59902,10 @@ router3.post(
     const parsed = CreateCompanyBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    if (!parsed.data.gstin || !parsed.data.gstin.trim()) {
+      res.status(400).json({ error: "GSTIN is required" });
       return;
     }
     const [row] = await db.insert(companiesTable).values({
@@ -60963,6 +60976,11 @@ var logCustomerScan = async (codeId, query) => {
     const mobileNumber = String(query.mobileNumber || "N/A");
     const zipCode = String(query.zipCode || "N/A");
     const city = getCityFromZip(zipCode);
+    const previousScans = await db.select().from(customerScansTable).where(eq(customerScansTable.codeId, codeId)).orderBy(customerScansTable.createdAt);
+    const scanCountBeforeThis = previousScans.length;
+    const alreadyScanned = scanCountBeforeThis > 0;
+    const firstScannedAt = alreadyScanned ? previousScans[0].createdAt || `${previousScans[0].scanDate} ${previousScans[0].scanTime}` : null;
+    const previousScan = alreadyScanned ? previousScans[previousScans.length - 1] : null;
     const now = /* @__PURE__ */ new Date();
     const scanTime = now.toTimeString().split(" ")[0];
     const day = String(now.getDate()).padStart(2, "0");
@@ -60979,10 +60997,22 @@ var logCustomerScan = async (codeId, query) => {
       scanTime,
       scanDate
     });
-    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city})`);
+    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city}) - scan #${scanCountBeforeThis + 1}`);
+    return {
+      alreadyScanned,
+      scanCount: scanCountBeforeThis + 1,
+      firstScannedAt,
+      previousScan: previousScan ? {
+        customerName: previousScan.customerName,
+        city: previousScan.city,
+        scanDate: previousScan.scanDate,
+        scanTime: previousScan.scanTime,
+        createdAt: previousScan.createdAt
+      } : null
+    };
   } catch (err) {
     console.error("Failed to log customer scan:", err);
-    throw err;
+    return { alreadyScanned: false, scanCount: 1, firstScannedAt: null, previousScan: null };
   }
 };
 router8.get("/codes/public/:serial", async (req, res) => {
@@ -61079,15 +61109,15 @@ router8.get("/codes/public/:serial", async (req, res) => {
     );
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by serialNumber/ssccCode`);
-      await logCustomerScan(rows[0].id, req.query);
-      res.json(rows[0]);
+      const scanInfo = await logCustomerScan(rows[0].id, req.query);
+      res.json({ ...rows[0], ...scanInfo });
       return;
     }
     rows = await buildQuery(eq(codesTable.rawString, searchSerial));
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by rawString (barcode match)`);
-      await logCustomerScan(rows[0].id, req.query);
-      res.json(rows[0]);
+      const scanInfo = await logCustomerScan(rows[0].id, req.query);
+      res.json({ ...rows[0], ...scanInfo });
       return;
     }
     const parsed = parseGs1Code(searchSerial);
@@ -61105,8 +61135,8 @@ router8.get("/codes/public/:serial", async (req, res) => {
         rows = await buildQuery(or(...searchConditions));
         if (rows.length > 0) {
           console.log(`[Public Verify] Found by GS1 parsing`);
-          await logCustomerScan(rows[0].id, req.query);
-          res.json(rows[0]);
+          const scanInfo = await logCustomerScan(rows[0].id, req.query);
+          res.json({ ...rows[0], ...scanInfo });
           return;
         }
       }
@@ -62088,6 +62118,7 @@ var readConfig = async () => {
   let hideMappingCode = true;
   let datamatrixUrlMode = false;
   let hidePackagingHierarchy = true;
+  let enableOtpSystem = true;
   try {
     const rows = await db.select().from(systemConfigsTable);
     const mapCodeRow = rows.find((r) => r.key === "hideMappingCode");
@@ -62102,9 +62133,13 @@ var readConfig = async () => {
     if (phRow) {
       hidePackagingHierarchy = phRow.value === "true";
     }
+    const otpRow = rows.find((r) => r.key === "enableOtpSystem");
+    if (otpRow) {
+      enableOtpSystem = otpRow.value !== "false";
+    }
   } catch (err) {
   }
-  return { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy };
+  return { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, enableOtpSystem };
 };
 var writeConfig = async (config2) => {
   try {
@@ -62135,6 +62170,15 @@ var writeConfig = async (config2) => {
         set: { value: String(config2.hidePackagingHierarchy) }
       });
     }
+    if (config2.enableOtpSystem !== void 0) {
+      await db.insert(systemConfigsTable).values({
+        key: "enableOtpSystem",
+        value: String(config2.enableOtpSystem)
+      }).onConflictDoUpdate({
+        target: systemConfigsTable.key,
+        set: { value: String(config2.enableOtpSystem) }
+      });
+    }
   } catch (err) {
   }
 };
@@ -62143,7 +62187,7 @@ router12.get("/system-config", requireAuth, async (req, res) => {
   res.json(config2);
 });
 router12.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel } = req.body;
+  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel, enableOtpSystem } = req.body;
   const updates = {};
   if (hideMappingCode !== void 0) {
     if (typeof hideMappingCode !== "boolean") {
@@ -62172,6 +62216,13 @@ router12.post("/system-config", requireAuth, requireRole("super_master"), async 
       return;
     }
     updates.hidePackagingLevel = hidePackagingLevel;
+  }
+  if (enableOtpSystem !== void 0) {
+    if (typeof enableOtpSystem !== "boolean") {
+      res.status(400).json({ error: "Invalid value for enableOtpSystem" });
+      return;
+    }
+    updates.enableOtpSystem = enableOtpSystem;
   }
   await writeConfig(updates);
   const config2 = await readConfig();
