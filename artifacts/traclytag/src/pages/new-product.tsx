@@ -64,6 +64,7 @@ const productSchema = z.object({
 });
 
 import { usePackagingHierarchyVisibility } from "@/hooks/use-packaging-hierarchy-visibility";
+import { useConfirmAlerts, requestMultipleConfirmations } from "@/hooks/useConfirmAlerts";
 
 type ProductForm = z.infer<typeof productSchema>;
 
@@ -72,11 +73,12 @@ export default function NewProduct() {
   const id = idStr ? parseInt(idStr, 10) : undefined;
   const isEdit = id !== undefined;
 
+  const { confirmCount } = useConfirmAlerts();
   const { data: currentUser } = useGetCurrentUser();
   const isSuperMaster = currentUser?.role === "super_master";
   const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
   const { data: myCompany } = useGetMyCompany({ query: { enabled: !isMaster } } as any);
-  const { data: companies = [] } = useListCompanies({ query: { enabled: isMaster } } as any);
+  const { data: companies = [] } = useListCompanies();
   const { data: products = [] } = useListProducts();
   const product = products.find(p => p.id === id);
 
@@ -91,6 +93,42 @@ export default function NewProduct() {
   const [palletQty, setPalletQty] = useState("");
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const { hidePackagingHierarchy } = usePackagingHierarchyVisibility();
+
+  // Track dirty state of sections
+  const [dirtySections, setDirtySections] = useState<Record<string, boolean>>({});
+
+  const markSectionDirty = (sectionName: string) => {
+    setDirtySections((prev) => ({ ...prev, [sectionName]: true }));
+  };
+
+  const markSectionClean = (sectionName: string) => {
+    setDirtySections((prev) => ({ ...prev, [sectionName]: false }));
+  };
+
+  const hasAnyDirtySection = Object.values(dirtySections).some(Boolean);
+
+  // Prevent closing tab/window or navigating away if any section has unconfirmed edits
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isEdit && hasAnyDirtySection) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved edited changes! Please confirm or save your changes before leaving.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isEdit, hasAnyDirtySection]);
+
+  const confirmNavigation = (targetPath: string) => {
+    if (isEdit && hasAnyDirtySection) {
+      const confirmLeave = window.confirm(
+        "You have unconfirmed changes in one or more sections! Are you sure you want to leave without saving?"
+      );
+      if (!confirmLeave) return;
+    }
+    setLocation(targetPath);
+  };
 
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
@@ -117,7 +155,7 @@ export default function NewProduct() {
       cautionLogoUrl: "Flammable",
       productLogoUrl: "",
       labelPdfUrl: "",
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Default 1 year from now
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       companyId: undefined,
     },
   });
@@ -126,41 +164,41 @@ export default function NewProduct() {
 
   useEffect(() => {
     if (isEdit && product) {
-      const currentValues = form.getValues();
       form.reset({
-        skuId: currentValues.skuId || product.skuId || "",
-        name: currentValues.name || product.name || "",
-        skuSize: currentValues.skuSize || product.skuSize || "",
-        marketedBy: currentValues.marketedBy || product.marketedBy || "",
-        sapDescription: currentValues.sapDescription || product.sapDescription || "",
-        mrp: currentValues.mrp || product.mrp || 0,
-        registrationNo: currentValues.registrationNo || product.registrationNo || "",
-        hsnCode: currentValues.hsnCode || product.hsnCode || "",
-        gstRate: currentValues.gstRate || product.gstRate || 18,
-        unit: currentValues.unit || product.unit || "Piece",
-        weightValue: currentValues.weightValue || product.weightValue || 0,
-        weightUnit: currentValues.weightUnit || product.weightUnit || "g",
-        packagingType: currentValues.packagingType || product.packagingType || "Bottle",
-        shelfLifeDays: currentValues.shelfLifeDays || product.shelfLifeDays || 365,
-        countryOfOrigin: currentValues.countryOfOrigin || product.countryOfOrigin || "IND",
-        isGs1Compliant: currentValues.isGs1Compliant ?? product.isGs1Compliant ?? false,
-        l1Size: currentValues.l1Size || product.l1Size || 0,
-        l2Size: currentValues.l2Size || product.l2Size || 100,
-        shipperSize: currentValues.shipperSize || product.shipperSize || 0,
-        cautionLogoUrl: currentValues.cautionLogoUrl || product.cautionLogoUrl || "Flammable",
-        productLogoUrl: currentValues.productLogoUrl || product.productLogoUrl || "",
-        labelPdfUrl: currentValues.labelPdfUrl || product.labelPdfUrl || "",
-        expiryDate: currentValues.expiryDate || (product.expiryDate ? new Date(product.expiryDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
-        companyId: currentValues.companyId || product.companyId || undefined,
+        skuId: product.skuId || "",
+        name: product.name || "",
+        skuSize: product.skuSize || "",
+        marketedBy: product.marketedBy || "",
+        sapDescription: product.sapDescription || "",
+        mrp: product.mrp ?? 0,
+        registrationNo: product.registrationNo || "",
+        hsnCode: product.hsnCode || "",
+        gstRate: product.gstRate ?? 18,
+        unit: product.unit || "Piece",
+        weightValue: product.weightValue ?? 0,
+        weightUnit: product.weightUnit || "g",
+        packagingType: product.packagingType || "Bottle",
+        shelfLifeDays: product.shelfLifeDays ?? 365,
+        countryOfOrigin: product.countryOfOrigin || "IND",
+        isGs1Compliant: product.isGs1Compliant ?? false,
+        l1Size: product.l1Size ?? 0,
+        l2Size: product.l2Size ?? 100,
+        shipperSize: product.shipperSize ?? 0,
+        cautionLogoUrl: product.cautionLogoUrl || "Flammable",
+        productLogoUrl: product.productLogoUrl || "",
+        labelPdfUrl: product.labelPdfUrl || "",
+        expiryDate: product.expiryDate ? new Date(product.expiryDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        companyId: product.companyId ?? undefined,
       });
+      setDirtySections({});
     }
-  }, [product?.id, isEdit]);
+  }, [product, isEdit]);
 
   useEffect(() => {
-    if (currentUser?.companyName && !isMaster) {
+    if (!isEdit && currentUser?.companyName && !isMaster) {
       form.setValue("marketedBy", currentUser.companyName);
     }
-  }, [currentUser, isMaster, form]);
+  }, [currentUser, isMaster, form, isEdit]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -212,6 +250,7 @@ export default function NewProduct() {
         } else {
           form.setValue(fieldName, absoluteUrl);
         }
+        if (isEdit) markSectionDirty("Digital Assets");
         toast.success(`${file.name} uploaded successfully`);
       } catch (error: any) {
         toast.error(error.message || "Error uploading file");
@@ -222,17 +261,13 @@ export default function NewProduct() {
     input.click();
   };
 
-  const onSubmit = (values: ProductForm) => {
-    if (isMaster && !values.companyId) {
-      toast.error("Please select a company to allocate this product to.");
-      return;
-    }
-
+  const getPayload = () => {
+    const values = form.getValues();
     const derivedSkuSize = values.weightValue && values.weightValue > 0 
       ? `${values.weightValue} ${values.unit || "Piece"}` 
       : (values.unit || "Piece");
 
-    const payload = {
+    return {
       ...values,
       skuSize: values.skuSize || derivedSkuSize,
       unit: values.unit || "Piece",
@@ -244,8 +279,44 @@ export default function NewProduct() {
       cautionLogoUrl: values.cautionLogoUrl || undefined,
       productLogoUrl: values.productLogoUrl || undefined,
       labelPdfUrl: values.labelPdfUrl || undefined,
-      expiryDate: format(values.expiryDate, "yyyy-MM-dd"),
+      expiryDate: values.expiryDate ? format(values.expiryDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
     };
+  };
+
+  const handleSaveSection = async (sectionName: string) => {
+    if (!isEdit || !id) return;
+    const confirmed = await requestMultipleConfirmations(confirmCount, sectionName);
+    if (!confirmed) return;
+
+    const payload = getPayload();
+
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to update ${sectionName}`);
+      }
+      queryClient.invalidateQueries({
+        queryKey: getListProductsQueryKey(),
+      });
+      markSectionClean(sectionName);
+      toast.success(`${sectionName} saved successfully`);
+    } catch (error: any) {
+      toast.error(error.message || `Failed to update ${sectionName}`);
+    }
+  };
+
+  const onSubmit = (values: ProductForm) => {
+    if (isMaster && !values.companyId) {
+      toast.error("Please select a company to allocate this product to.");
+      return;
+    }
+
+    const payload = getPayload();
 
     if (isEdit) {
       fetch(`/api/products/${id}`, {
@@ -261,6 +332,7 @@ export default function NewProduct() {
           queryClient.invalidateQueries({
             queryKey: getListProductsQueryKey(),
           });
+          setDirtySections({});
           toast.success("Product updated successfully");
           setLocation("/products");
         })
@@ -288,7 +360,13 @@ export default function NewProduct() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-[1200px] mx-auto pb-12 font-sans">
+      <form 
+        onSubmit={form.handleSubmit(onSubmit)} 
+        onChange={() => {
+          // If form values are changed by user in edit mode, mark form active
+        }}
+        className="space-y-8 max-w-[1200px] mx-auto pb-12 font-sans"
+      >
         {/* Header Block */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -297,7 +375,7 @@ export default function NewProduct() {
             </h1>
             <p className="text-slate-500 text-[14px] mt-1">
               {isEdit 
-                ? "Update product specifications and GS1 parameters." 
+                ? "Update product specifications and GS1 parameters using section save buttons." 
                 : "Populate GS1 compliant product specifications for unique serialization tagging."}
             </p>
           </div>
@@ -305,19 +383,21 @@ export default function NewProduct() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setLocation("/products")}
+              onClick={() => confirmNavigation("/products")}
               className="px-6 py-2 border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors h-11"
             >
-              Discard
+              {isEdit ? "Back to Products" : "Discard"}
             </Button>
-            <Button
-              type="submit"
-              disabled={createProduct.isPending}
-              className="px-6 py-2 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-11"
-            >
-              <span className="material-symbols-outlined text-[20px] font-bold">save</span>
-              Save Product
-            </Button>
+            {!isEdit && (
+              <Button
+                type="submit"
+                disabled={createProduct.isPending}
+                className="px-6 py-2 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-11"
+              >
+                <span className="material-symbols-outlined text-[20px] font-bold">save</span>
+                Save Product
+              </Button>
+            )}
           </div>
         </div>
 
@@ -327,11 +407,28 @@ export default function NewProduct() {
             
             {/* Card 1: Product Identification */}
             <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                  <Package className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-[16px] font-bold text-[#0F172A]">Product Identification</h3>
+                  {isEdit && dirtySections["Product Identification"] && (
+                    <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                      Unsaved Changes
+                    </span>
+                  )}
                 </div>
-                <h3 className="text-[16px] font-bold text-[#0F172A]">Product Identification</h3>
+                {isEdit && (
+                  <Button
+                    type="button"
+                    onClick={() => handleSaveSection("Product Identification")}
+                    className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    Save Product Identification
+                  </Button>
+                )}
               </div>
 
               <div className="space-y-5">
@@ -561,11 +658,28 @@ export default function NewProduct() {
 
             {/* Card 2: Regulatory Information */}
             <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-                  <FileText className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-[16px] font-bold text-[#0F172A]">Regulatory Information</h3>
+                  {isEdit && dirtySections["Regulatory Information"] && (
+                    <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                      Unsaved Changes
+                    </span>
+                  )}
                 </div>
-                <h3 className="text-[16px] font-bold text-[#0F172A]">Regulatory Information</h3>
+                {isEdit && (
+                  <Button
+                    type="button"
+                    onClick={() => handleSaveSection("Regulatory Information")}
+                    className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    Save Regulatory Information
+                  </Button>
+                )}
               </div>
 
               <div className="space-y-5">
@@ -605,19 +719,23 @@ export default function NewProduct() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {isMaster ? (
-                              companies.map((c) => (
-                                <SelectItem key={c.id} value={c.name}>
-                                  {c.name}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              currentUser?.companyName && (
-                                <SelectItem value={currentUser.companyName}>
-                                  {currentUser.companyName}
-                                </SelectItem>
-                              )
+                            {companies.map((c) => (
+                              <SelectItem key={c.id} value={c.name}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                            {currentUser?.companyName && !companies.some((c) => c.name === currentUser.companyName) && (
+                              <SelectItem value={currentUser.companyName}>
+                                {currentUser.companyName}
+                              </SelectItem>
                             )}
+                            {field.value &&
+                              field.value !== currentUser?.companyName &&
+                              !companies.some((c) => c.name === field.value) && (
+                                <SelectItem value={field.value}>
+                                  {field.value}
+                                </SelectItem>
+                              )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -686,11 +804,28 @@ export default function NewProduct() {
 
             {/* Card 3: Tax, Physical Metrics & Packaging */}
             <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
-                  <Layers className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-[16px] font-bold text-[#0F172A]">Tax, Physical Metrics & Packaging</h3>
+                  {isEdit && dirtySections["Tax, Physical Metrics & Packaging"] && (
+                    <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                      Unsaved Changes
+                    </span>
+                  )}
                 </div>
-                <h3 className="text-[16px] font-bold text-[#0F172A]">Tax, Physical Metrics & Packaging</h3>
+                {isEdit && (
+                  <Button
+                    type="button"
+                    onClick={() => handleSaveSection("Tax, Physical Metrics & Packaging")}
+                    className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    Save Tax & Physical Metrics
+                  </Button>
+                )}
               </div>
 
               <div className="space-y-5">
@@ -872,11 +1007,28 @@ export default function NewProduct() {
             {/* Card 3: Packaging Hierarchy */}
             {!hidePackagingHierarchy && (
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                  <div className="w-8 h-8 rounded-lg bg-[#F0F6FF] flex items-center justify-center text-blue-600">
-                    <Layers className="w-5 h-5" />
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0F6FF] flex items-center justify-center text-blue-600">
+                      <Layers className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-[16px] font-bold text-[#0F172A]">Packaging Hierarchy</h3>
+                    {isEdit && dirtySections["Packaging Hierarchy"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
                   </div>
-                  <h3 className="text-[16px] font-bold text-[#0F172A]">Packaging Hierarchy</h3>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Packaging Hierarchy")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Hierarchy
+                    </Button>
+                  )}
                 </div>
 
                 <div className="space-y-6">
@@ -983,11 +1135,28 @@ export default function NewProduct() {
 
             {/* Card 4: Digital Assets */}
             <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                  <CloudUpload className="w-5 h-5" />
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                    <CloudUpload className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-[16px] font-bold text-[#0F172A]">Digital Assets</h3>
+                  {isEdit && dirtySections["Digital Assets"] && (
+                    <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                      Unsaved Changes
+                    </span>
+                  )}
                 </div>
-                <h3 className="text-[16px] font-bold text-[#0F172A]">Digital Assets</h3>
+                {isEdit && (
+                  <Button
+                    type="button"
+                    onClick={() => handleSaveSection("Digital Assets")}
+                    className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    Save Digital Assets
+                  </Button>
+                )}
               </div>
 
               {/* Product Logo upload zone */}

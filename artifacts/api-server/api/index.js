@@ -59008,7 +59008,16 @@ router2.post("/auth/login", async (req, res) => {
     subscriptionExpiresAt = c?.subscriptionExpiresAt ?? null;
   }
   const isProduction2 = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
-  if (user2.role !== "master" && user2.role !== "super_master") {
+  let enableOtpSystem = true;
+  try {
+    const rows = await db.select().from(systemConfigsTable);
+    const otpRow = rows.find((r) => r.key === "enableOtpSystem");
+    if (otpRow) {
+      enableOtpSystem = otpRow.value !== "false";
+    }
+  } catch (err) {
+  }
+  if (enableOtpSystem && user2.role !== "master" && user2.role !== "super_master") {
     const otpCode = Math.floor(1e5 + Math.random() * 9e5).toString();
     try {
       await sendOtpEmail(user2.email, otpCode);
@@ -62109,6 +62118,7 @@ var readConfig = async () => {
   let hideMappingCode = true;
   let datamatrixUrlMode = false;
   let hidePackagingHierarchy = true;
+  let enableOtpSystem = true;
   try {
     const rows = await db.select().from(systemConfigsTable);
     const mapCodeRow = rows.find((r) => r.key === "hideMappingCode");
@@ -62123,9 +62133,13 @@ var readConfig = async () => {
     if (phRow) {
       hidePackagingHierarchy = phRow.value === "true";
     }
+    const otpRow = rows.find((r) => r.key === "enableOtpSystem");
+    if (otpRow) {
+      enableOtpSystem = otpRow.value !== "false";
+    }
   } catch (err) {
   }
-  return { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy };
+  return { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, enableOtpSystem };
 };
 var writeConfig = async (config2) => {
   try {
@@ -62156,6 +62170,15 @@ var writeConfig = async (config2) => {
         set: { value: String(config2.hidePackagingHierarchy) }
       });
     }
+    if (config2.enableOtpSystem !== void 0) {
+      await db.insert(systemConfigsTable).values({
+        key: "enableOtpSystem",
+        value: String(config2.enableOtpSystem)
+      }).onConflictDoUpdate({
+        target: systemConfigsTable.key,
+        set: { value: String(config2.enableOtpSystem) }
+      });
+    }
   } catch (err) {
   }
 };
@@ -62164,7 +62187,7 @@ router12.get("/system-config", requireAuth, async (req, res) => {
   res.json(config2);
 });
 router12.post("/system-config", requireAuth, requireRole("super_master"), async (req, res) => {
-  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel } = req.body;
+  const { hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel, enableOtpSystem } = req.body;
   const updates = {};
   if (hideMappingCode !== void 0) {
     if (typeof hideMappingCode !== "boolean") {
@@ -62193,6 +62216,13 @@ router12.post("/system-config", requireAuth, requireRole("super_master"), async 
       return;
     }
     updates.hidePackagingLevel = hidePackagingLevel;
+  }
+  if (enableOtpSystem !== void 0) {
+    if (typeof enableOtpSystem !== "boolean") {
+      res.status(400).json({ error: "Invalid value for enableOtpSystem" });
+      return;
+    }
+    updates.enableOtpSystem = enableOtpSystem;
   }
   await writeConfig(updates);
   const config2 = await readConfig();

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db, usersTable, companiesTable, passkeysTable, deviceCodesTable } from "@workspace/db";
+import { db, usersTable, companiesTable, passkeysTable, deviceCodesTable, systemConfigsTable } from "@workspace/db";
 import { LoginBody, LoginResponse, RegisterBody } from "@workspace/api-zod";
 import crypto from "crypto";
 import { sendOtpEmail } from '../lib/mail.js';
@@ -143,7 +143,18 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
-  if (user.role !== "master" && user.role !== "super_master") {
+  let enableOtpSystem = true;
+  try {
+    const rows = await db.select().from(systemConfigsTable);
+    const otpRow = rows.find(r => r.key === "enableOtpSystem");
+    if (otpRow) {
+      enableOtpSystem = otpRow.value !== "false";
+    }
+  } catch (err) {
+    // ignore
+  }
+
+  if (enableOtpSystem && user.role !== "master" && user.role !== "super_master") {
     // Generate random 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     try {

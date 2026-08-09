@@ -37,6 +37,8 @@ const locationSchema = z.object({
     ),
 });
 
+import { useConfirmAlerts, requestMultipleConfirmations } from "@/hooks/useConfirmAlerts";
+
 type LocationForm = z.infer<typeof locationSchema>;
 
 export default function NewLocation() {
@@ -44,6 +46,7 @@ export default function NewLocation() {
   const id = idStr ? parseInt(idStr, 10) : undefined;
   const isEdit = id !== undefined;
 
+  const { confirmCount } = useConfirmAlerts();
   const createLocation = useCreateLocation();
   const { data: currentUser } = useGetCurrentUser();
   const isMaster = currentUser?.role === "master" || currentUser?.role === "super_master";
@@ -62,6 +65,40 @@ export default function NewLocation() {
   const [zipCode, setZipCode] = useState("");
   const [licenseNo, setLicenseNo] = useState("");
 
+  const [dirtySections, setDirtySections] = useState<Record<string, boolean>>({});
+
+  const markSectionDirty = (sectionName: string) => {
+    setDirtySections((prev) => ({ ...prev, [sectionName]: true }));
+  };
+
+  const markSectionClean = (sectionName: string) => {
+    setDirtySections((prev) => ({ ...prev, [sectionName]: false }));
+  };
+
+  const hasAnyDirtySection = Object.values(dirtySections).some(Boolean);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isEdit && hasAnyDirtySection) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved edited changes! Please confirm or save your changes before leaving.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isEdit, hasAnyDirtySection]);
+
+  const confirmNavigation = (targetPath: string) => {
+    if (isEdit && hasAnyDirtySection) {
+      const confirmLeave = window.confirm(
+        "You have unconfirmed changes in one or more sections! Are you sure you want to leave without saving?"
+      );
+      if (!confirmLeave) return;
+    }
+    setLocation(targetPath);
+  };
+
   const form = useForm<LocationForm>({
     resolver: zodResolver(locationSchema),
     defaultValues: {
@@ -78,27 +115,28 @@ export default function NewLocation() {
 
   useEffect(() => {
     if (isEdit && loc) {
-      const currentValues = form.getValues();
       form.reset({
-        locationType: currentValues.locationType || loc.locationType || "Warehouse",
-        uniqueName: currentValues.uniqueName || loc.uniqueName || "",
-        locationName: currentValues.locationName || loc.locationName || "",
-        contactNo: currentValues.contactNo || loc.contactNo || "",
-        address: currentValues.address || loc.address || "",
-        city: currentValues.city || loc.city || "",
-        state: currentValues.state || loc.state || "",
-        gln: currentValues.gln || loc.gln || "",
+        locationType: loc.locationType || "Warehouse",
+        uniqueName: loc.uniqueName || "",
+        locationName: loc.locationName || "",
+        contactNo: loc.contactNo || "",
+        address: loc.address || "",
+        city: loc.city || "",
+        state: loc.state || "",
+        gln: loc.gln || "",
       });
       if (loc.companyId) {
         setSelectedCompanyId(String(loc.companyId));
       } else {
         setSelectedCompanyId("none");
       }
+      setDirtySections({});
     }
-  }, [loc?.id, isEdit]);
+  }, [loc, isEdit]);
 
-  const onSubmit = (values: LocationForm) => {
-    const payload = {
+  const getPayload = () => {
+    const values = form.getValues();
+    return {
       ...values,
       companyId: isMaster
         ? selectedCompanyId && selectedCompanyId !== "none"
@@ -106,6 +144,37 @@ export default function NewLocation() {
           : null
         : undefined,
     };
+  };
+
+  const handleSaveSection = async (sectionName: string) => {
+    if (!isEdit || !id) return;
+    const confirmed = await requestMultipleConfirmations(confirmCount, sectionName);
+    if (!confirmed) return;
+
+    const payload = getPayload();
+
+    try {
+      const res = await fetch(`/api/locations/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to update ${sectionName}`);
+      }
+      queryClient.invalidateQueries({
+        queryKey: getListLocationsQueryKey(),
+      });
+      markSectionClean(sectionName);
+      toast.success(`${sectionName} saved successfully`);
+    } catch (error: any) {
+      toast.error(error.message || `Failed to update ${sectionName}`);
+    }
+  };
+
+  const onSubmit = (values: LocationForm) => {
+    const payload = getPayload();
 
     if (isEdit) {
       fetch(`/api/locations/${id}`, {
@@ -121,6 +190,7 @@ export default function NewLocation() {
           queryClient.invalidateQueries({
             queryKey: getListLocationsQueryKey(),
           });
+          setDirtySections({});
           toast.success("Location updated successfully");
           setLocation("/locations");
         })
@@ -150,9 +220,9 @@ export default function NewLocation() {
     <div className="max-w-[1200px] mx-auto space-y-6 pb-12 font-sans">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-slate-500">
-        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => setLocation("/dashboard")}>Master Data</a>
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => confirmNavigation("/dashboard")}>Master Data</a>
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => setLocation("/locations")}>Locations</a>
+        <a className="text-[11px] font-bold hover:text-[#2563EB] transition-colors uppercase tracking-wider cursor-pointer" onClick={() => confirmNavigation("/locations")}>Locations</a>
         <span className="material-symbols-outlined text-[14px]">chevron_right</span>
         <span className="text-[11px] text-[#2563EB] uppercase tracking-wider font-bold">
           {isEdit ? "Edit Location" : "Add New Location"}
@@ -168,26 +238,28 @@ export default function NewLocation() {
                 {isEdit ? "Edit Location Details" : "Add New Location"}
               </h2>
               <p className="text-[16px] text-slate-600 mt-1">
-                {isEdit ? "Update warehouse, factory, or retail outlet configuration." : "Register a new warehouse, factory, or retail outlet for serialization tracking."}
+                {isEdit ? "Update warehouse, factory, or retail outlet configuration using section save buttons." : "Register a new warehouse, factory, or retail outlet for serialization tracking."}
               </p>
             </div>
             <div className="flex gap-3">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setLocation("/locations")}
+                onClick={() => confirmNavigation("/locations")}
                 className="px-6 py-2.5 border border-slate-200 text-[#0F172A] font-semibold rounded-lg hover:bg-slate-50 transition-colors h-auto cursor-pointer"
               >
-                Discard
+                {isEdit ? "Back to Locations" : "Discard"}
               </Button>
-              <Button
-                type="submit"
-                disabled={createLocation.isPending}
-                className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[20px]">save</span>
-                Save Location
-              </Button>
+              {!isEdit && (
+                <Button
+                  type="submit"
+                  disabled={createLocation.isPending}
+                  className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#2563EB]/20 transition-all flex items-center gap-2 active:scale-95 h-auto cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px]">save</span>
+                  Save Location
+                </Button>
+              )}
             </div>
           </div>
 
@@ -197,9 +269,26 @@ export default function NewLocation() {
               
               {/* Section 1: Basic Location Details */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">Basic Location Details</h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
+                    <h3 className="text-lg font-bold text-[#0F172A]">Basic Location Details</h3>
+                    {isEdit && dirtySections["Basic Location Details"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Basic Location Details")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Basic Details
+                    </Button>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
@@ -324,9 +413,26 @@ export default function NewLocation() {
 
               {/* Section 2: Contact Information */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">Contact Information</h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                    <h3 className="text-lg font-bold text-[#0F172A]">Contact Information</h3>
+                    {isEdit && dirtySections["Contact Information"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Contact Information")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Contact Info
+                    </Button>
+                  )}
                 </div>
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -381,9 +487,26 @@ export default function NewLocation() {
 
               {/* Section 3: Address Details */}
               <section className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>map</span>
-                  <h3 className="text-lg font-bold text-[#0F172A]">Address Details</h3>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#2563EB]" style={{ fontVariationSettings: "'FILL' 1" }}>map</span>
+                    <h3 className="text-lg font-bold text-[#0F172A]">Address Details</h3>
+                    {isEdit && dirtySections["Address Details"] && (
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  {isEdit && (
+                    <Button
+                      type="button"
+                      onClick={() => handleSaveSection("Address Details")}
+                      className="px-4 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 h-9"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Save Address Details
+                    </Button>
+                  )}
                 </div>
                 <div className="space-y-6">
                   <FormField
