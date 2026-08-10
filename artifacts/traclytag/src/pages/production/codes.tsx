@@ -304,7 +304,10 @@ const getCustomFormattedCodeLink = (code: any) => {
   // 5. Serial No
   const serialNo = parsed.serial || code.serialNumber || (raw && !raw.startsWith("00") && !raw.startsWith("(01)") && !raw.startsWith("INVALID_") ? raw : "5491794546E0");
 
-  return `${gstNo}-${batchNo}-${mfgYear}-${expYear}-${serialNo}`;
+  // If batchNo itself contains hyphens (e.g., BN-2026-oct-12), using hyphen-delimited 5-part string breaks into unexpected number of parts.
+  // We sanitize hyphenated components or fallback to clean serialNo for single-part representation.
+  const cleanBatch = batchNo.replace(/-/g, "");
+  return `${gstNo}-${cleanBatch}-${mfgYear}-${expYear}-${serialNo}`;
 };
 
 const getProductString = (
@@ -334,12 +337,11 @@ const getProductString = (
   }
   const expiryYear = expiryDateStr && expiryDateStr.length >= 2 ? `20${expiryDateStr.substring(0, 2)}` : "";
 
-  return `(01)${displayGtin}-${batchNum ? `(10)${batchNum}-` : ""}${expiryYear ? `(17)${expiryYear}-` : ""}(21)${serialNum}`;
+  return `(01)${displayGtin}${batchNum ? `-(10)${batchNum}` : ""}${expiryYear ? `-(17)${expiryYear}` : ""}-(21)${serialNum}`;
 };
 
 const renderGs1Text = (codeObj: any, onCopy: () => void) => {
   const raw = codeObj.rawString || "";
-  const companyGstin = codeObj.companyGstin;
   const parsed = parseGs1Raw(raw);
 
   if (parsed.sscc) {
@@ -354,45 +356,21 @@ const renderGs1Text = (codeObj: any, onCopy: () => void) => {
     );
   }
 
-  const displayGtin = parsed.gtin || companyGstin || "27AAAAA0000A1Z5";
-  const serialNum = parsed.serial || codeObj.serialNumber || (raw && !raw.startsWith("00") && !raw.startsWith("(01)") && !raw.startsWith("INVALID_") ? raw : "102DE11E894C");
-  const batchNum = parsed.batch || codeObj.batchNumber || "";
-
-  let expiryDateStr = parsed.expiry || "";
-  if (!expiryDateStr && codeObj.expiryDate) {
-    try {
-      expiryDateStr = format(new Date(codeObj.expiryDate), "yyMMdd");
-    } catch {
-      expiryDateStr = "";
-    }
-  }
-  const expiryYear = expiryDateStr && expiryDateStr.length >= 2 ? `20${expiryDateStr.substring(0, 2)}` : "";
-
-  const concatenated = `(01)${displayGtin}-${batchNum ? `(10)${batchNum}-` : ""}${expiryYear ? `(17)${expiryYear}-` : ""}(21)${serialNum}`;
+  const displayCode = parsed.serial || codeObj.serialNumber || (raw && !raw.startsWith("00") && !raw.startsWith("(01)") && !raw.startsWith("INVALID_") ? raw : codeObj.serialNumber || "102DE11E894C");
 
   return (
-    <div className="text-[11px] font-mono text-slate-900 text-left space-y-0.5 w-full leading-tight">
-      {/* (01) line with copy icon aligned right */}
-      <div className="flex items-center justify-between gap-1">
-        <span className="font-bold">{displayGtin ? `(01)${displayGtin}` : ""}</span>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="text-slate-400 hover:text-blue-600 p-0.5 rounded cursor-pointer transition-colors shrink-0"
-          title="Copy raw DataMatrix code"
-        >
-          <Copy className="h-4 w-4" />
-        </button>
+    <div className="text-center w-full flex items-center justify-between gap-1 px-1">
+      <div className="text-xs font-bold text-midnight-navy font-mono truncate max-w-[140px]" title={displayCode}>
+        {displayCode}
       </div>
-      {serialNum && <div className="font-bold">(21){serialNum}</div>}
-      {batchNum && <div className="font-bold">(10){batchNum}</div>}
-      {expiryDateStr && <div className="font-bold">(17){expiryDateStr}</div>}
-
-      {/* Horizontal divider line */}
-      <div className="border-t border-slate-200/80 my-1.5 pt-1.5 text-[10px] text-slate-600 font-mono break-all leading-normal">
-        <span className="font-semibold text-slate-500">Product string: </span>
-        <span className="font-bold text-slate-800">{concatenated}</span>
-      </div>
+      <button
+        type="button"
+        onClick={onCopy}
+        className="h-6 w-6 text-slate-400 hover:text-[#2563EB] hover:bg-slate-100 rounded-md shrink-0 cursor-pointer flex items-center justify-center transition-colors"
+        title="Copy raw DataMatrix code"
+      >
+        <Copy className="h-3 w-3" />
+      </button>
     </div>
   );
 };
