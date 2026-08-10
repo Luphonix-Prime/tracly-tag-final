@@ -263,17 +263,30 @@ export default function NewProduct() {
 
   const getPayload = () => {
     const values = form.getValues();
-    const derivedSkuSize = values.weightValue && values.weightValue > 0 
+    const derivedSkuSize = values.weightValue && Number(values.weightValue) > 0 
       ? `${values.weightValue} ${values.unit || "Piece"}` 
       : (values.unit || "Piece");
 
+    const toNum = (val: any, fallback: number | null = null): number | null => {
+      if (val === undefined || val === null || String(val).trim() === "") return fallback;
+      const num = Number(val);
+      return isNaN(num) ? fallback : num;
+    };
+
     return {
       ...values,
+      mrp: toNum(values.mrp, 0)!,
+      gstRate: toNum(values.gstRate, null),
+      weightValue: toNum(values.weightValue, null),
+      shelfLifeDays: toNum(values.shelfLifeDays, null),
+      l1Size: toNum(values.l1Size, 0)!,
+      l2Size: toNum(values.l2Size, 0)!,
+      shipperSize: toNum(values.shipperSize, 0)!,
       skuSize: values.skuSize || derivedSkuSize,
       unit: values.unit || "Piece",
       weightUnit: values.weightUnit || "g",
       isGs1Compliant: isSuperMaster ? values.isGs1Compliant : false,
-      companyId: isMaster ? values.companyId : currentUser?.companyId || 1,
+      companyId: isMaster ? (values.companyId ? Number(values.companyId) : undefined) : currentUser?.companyId || 1,
       sapDescription: values.sapDescription || undefined,
       registrationNo: values.registrationNo || undefined,
       cautionLogoUrl: values.cautionLogoUrl || undefined,
