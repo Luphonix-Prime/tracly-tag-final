@@ -267,15 +267,21 @@ export default function NewProduct() {
       ? `${values.weightValue} ${values.unit || "Piece"}` 
       : (values.unit || "Piece");
 
+    const toNum = (val: any, fallback: number | null = null): number | null => {
+      if (val === undefined || val === null || String(val).trim() === "") return fallback;
+      const num = Number(val);
+      return isNaN(num) ? fallback : num;
+    };
+
     return {
       ...values,
-      mrp: values.mrp !== undefined && values.mrp !== null && values.mrp !== "" ? Number(values.mrp) : 0,
-      gstRate: values.gstRate !== undefined && values.gstRate !== null && values.gstRate !== "" ? Number(values.gstRate) : null,
-      weightValue: values.weightValue !== undefined && values.weightValue !== null && values.weightValue !== "" ? Number(values.weightValue) : null,
-      shelfLifeDays: values.shelfLifeDays !== undefined && values.shelfLifeDays !== null && values.shelfLifeDays !== "" ? Number(values.shelfLifeDays) : null,
-      l1Size: values.l1Size !== undefined && values.l1Size !== null && values.l1Size !== "" ? Number(values.l1Size) : 0,
-      l2Size: values.l2Size !== undefined && values.l2Size !== null && values.l2Size !== "" ? Number(values.l2Size) : 0,
-      shipperSize: values.shipperSize !== undefined && values.shipperSize !== null && values.shipperSize !== "" ? Number(values.shipperSize) : 0,
+      mrp: toNum(values.mrp, 0)!,
+      gstRate: toNum(values.gstRate, null),
+      weightValue: toNum(values.weightValue, null),
+      shelfLifeDays: toNum(values.shelfLifeDays, null),
+      l1Size: toNum(values.l1Size, 0)!,
+      l2Size: toNum(values.l2Size, 0)!,
+      shipperSize: toNum(values.shipperSize, 0)!,
       skuSize: values.skuSize || derivedSkuSize,
       unit: values.unit || "Piece",
       weightUnit: values.weightUnit || "g",
