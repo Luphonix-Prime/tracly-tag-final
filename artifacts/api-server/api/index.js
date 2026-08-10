@@ -61526,6 +61526,11 @@ router9.get("/reports/dashboard", requireModule("dashboard"), async (req, res) =
     level: codesTable.level,
     count: count()
   }).from(codesTable).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).where(scope).groupBy(codesTable.level);
+  const customerScansByCity = await db.select({
+    city: customerScansTable.city,
+    count: count()
+  }).from(customerScansTable).innerJoin(codesTable, eq(customerScansTable.codeId, codesTable.id)).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).where(scope).groupBy(customerScansTable.city).orderBy(desc(count()));
+  const [totalCustomerScansAgg] = await db.select({ count: count() }).from(customerScansTable).innerJoin(codesTable, eq(customerScansTable.codeId, codesTable.id)).innerJoin(productsTable, eq(codesTable.productId, productsTable.id)).where(scope);
   res.json({
     totalProducts: productsAgg?.count ?? 0,
     totalBatches: batchesAgg?.count ?? 0,
@@ -61535,6 +61540,8 @@ router9.get("/reports/dashboard", requireModule("dashboard"), async (req, res) =
     totalLocations: locsAgg?.count ?? 0,
     totalUsers: usersAgg?.count ?? 0,
     totalCompanies: companiesAgg?.count ?? 0,
+    totalCustomerScans: totalCustomerScansAgg?.count ?? 0,
+    customerScansByCity,
     recentCodes: recent,
     codesByLevel: byLevel
   });
