@@ -263,17 +263,24 @@ export default function NewProduct() {
 
   const getPayload = () => {
     const values = form.getValues();
-    const derivedSkuSize = values.weightValue && values.weightValue > 0 
+    const derivedSkuSize = values.weightValue && Number(values.weightValue) > 0 
       ? `${values.weightValue} ${values.unit || "Piece"}` 
       : (values.unit || "Piece");
 
     return {
       ...values,
+      mrp: values.mrp !== undefined && values.mrp !== null && values.mrp !== "" ? Number(values.mrp) : 0,
+      gstRate: values.gstRate !== undefined && values.gstRate !== null && values.gstRate !== "" ? Number(values.gstRate) : null,
+      weightValue: values.weightValue !== undefined && values.weightValue !== null && values.weightValue !== "" ? Number(values.weightValue) : null,
+      shelfLifeDays: values.shelfLifeDays !== undefined && values.shelfLifeDays !== null && values.shelfLifeDays !== "" ? Number(values.shelfLifeDays) : null,
+      l1Size: values.l1Size !== undefined && values.l1Size !== null && values.l1Size !== "" ? Number(values.l1Size) : 0,
+      l2Size: values.l2Size !== undefined && values.l2Size !== null && values.l2Size !== "" ? Number(values.l2Size) : 0,
+      shipperSize: values.shipperSize !== undefined && values.shipperSize !== null && values.shipperSize !== "" ? Number(values.shipperSize) : 0,
       skuSize: values.skuSize || derivedSkuSize,
       unit: values.unit || "Piece",
       weightUnit: values.weightUnit || "g",
       isGs1Compliant: isSuperMaster ? values.isGs1Compliant : false,
-      companyId: isMaster ? values.companyId : currentUser?.companyId || 1,
+      companyId: isMaster ? (values.companyId ? Number(values.companyId) : undefined) : currentUser?.companyId || 1,
       sapDescription: values.sapDescription || undefined,
       registrationNo: values.registrationNo || undefined,
       cautionLogoUrl: values.cautionLogoUrl || undefined,
