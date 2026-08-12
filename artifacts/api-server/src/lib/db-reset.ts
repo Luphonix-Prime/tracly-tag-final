@@ -10,6 +10,7 @@ import {
   customerScansTable,
   deviceCodesTable,
   passkeysTable,
+  systemConfigsTable,
 } from "@workspace/db";
 import { generateUnitCode, generateSsccCode } from './gs1.js';
 
@@ -449,6 +450,16 @@ export async function seedDatabase(dbInstance: any, seedData?: any) {
   ];
 
   await dbInstance.insert(customerScansTable).values(customerScans);
+
+  // Default System Configurations
+  await dbInstance.insert(systemConfigsTable).values([
+    { key: "hideMappingCode", value: "true" },
+    { key: "datamatrixUrlMode", value: "true" },
+    { key: "hidePackagingHierarchy", value: "true" },
+    { key: "hidePackagingLevel", value: "true" },
+    { key: "enableOtpSystem", value: "false" },
+    { key: "enableCustomerScanOtp", value: "true" },
+  ]).onConflictDoNothing();
 }
 
 export async function resetAndSeedDatabase(dbInstance: any, seedData?: any) {
@@ -462,6 +473,14 @@ export async function resetAndSeedDatabase(dbInstance: any, seedData?: any) {
   await dbInstance.delete(locationsTable);
   await dbInstance.delete(usersTable);
   await dbInstance.delete(companiesTable);
+
+  // Reset SQLite auto-increment primary key counters back to 1
+  try {
+    const { sql } = await import("drizzle-orm");
+    await dbInstance.run(sql`DELETE FROM sqlite_sequence`);
+  } catch (e) {
+    // sqlite_sequence might not exist if tables haven't used autoincrement yet
+  }
 
   // Run the seeding logic
   await seedDatabase(dbInstance, seedData);

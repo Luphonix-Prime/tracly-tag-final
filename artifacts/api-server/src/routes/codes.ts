@@ -9,6 +9,7 @@ import {
   usersTable,
   companiesTable,
   customerScansTable,
+  counterTable,
 } from "@workspace/db";
 import { GenerateCodesBody, MapCodeBody } from "@workspace/api-zod";
 import { requireAuth, requireModule } from '../lib/session.js';
@@ -116,23 +117,71 @@ const getCityFromZip = (zip: string) => {
   return defaultCities[idx] || "Mumbai";
 };
 
-const logCustomerScan = async (codeId: number, query: any) => {
+const logCustomerScan = async (codeId: number, query: any, rawLink?: string) => {
   try {
     const customerName = String(query.customerName || "Anonymous Customer");
     const mobileNumber = String(query.mobileNumber || "N/A");
     const zipCode = String(query.zipCode || "N/A");
     const city = getCityFromZip(zipCode);
+    const linkStr = rawLink || String(query.rawLink || query.serial || "");
     
+    // Check counter table for prior count of this link/code (keyed by rawLink)
+    const existingCounters = linkStr
+      ? await db
+          .select()
+          .from(counterTable)
+          .where(eq(counterTable.rawLink, linkStr))
+          .limit(1)
+      : [];
+
+    let alreadyScanned = false;
+    let scanCount = 1;
+    let firstScannedAt = new Date().toISOString();
+
+    if (existingCounters.length > 0) {
+      const cnt = existingCounters[0];
+      alreadyScanned = cnt.scanCount > 0;
+      scanCount = cnt.scanCount + 1;
+      firstScannedAt = cnt.firstScannedAt;
+      
+      await db
+        .update(counterTable)
+        .set({
+          scanCount: scanCount,
+          lastScannedAt: new Date().toISOString(),
+          codeId: codeId || cnt.codeId,
+        })
+        .where(eq(counterTable.id, cnt.id));
+    } else {
+      // Check customerScansTable as fallback count
+      const previousScans = await db
+        .select()
+        .from(customerScansTable)
+        .where(eq(customerScansTable.codeId, codeId))
+        .orderBy(customerScansTable.createdAt);
+
+      if (previousScans.length > 0) {
+        alreadyScanned = true;
+        scanCount = previousScans.length + 1;
+        firstScannedAt = previousScans[0].createdAt;
+      }
+
+      await db.insert(counterTable).values({
+        codeId,
+        rawLink: linkStr,
+        scanCount,
+        firstScannedAt,
+        lastScannedAt: new Date().toISOString(),
+      });
+    }
+
     const previousScans = await db
       .select()
       .from(customerScansTable)
       .where(eq(customerScansTable.codeId, codeId))
       .orderBy(customerScansTable.createdAt);
 
-    const scanCountBeforeThis = previousScans.length;
-    const alreadyScanned = scanCountBeforeThis > 0;
-    const firstScannedAt = alreadyScanned ? (previousScans[0].createdAt || `${previousScans[0].scanDate} ${previousScans[0].scanTime}`) : null;
-    const previousScan = alreadyScanned ? previousScans[previousScans.length - 1] : null;
+    const previousScan = previousScans.length > 0 ? previousScans[previousScans.length - 1] : null;
 
     const now = new Date();
     const scanTime = now.toTimeString().split(" ")[0];
@@ -151,11 +200,11 @@ const logCustomerScan = async (codeId: number, query: any) => {
       scanTime,
       scanDate,
     });
-    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city}) - scan #${scanCountBeforeThis + 1}`);
+    console.log(`[Public Verify] Logged customer scan for code ID ${codeId} (${customerName}, ${city}) - total count #${scanCount}`);
 
     return {
       alreadyScanned,
-      scanCount: scanCountBeforeThis + 1,
+      scanCount,
       firstScannedAt,
       previousScan: previousScan ? {
         customerName: previousScan.customerName,
@@ -170,6 +219,120 @@ const logCustomerScan = async (codeId: number, query: any) => {
     return { alreadyScanned: false, scanCount: 1, firstScannedAt: null, previousScan: null };
   }
 };
+
+router.get("/codes/check/:serial", async (req, res): Promise<void> => {
+  let serial = req.params.serial;
+  if (!serial) {
+    res.status(400).json({ error: "Serial number is required" });
+    return;
+  }
+
+  try {
+    let searchSerial = serial.trim();
+    if (searchSerial.includes("::")) {
+      searchSerial = searchSerial.split("::")[1] || searchSerial;
+    } else if (searchSerial.includes(":")) {
+      const parts = searchSerial.split(":");
+      searchSerial = parts[parts.length - 1] || searchSerial;
+    }
+
+    if (searchSerial.includes("-")) {
+      const parts = searchSerial.split("-");
+      if (parts.length >= 4) {
+        const potentialSerial = parts[parts.length - 1];
+        if (potentialSerial && potentialSerial.length >= 6 && !potentialSerial.includes(" ")) {
+          const matches = await db
+            .select({ id: codesTable.id })
+            .from(codesTable)
+            .where(eq(codesTable.serialNumber, potentialSerial))
+            .limit(1);
+          if (matches.length > 0) {
+            searchSerial = potentialSerial;
+          }
+        }
+      }
+    }
+
+    if (searchSerial.includes("-")) {
+      const parts = searchSerial.split("-");
+      const serialIndex = parts.findIndex(p => p.startsWith("21"));
+      if (serialIndex > -1) {
+        searchSerial = parts.slice(serialIndex).join("-").substring(2);
+      } else {
+        const ssccIndex = parts.findIndex(p => p.startsWith("00"));
+        if (ssccIndex > -1) {
+          searchSerial = parts.slice(ssccIndex).join("-").substring(2);
+        }
+      }
+    } else if (searchSerial.includes("(21)")) {
+      const match = searchSerial.match(/\(21\)([^()]+)/);
+      if (match && match[1]) {
+        searchSerial = match[1];
+      }
+    } else if (searchSerial.includes("(00)")) {
+      const match = searchSerial.match(/\(00\)([^()]+)/);
+      if (match && match[1]) {
+        searchSerial = match[1];
+      }
+    }
+
+    const rows = await db
+      .select({ id: codesTable.id })
+      .from(codesTable)
+      .where(
+        or(
+          eq(codesTable.serialNumber, searchSerial),
+          eq(codesTable.ssccCode, searchSerial),
+          eq(codesTable.rawString, searchSerial)
+        )
+      )
+      .limit(1);
+
+    if (rows.length === 0) {
+      res.json({ alreadyScanned: false, scanCount: 0 });
+      return;
+    }
+
+    const codeId = rows[0].id;
+
+    // Check counterTable first by rawLink or codeId
+    const rawLinkParam = serial.trim();
+    const counters = await db
+      .select()
+      .from(counterTable)
+      .where(or(eq(counterTable.rawLink, rawLinkParam), eq(counterTable.codeId, codeId)))
+      .limit(1);
+
+    const previousScans = await db
+      .select()
+      .from(customerScansTable)
+      .where(eq(customerScansTable.codeId, codeId))
+      .orderBy(customerScansTable.createdAt);
+
+    let scanCount = previousScans.length;
+    if (counters.length > 0 && counters[0].scanCount > scanCount) {
+      scanCount = counters[0].scanCount;
+    }
+
+    const alreadyScanned = scanCount > 0;
+    const previousScan = alreadyScanned ? previousScans[previousScans.length - 1] : null;
+
+    res.json({
+      alreadyScanned,
+      scanCount,
+      previousScan: previousScan ? {
+        customerName: previousScan.customerName,
+        city: previousScan.city,
+        scanDate: previousScan.scanDate,
+        scanTime: previousScan.scanTime,
+        createdAt: previousScan.createdAt
+      } : null
+    });
+  } catch (err) {
+    console.error("Check scan error:", err);
+    res.json({ alreadyScanned: false, scanCount: 0 });
+  }
+});
 
 router.get("/codes/public/:serial", async (req, res): Promise<void> => {
   let serial = req.params.serial;
@@ -205,13 +368,19 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
           expiryDate: batchesTable.expiryDate,
           marketedBy: productsTable.marketedBy,
           registrationNo: productsTable.registrationNo,
+          mrp: productsTable.mrp,
+          sapDescription: productsTable.sapDescription,
           companyName: companiesTable.name,
           companyAddress: companiesTable.address,
           companyGstin: companiesTable.gstin,
+          companyFssai: companiesTable.fssaiLicenseNo,
+          factoryLocationName: locationsTable.locationName,
+          factoryAddress: locationsTable.address,
+          factoryCity: locationsTable.city,
+          factoryState: locationsTable.state,
           // Keep public verification resilient even when optional product
           // branding columns are absent in an older deployed database.
           productLogoUrl: sql<string | null>`null`,
-          sapDescription: sql<string | null>`null`,
         })
         .from(codesTable)
         .innerJoin(productsTable, eq(codesTable.productId, productsTable.id))
@@ -289,10 +458,53 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
       )
     );
     
+    // Helper function to resolve row with fallback location data
+    const formatProductRow = async (row: any) => {
+      if (!row) return null;
+      let factoryLoc = row.factoryLocationName;
+      let factoryAddr = row.factoryAddress;
+      let factoryCty = row.factoryCity;
+      let factorySt = row.factoryState;
+
+      // If locationId on code was null, attempt to join company's first registered location
+      if (!factoryLoc && row.productId) {
+        const product = await db
+          .select({ companyId: productsTable.companyId })
+          .from(productsTable)
+          .where(eq(productsTable.id, row.productId))
+          .limit(1);
+
+        if (product.length > 0 && product[0].companyId) {
+          const locs = await db
+            .select()
+            .from(locationsTable)
+            .where(eq(locationsTable.companyId, product[0].companyId))
+            .limit(1);
+          if (locs.length > 0) {
+            factoryLoc = locs[0].locationName;
+            factoryAddr = locs[0].address;
+            factoryCty = locs[0].city;
+            factorySt = locs[0].state;
+          }
+        }
+      }
+
+      return {
+        ...row,
+        sapDescription: row.sapDescription || `${row.productName.toUpperCase()} Industrial Pack`,
+        mrp: row.mrp != null && !isNaN(row.mrp) ? Number(row.mrp) : 499.00,
+        factoryLocationName: factoryLoc || row.companyName || "Primary Manufacturing Unit",
+        factoryAddress: factoryAddr || row.companyAddress || "Industrial Zone",
+        factoryCity: factoryCty || "Mumbai",
+        factoryState: factorySt || "Maharashtra",
+      };
+    };
+
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by serialNumber/ssccCode`);
-      const scanInfo = await logCustomerScan(rows[0].id, req.query);
-      res.json({ ...rows[0], ...scanInfo });
+      const scanInfo = await logCustomerScan(rows[0].id, req.query, serial);
+      const formatted = await formatProductRow(rows[0]);
+      res.json({ ...formatted, ...scanInfo });
       return;
     }
 
@@ -300,8 +512,9 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
     rows = await buildQuery(eq(codesTable.rawString, searchSerial));
     if (rows.length > 0) {
       console.log(`[Public Verify] Found by rawString (barcode match)`);
-      const scanInfo = await logCustomerScan(rows[0].id, req.query);
-      res.json({ ...rows[0], ...scanInfo });
+      const scanInfo = await logCustomerScan(rows[0].id, req.query, serial);
+      const formatted = await formatProductRow(rows[0]);
+      res.json({ ...formatted, ...scanInfo });
       return;
     }
 
@@ -322,8 +535,9 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
         rows = await buildQuery(or(...searchConditions));
         if (rows.length > 0) {
           console.log(`[Public Verify] Found by GS1 parsing`);
-          const scanInfo = await logCustomerScan(rows[0].id, req.query);
-          res.json({ ...rows[0], ...scanInfo });
+          const scanInfo = await logCustomerScan(rows[0].id, req.query, serial);
+          const formatted = await formatProductRow(rows[0]);
+          res.json({ ...formatted, ...scanInfo });
           return;
         }
       }
@@ -346,7 +560,7 @@ router.get("/codes/public/:serial", async (req, res): Promise<void> => {
       }).returning();
       
       if (inserted && inserted[0]) {
-        await logCustomerScan(inserted[0].id, req.query);
+        await logCustomerScan(inserted[0].id, req.query, serial);
       }
     } catch (dbErr) {
       console.error("Failed to insert placeholder code for failed scan logging:", dbErr);
@@ -713,7 +927,19 @@ router.get("/codes/scans", requireAuth, requireModule("customer_scan"), async (r
       });
     }
 
+    // Query counter table to get total counts per codeId (summing across distinct rawLink counter entries)
+    const counterRows = await db.select().from(counterTable);
+    const counterMap = new Map<number, number>();
+    for (const c of counterRows) {
+      const current = counterMap.get(c.codeId) || 0;
+      counterMap.set(c.codeId, current + c.scanCount);
+    }
+
     const result = Array.from(groupedMap.values()).map(entry => {
+      // Use counterTable aggregate count if available and higher
+      if (counterMap.has(entry.codeId)) {
+        entry.count = Math.max(entry.count, counterMap.get(entry.codeId)!);
+      }
       if (entry.count > 5) {
         entry.type = "anomaly";
       } else if (entry.count > 1) {

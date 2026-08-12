@@ -30,8 +30,15 @@ interface VerificationDetails {
   expiryDate: string | null;
   marketedBy: string | null;
   registrationNo: string | null;
+  mrp: number | null;
   companyName: string | null;
   companyAddress: string | null;
+  companyGstin: string | null;
+  companyFssai: string | null;
+  factoryLocationName: string | null;
+  factoryAddress: string | null;
+  factoryCity: string | null;
+  factoryState: string | null;
   productLogoUrl: string | null;
   sapDescription: string | null;
   alreadyScanned?: boolean;
@@ -51,16 +58,69 @@ export default function PublicVerify() {
   const [, setLocation] = useLocation();
   
   const [data, setData] = useState<VerificationDetails | null>(null);
+  const [initialCheck, setInitialCheck] = useState<{ alreadyScanned?: boolean; scanCount?: number; previousScan?: any } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check prior scan count on page open
+  useEffect(() => {
+    if (!serial) return;
+    fetch(`/api/codes/check/${encodeURIComponent(serial)}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((json) => {
+        if (json) setInitialCheck(json);
+      })
+      .catch((err) => console.error("Initial check scan error:", err));
+  }, [serial]);
 
   // Form states matching mockup
   const [step, setStep] = useState<"form" | "result">("form");
   const [fullName, setFullName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [locationAddress, setLocationAddress] = useState("");
   const [locationAccess, setLocationAccess] = useState(true);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [enableCustomerScanOtp, setEnableCustomerScanOtp] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/system-config")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((config) => {
+        if (config && typeof config.enableCustomerScanOtp === "boolean") {
+          setEnableCustomerScanOtp(config.enableCustomerScanOtp);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSendOtp = async () => {
+    if (!email.trim() || !/\S+@\S+\.\S+/.test(email.trim())) {
+      toast.error("Please enter a valid email address first.");
+      return;
+    }
+    setIsSendingOtp(true);
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send OTP email.");
+      }
+      setOtpSent(true);
+      toast.success(data.message || "OTP verification code sent to your email!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send OTP email");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
 
   const fetchLocationAutomatically = () => {
     if (!navigator.geolocation) {
@@ -127,7 +187,7 @@ export default function PublicVerify() {
     );
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     setError(null);
 
     if (!serial) {
@@ -151,6 +211,16 @@ export default function PublicVerify() {
       return;
     }
 
+    if (!email.trim() || !/\S+@\S+\.\S+/.test(email.trim())) {
+      setError("Valid Email Address is required.");
+      return;
+    }
+
+    if (enableCustomerScanOtp && !otp.trim()) {
+      setError("Email OTP code is required. Click 'Send OTP' to receive code.");
+      return;
+    }
+
     if (!locationAddress.trim()) {
       setError("Location is required.");
       return;
@@ -158,9 +228,29 @@ export default function PublicVerify() {
 
     setLoading(true);
 
+    // Verify OTP if enabled
+    if (enableCustomerScanOtp) {
+      try {
+        const otpRes = await fetch("/api/auth/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), otp: otp.trim() }),
+        });
+        const otpData = await otpRes.json();
+        if (!otpRes.ok) {
+          throw new Error(otpData.error || "Invalid or expired OTP code.");
+        }
+      } catch (err: any) {
+        setError(err.message || "OTP Verification Failed.");
+        setLoading(false);
+        return;
+      }
+    }
+
     const params = new URLSearchParams({
       customerName: fullName.trim(),
       mobileNumber: mobileNumber.trim(),
+      email: email.trim(),
       zipCode: locationAddress.trim(),
     });
 
@@ -262,15 +352,33 @@ export default function PublicVerify() {
                 <img src="/logo-icon.png" alt="Scan Icon" className="h-12 w-12 object-contain animate-pulse" />
               </div>
               <h2 className="text-xl font-bold text-midnight-navy dark:text-white mb-2">Final Verification</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 px-4">
+              <p className="text-xs text-slate-500 dark:text-slate-400 px-4 mb-3">
                 Complete the secure form below to authenticate your product with TracelyTag Industrial Security.
               </p>
+
+              {/* Warning banner when product has already been scanned previously */}
+              {initialCheck?.alreadyScanned && (
+                <div className="border border-amber-300 bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3.5 text-left space-y-1.5 shadow-sm text-xs mt-3">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-bold text-xs sm:text-sm">
+                    <AlertCircle className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Warning: QR Code Already Scanned</span>
+                  </div>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed pl-6">
+                    This product code has already been scanned <span className="font-extrabold">{initialCheck.scanCount} time(s)</span>.
+                    {initialCheck.previousScan?.scanDate && (
+                      <> First scanned on <span className="font-bold">{initialCheck.previousScan.scanDate} {initialCheck.previousScan.scanTime ? `at ${initialCheck.previousScan.scanTime}` : ''}</span>{initialCheck.previousScan.city ? ` from ${initialCheck.previousScan.city}` : ''}.</>
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
 
             <section className="space-y-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-lg">
               {/* Full Name */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Full Name</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <Input 
                     className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm" 
@@ -278,13 +386,16 @@ export default function PublicVerify() {
                     value={fullName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFullName(e.target.value)}
                     type="text"
+                    required
                   />
                 </div>
               </div>
 
               {/* Mobile Number */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Mobile Number</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                  Mobile Number <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <Input 
                     className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm" 
@@ -292,13 +403,74 @@ export default function PublicVerify() {
                     value={mobileNumber}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMobileNumber(e.target.value)}
                     type="tel"
+                    required
                   />
                 </div>
               </div>
 
+              {/* Email Address */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm" 
+                    placeholder="alexander@example.com" 
+                    value={email}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                    type="email"
+                    required
+                  />
+                  {enableCustomerScanOtp && (
+                    <Button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={isSendingOtp}
+                      className="h-11 px-3 text-xs bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg shrink-0 cursor-pointer"
+                    >
+                      {isSendingOtp ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-white" />
+                      ) : otpSent ? (
+                        "Resend OTP"
+                      ) : (
+                        "Send OTP"
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Email OTP Verification */}
+              {enableCustomerScanOtp && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                    Email OTP Code <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input 
+                      className="w-full h-11 pl-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-safety-blue rounded-lg text-sm font-mono tracking-widest" 
+                      placeholder="Enter 6-digit OTP" 
+                      value={otp}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOtp(e.target.value)}
+                      maxLength={6}
+                      type="text"
+                      required
+                    />
+                  </div>
+                  {otpSent && (
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                      ✓ OTP has been sent to {email}. Check your inbox/spam folder.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Location */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Location</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                  Location <span className="text-red-500">*</span>
+                </label>
                 <div className="flex items-center w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-11 rounded-lg overflow-hidden pl-4 pr-1 gap-3 focus-within:border-safety-blue focus-within:ring-1 focus-within:ring-safety-blue transition-all">
                   <Input 
                     className="bg-transparent border-0 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm w-full h-full p-0 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600" 
@@ -306,6 +478,7 @@ export default function PublicVerify() {
                     value={locationAddress}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationAddress(e.target.value)}
                     type="text"
+                    required
                   />
                   <Button
                     type="button"
@@ -325,7 +498,6 @@ export default function PublicVerify() {
                 </div>
               </div>
 
-
               {/* Location Toggle */}
               <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center justify-between">
                 <div className="flex flex-col">
@@ -334,8 +506,14 @@ export default function PublicVerify() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setLocationAccess(!locationAccess)}
-                  className={`w-11 h-6 rounded-full relative transition-colors duration-200 focus:outline-none ${locationAccess ? "bg-safety-blue" : "bg-slate-300 dark:bg-slate-800"}`}
+                  onClick={() => {
+                    const nextVal = !locationAccess;
+                    setLocationAccess(nextVal);
+                    if (nextVal) {
+                      fetchLocationAutomatically();
+                    }
+                  }}
+                  className={`w-11 h-6 rounded-full relative transition-colors duration-200 focus:outline-none cursor-pointer ${locationAccess ? "bg-safety-blue" : "bg-slate-300 dark:bg-slate-800"}`}
                 >
                   <div className={`absolute top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${locationAccess ? "right-1" : "left-1"}`} />
                 </button>
@@ -429,23 +607,7 @@ export default function PublicVerify() {
             <div className="space-y-3.5 text-xs text-slate-700 dark:text-slate-300">
               
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Serial Number</span>
-                <span className="col-span-1 text-center text-slate-400">:</span>
-                <span className="col-span-6 font-mono font-bold text-slate-800 dark:text-white break-all select-all">
-                  {data.serialNumber || data.ssccCode || "N/A"}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Generic Name</span>
-                <span className="col-span-1 text-center text-slate-400">:</span>
-                <span className="col-span-6 font-bold text-slate-800 dark:text-white">
-                  {data.sapDescription || data.productName.toUpperCase()}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Brand Name</span>
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Product Name</span>
                 <span className="col-span-1 text-center text-slate-400">:</span>
                 <span className="col-span-6 font-bold text-slate-800 dark:text-white">
                   {data.productName.toUpperCase()}
@@ -453,21 +615,26 @@ export default function PublicVerify() {
               </div>
 
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Manufacturer</span>
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Batch No.</span>
                 <span className="col-span-1 text-center text-slate-400">:</span>
-                <span className="col-span-6 font-medium text-slate-800 dark:text-white leading-relaxed">
-                  {data.companyName}<br />
-                  <span className="text-[10px] text-slate-400 leading-normal block mt-0.5">
-                    {data.companyAddress || "N/A"}
-                  </span>
+                <span className="col-span-6 font-mono font-bold text-slate-800 dark:text-white select-all">
+                  {data.batchNumber || "N/A"}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
-                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Batch Number</span>
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">SAP Annotation</span>
                 <span className="col-span-1 text-center text-slate-400">:</span>
-                <span className="col-span-6 font-mono font-bold text-slate-800 dark:text-white select-all">
-                  {data.batchNumber || "N/A"}
+                <span className="col-span-6 font-medium text-slate-800 dark:text-white">
+                  {data.sapDescription || "N/A"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">MRP</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-bold text-emerald-600 dark:text-emerald-400">
+                  {data.mrp ? `₹${data.mrp.toFixed(2)}` : "N/A"}
                 </span>
               </div>
 
@@ -487,11 +654,43 @@ export default function PublicVerify() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5 border-b border-slate-200 dark:border-slate-800 pb-4">
-                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">License Number</span>
+              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Company Location</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-medium text-slate-800 dark:text-white leading-relaxed">
+                  {data.companyName || "N/A"}<br />
+                  <span className="text-[10px] text-slate-400 leading-normal block mt-0.5">
+                    {data.companyAddress || "N/A"}
+                  </span>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">Factory Location</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-medium text-slate-800 dark:text-white leading-relaxed">
+                  {data.factoryLocationName || data.locationName || "N/A"}
+                  {(data.factoryAddress || data.factoryCity) && (
+                    <span className="text-[10px] text-slate-400 leading-normal block mt-0.5">
+                      {[data.factoryAddress, data.factoryCity, data.factoryState].filter(Boolean).join(", ")}
+                    </span>
+                  )}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">GST Num</span>
                 <span className="col-span-1 text-center text-slate-400">:</span>
                 <span className="col-span-6 font-mono font-bold text-slate-800 dark:text-white">
-                  {data.registrationNo || "N/A"}
+                  {data.companyGstin || "N/A"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-12 gap-x-2 items-start py-0.5 border-b border-slate-200 dark:border-slate-800 pb-4">
+                <span className="col-span-5 font-bold text-slate-500 dark:text-slate-400">FSSAI Num</span>
+                <span className="col-span-1 text-center text-slate-400">:</span>
+                <span className="col-span-6 font-mono font-bold text-slate-800 dark:text-white">
+                  {data.companyFssai || data.registrationNo || "N/A"}
                 </span>
               </div>
 

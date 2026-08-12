@@ -21,13 +21,19 @@ export default function Settings() {
   const { data: currentUser } = useGetCurrentUser();
 
   const [enableOtpSystem, setEnableOtpSystem] = useState(true);
+  const [enableCustomerScanOtp, setEnableCustomerScanOtp] = useState(true);
 
   useEffect(() => {
     fetch("/api/system-config")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && typeof data.enableOtpSystem === "boolean") {
-          setEnableOtpSystem(data.enableOtpSystem);
+        if (data) {
+          if (typeof data.enableOtpSystem === "boolean") {
+            setEnableOtpSystem(data.enableOtpSystem);
+          }
+          if (typeof data.enableCustomerScanOtp === "boolean") {
+            setEnableCustomerScanOtp(data.enableCustomerScanOtp);
+          }
         }
       })
       .catch(() => {});
@@ -40,6 +46,19 @@ export default function Settings() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enableOtpSystem: enabled }),
+      });
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const toggleCustomerScanOtp = async (enabled: boolean) => {
+    setEnableCustomerScanOtp(enabled);
+    try {
+      await fetch("/api/system-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enableCustomerScanOtp: enabled }),
       });
     } catch (err) {
       // ignore
@@ -236,7 +255,7 @@ export default function Settings() {
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="otp-system-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
-                      Enable OTP Verification System
+                      Enable Login OTP Verification System
                     </Label>
                     <p className="text-xs text-on-surface-variant dark:text-slate-400">
                       When enabled, standard user accounts will be required to verify email OTP during login. When disabled, login bypasses OTP step.
@@ -247,6 +266,27 @@ export default function Settings() {
                   id="otp-system-toggle"
                   checked={enableOtpSystem}
                   onCheckedChange={toggleOtpSystem}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 dark:border-slate-800">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-teal-500/10 rounded-lg text-teal-500 mt-0.5">
+                    <KeyRound className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="customer-scan-otp-toggle" className="text-sm font-bold text-midnight-navy dark:text-white cursor-pointer">
+                      Enable OTP in Customer Scan Verification
+                    </Label>
+                    <p className="text-xs text-on-surface-variant dark:text-slate-400">
+                      When enabled, customers must send and enter an email OTP code to verify product authenticity. When disabled, OTP step is omitted.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="customer-scan-otp-toggle"
+                  checked={enableCustomerScanOtp}
+                  onCheckedChange={toggleCustomerScanOtp}
                 />
               </div>
 

@@ -7,12 +7,14 @@ import {
   locationsTable,
   batchesTable,
   codesTable,
-  customerScansTable
+  customerScansTable,
+  systemConfigsTable
 } from "@workspace/db";
 import { generateUnitCode, generateSsccCode } from "../src/lib/gs1";
 
 async function run() {
   console.log("Truncating existing tables...");
+  await db.delete(systemConfigsTable);
   await db.delete(customerScansTable);
   await db.delete(codesTable);
   await db.delete(batchesTable);
@@ -307,6 +309,17 @@ async function run() {
 
   await db.insert(customerScansTable).values(customerScans);
   console.log(`Customer scans: ${customerScans.length} seeded`);
+
+  // Default System Configurations
+  await db.insert(systemConfigsTable).values([
+    { key: "hideMappingCode", value: "true" },
+    { key: "datamatrixUrlMode", value: "true" },
+    { key: "hidePackagingHierarchy", value: "true" },
+    { key: "hidePackagingLevel", value: "true" },
+    { key: "enableOtpSystem", value: "false" },
+    { key: "enableCustomerScanOtp", value: "false" },
+  ]).onConflictDoNothing();
+  console.log("System configs seeded: hideMappingCode, datamatrixUrlMode, hidePackagingHierarchy, hidePackagingLevel, enableOtpSystem, enableCustomerScanOtp");
 
   console.log("Seed complete.");
 }

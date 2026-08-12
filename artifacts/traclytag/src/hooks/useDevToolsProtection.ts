@@ -22,7 +22,7 @@ export function useDevToolsProtection() {
       // F12 key
       if (e.keyCode === 123 || e.key === "F12") {
         e.preventDefault();
-        return false;
+        return;
       }
 
       const ctrlOrMeta = e.ctrlKey || e.metaKey;
@@ -31,19 +31,19 @@ export function useDevToolsProtection() {
         // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Inspect Element)
         if (e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67 || e.key.toUpperCase() === "I" || e.key.toUpperCase() === "J" || e.key.toUpperCase() === "C")) {
           e.preventDefault();
-          return false;
+          return;
         }
 
         // Ctrl+U (View Source)
         if (e.keyCode === 85 || e.key.toUpperCase() === "U") {
           e.preventDefault();
-          return false;
+          return;
         }
 
         // Ctrl+S (Save Page)
         if (e.keyCode === 83 || e.key.toUpperCase() === "S") {
           e.preventDefault();
-          return false;
+          return;
         }
       }
     };
