@@ -7,6 +7,7 @@ export * from "./codes";
 export * from "./passkeys";
 export * from "./deviceCodes";
 export * from "./customerScans";
+export * from "./counter";
 export * from "./systemConfigs";
 export * from "./ssoRequests";
 

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 import { db, usersTable, companiesTable } from "@workspace/db";
 import { CreateUserBody, UpdateUserBody } from "@workspace/api-zod";
 import { requireAuth, requireModule } from '../lib/session.js';
@@ -248,6 +248,22 @@ router.post("/users", async (req, res): Promise<void> => {
   // Prevent standard master from creating super_master users
   if (parsed.data.role === "super_master" && req.user!.role !== "super_master") {
     res.status(403).json({ error: "Forbidden: Cannot create super master users" });
+    return;
+  }
+
+  // Prevent duplicate user creation (username or email)
+  const existingUser = await db
+    .select({ id: usersTable.id, username: usersTable.username, email: usersTable.email })
+    .from(usersTable)
+    .where(or(eq(usersTable.username, parsed.data.username), eq(usersTable.email, parsed.data.email)))
+    .limit(1);
+
+  if (existingUser.length > 0) {
+    if (existingUser[0].username.toLowerCase() === parsed.data.username.toLowerCase()) {
+      res.status(409).json({ error: `A user with username '${parsed.data.username}' already exists.` });
+      return;
+    }
+    res.status(409).json({ error: `A user with email '${parsed.data.email}' already exists.` });
     return;
   }
 

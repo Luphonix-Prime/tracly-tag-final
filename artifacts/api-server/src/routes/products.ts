@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 import { db, productsTable, companiesTable } from "@workspace/db";
 import { CreateProductBody } from "@workspace/api-zod";
 import { requireAuth, requireModule } from '../lib/session.js';
@@ -76,6 +76,41 @@ router.post("/products", async (req, res): Promise<void> => {
         res.status(400).json({ error: "Invalid GTIN check digit" });
         return;
       }
+    }
+  }
+
+  // Prevent duplicate product creation (by SKU ID, Product Name, or GTIN)
+  const productConditions = [
+    eq(productsTable.skuId, parsed.data.skuId.trim()),
+    eq(productsTable.name, parsed.data.name.trim()),
+  ];
+  if (parsed.data.gtin && parsed.data.gtin.trim()) {
+    productConditions.push(eq(productsTable.gtin, parsed.data.gtin.trim()));
+  }
+
+  const existingProduct = await db
+    .select({ id: productsTable.id, skuId: productsTable.skuId, name: productsTable.name, gtin: productsTable.gtin })
+    .from(productsTable)
+    .where(
+      companyId
+        ? and(eq(productsTable.companyId, Number(companyId)), or(...productConditions))
+        : or(...productConditions)
+    )
+    .limit(1);
+
+  if (existingProduct.length > 0) {
+    const match = existingProduct[0];
+    if (match.skuId.toLowerCase() === parsed.data.skuId.trim().toLowerCase()) {
+      res.status(409).json({ error: `A product with SKU ID '${parsed.data.skuId}' already exists.` });
+      return;
+    }
+    if (match.name.toLowerCase() === parsed.data.name.trim().toLowerCase()) {
+      res.status(409).json({ error: `A product with name '${parsed.data.name}' already exists.` });
+      return;
+    }
+    if (parsed.data.gtin && match.gtin === parsed.data.gtin.trim()) {
+      res.status(409).json({ error: `A product with GTIN '${parsed.data.gtin}' already exists.` });
+      return;
     }
   }
 

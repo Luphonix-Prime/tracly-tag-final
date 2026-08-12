@@ -282,6 +282,27 @@ const InteractiveIndiaMap = ({ scansByCity }: { scansByCity?: { city: string | n
 export default function Dashboard() {
   const { data: user } = useGetCurrentUser();
   const { data: summary, isLoading } = useGetDashboardSummary();
+  const isSuperMaster = user?.role === "super_master";
+
+  const [smtpStatus, setSmtpStatus] = useState<{ configured: boolean; status: string; user?: string; message?: string } | null>(null);
+
+  // Poll SMTP status without delay if super_master
+  React.useEffect(() => {
+    if (!isSuperMaster) return;
+
+    const checkSmtp = () => {
+      fetch("/api/system/smtp-status")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) setSmtpStatus(data);
+        })
+        .catch((err) => console.error("SMTP status check error:", err));
+    };
+
+    checkSmtp();
+    const interval = setInterval(checkSmtp, 10000); // 10s auto-refresh
+    return () => clearInterval(interval);
+  }, [isSuperMaster]);
 
   const handleExport = () => {
     toast.success("Executive Security & Production report generated successfully.");
@@ -381,9 +402,31 @@ export default function Dashboard() {
       {/* Sub Header & Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            {user?.companyName || "TracelyTag Industries"}
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              {user?.companyName || "TracelyTag Industries"}
+            </h2>
+            {isSuperMaster && (
+              <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold shadow-xs ${
+                smtpStatus?.status === "connected"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                  : smtpStatus?.status === "error"
+                  ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
+                  : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+              }`}>
+                <span className={`w-2 h-2 rounded-full animate-ping ${
+                  smtpStatus?.status === "connected" ? "bg-emerald-500" : smtpStatus?.status === "error" ? "bg-red-500" : "bg-amber-500"
+                }`} />
+                <Zap className="h-3.5 w-3.5" />
+                <span>
+                  SMTP: {smtpStatus?.status === "connected" ? "Connected" : smtpStatus?.status === "error" ? "Connection Error" : "Unconfigured"}
+                </span>
+                {smtpStatus?.user && (
+                  <span className="text-[10px] opacity-75 font-mono">({smtpStatus.user})</span>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
             <Calendar className="h-3.5 w-3.5" />
             <span>{format(new Date(), "MMM dd, yyyy")}</span>

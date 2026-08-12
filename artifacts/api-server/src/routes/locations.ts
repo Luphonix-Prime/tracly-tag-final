@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 import { db, locationsTable } from "@workspace/db";
 import { CreateLocationBody } from "@workspace/api-zod";
 import { requireAuth, requireModule } from '../lib/session.js';
@@ -54,6 +54,31 @@ router.post("/locations", async (req, res): Promise<void> => {
       res.status(400).json({ error: "Invalid GLN checksum. Must be standard 13-digit GS1 location code." });
       return;
     }
+  }
+
+  // Prevent duplicate location creation (uniqueName or locationName within the same company)
+  const existingLoc = await db
+    .select({ id: locationsTable.id, uniqueName: locationsTable.uniqueName, locationName: locationsTable.locationName })
+    .from(locationsTable)
+    .where(
+      and(
+        eq(locationsTable.companyId, companyId),
+        or(
+          eq(locationsTable.uniqueName, parsed.data.uniqueName.trim()),
+          eq(locationsTable.locationName, parsed.data.locationName.trim())
+        )
+      )
+    )
+    .limit(1);
+
+  if (existingLoc.length > 0) {
+    const match = existingLoc[0];
+    if (match.uniqueName.toLowerCase() === parsed.data.uniqueName.trim().toLowerCase()) {
+      res.status(409).json({ error: `A location with Code / Unique Name '${parsed.data.uniqueName}' already exists in this company.` });
+      return;
+    }
+    res.status(409).json({ error: `A location with Location Name '${parsed.data.locationName}' already exists in this company.` });
+    return;
   }
 
   const [row] = await db

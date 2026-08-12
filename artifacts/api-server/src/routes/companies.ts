@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 import { db, companiesTable, usersTable } from "@workspace/db";
 import { CreateCompanyBody } from "@workspace/api-zod";
 import { requireAuth, requireRole } from '../lib/session.js';
@@ -132,6 +132,35 @@ router.post(
     if (!parsed.data.gstin || !parsed.data.gstin.trim()) {
       res.status(400).json({ error: "GSTIN is required" });
       return;
+    }
+
+    // Check for duplicate company by name, email, or gstin
+    const existingCompany = await db
+      .select({ id: companiesTable.id, name: companiesTable.name, email: companiesTable.email, gstin: companiesTable.gstin })
+      .from(companiesTable)
+      .where(
+        or(
+          eq(companiesTable.name, parsed.data.name.trim()),
+          eq(companiesTable.email, parsed.data.email.trim()),
+          eq(companiesTable.gstin, parsed.data.gstin.trim())
+        )
+      )
+      .limit(1);
+
+    if (existingCompany.length > 0) {
+      const match = existingCompany[0];
+      if (match.name.toLowerCase() === parsed.data.name.trim().toLowerCase()) {
+        res.status(409).json({ error: `A company with name '${parsed.data.name}' already exists.` });
+        return;
+      }
+      if (match.email.toLowerCase() === parsed.data.email.trim().toLowerCase()) {
+        res.status(409).json({ error: `A company with email '${parsed.data.email}' already exists.` });
+        return;
+      }
+      if (match.gstin && match.gstin.toUpperCase() === parsed.data.gstin.trim().toUpperCase()) {
+        res.status(409).json({ error: `A company with GSTIN '${parsed.data.gstin}' already exists.` });
+        return;
+      }
     }
     const [row] = await db
       .insert(companiesTable)
